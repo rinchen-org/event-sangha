@@ -1,0 +1,6 @@
+name: rinchen
+channels:
+  - nodefaults
+  - conda-forge
+dependencies:
+  - sqlite3

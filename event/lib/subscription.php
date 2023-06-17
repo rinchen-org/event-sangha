@@ -1,29 +1,36 @@
 <?php
-require __DIR__ . "/qr.php";
-require __DIR__ . "/db.php";
+require_once __DIR__ . "/qr.php";
+require_once __DIR__ . "/db.php";
+require_once __DIR__ . "/person.php";
 
 class Subscription {
     public $id;
-    public $fullname;
-    public $email;
-    public $phone;
+    public $person;
+    public $datetime;
     public $qr;
 
-    function __construct($fullname="", $email="", $phone="", $qr="", $id=null) {
-        $this->fullname = $fullname;
-        $this->email = $email;
-        $this->phone = $phone;
+    function __construct($person=null, $qr="", $datetime="", $id=null) {
+        $this->person = $person;
         $this->qr = $qr;
         $this->id = $id;
+        $this->datetime = $datetime;
     }
 
-    public static function get($fullname, $email, $phone) {
+    public static function get($data) {
         $db = get_db();
+
         $query = "
         SELECT * FROM subscription
-        WHERE fullname='$fullname'
-          AND email='$email'
-          AND phone='$phone'";
+        WHERE 1=1";
+
+        // Iterate over the data dictionary
+        foreach ($data as $key => $value) {
+            // Escape the values to prevent SQL injection (assuming using SQLite3 class)
+            $escapedValue = $db->escapeString($value);
+
+            // Add the key-value pair to the WHERE clause
+            $query .= " AND $key='$escapedValue'";
+        }
         $result = $db->query($query);
 
         $row = $result->fetchArray(SQLITE3_ASSOC);
@@ -34,17 +41,52 @@ class Subscription {
         } else {
             $subscription = new Subscription();
             $subscription->id = $row['id'];
-            $subscription->fullname = $row['fullname'];
-            $subscription->email = $row['email'];
-            $subscription->phone = $row['phone'];
+            $subscription->person = Person::get(["id" => $row['id']]);
             $subscription->qr= $row['qr'];
+            $subscription->datetime= $row['datetime'];
         }
 
         return $subscription;
     }
 
+    public static function list() {
+        $db = get_db();
+        $query = "SELECT * FROM subscription";
+        $result = $db->query($query);
+
+        $subscription_list = [];
+
+        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+            $subscription = new Subscription();
+
+            $subscription->id = $row['id'];
+            $subscription->person = Person::get([
+                "id" => $row['person_id']
+            ]);
+            $subscription->datetime = $row['datetime'];
+            $subscription->qr = $row['qr'];
+            $subscription_list[] = $subscription;
+        }
+
+        return $subscription_list;
+    }
+
+
     function validate() {
 
+        if ($this->person == null) {
+            return "Person is required.";
+        }
+
+        if (!$this->person->id) {
+            return "Person is invalid.";
+        }
+
+        if (!$this->qr == "") {
+            return "QR is invalid.";
+        }
+
+        return null;
     }
 
     function save() {
@@ -62,15 +104,18 @@ class Subscription {
         }
 
         $this->qr = generate_qr(
-            $this->fullname,
-            $this->email,
-            $this->phone
+            $this->person->fullname,
+            $this->person->email,
+            $this->person->phone
         );
 
+        $datetime = date('Y-m-d H:i:s');
+
         $db = get_db();
+        $person_id = $this->person->id;
         // Insert the form data into the 'registrations' table
-        $insertQuery = "INSERT INTO subscription (fullname, email, phone, qr)
-                        VALUES ('$this->fullname', '$this->email', '$this->phone', '$this->qr')";
+        $insertQuery = "INSERT INTO subscription (person_id, datetime, qr)
+                        VALUES ('$person_id', '$this->datetime', '$this->qr')";
         $db->exec($insertQuery);
 
         // Close the database connection
@@ -148,13 +193,6 @@ function upload_csv($file) {
         }
         echo "</ul>";
     }
-}
-
-
-function get_subscription_list() {
-    $db = new SQLite3('db.sqlite');
-    $query = "SELECT * FROM subscription";
-    return $db->query($query);
 }
 
 

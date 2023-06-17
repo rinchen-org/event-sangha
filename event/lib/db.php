@@ -27,7 +27,7 @@ function subscription_table() {
   $createTableQuery = "CREATE TABLE IF NOT EXISTS subscription (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     person_id INTEGER,
-    subscription_datetime TEXT,
+    datetime TEXT,
     qr TEXT
   )";
   $db->exec($createTableQuery);
@@ -43,7 +43,7 @@ function attendance_table() {
   $query = "CREATE TABLE IF NOT EXISTS attendance (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       person_id INTEGER,
-      entry_time TEXT
+      datetime TEXT
   )";
   $db->exec($query);
   $db->close();

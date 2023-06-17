@@ -1,5 +1,5 @@
 <?php
-include "functions.php"
+require_once __DIR__ . "lib/subscription.php"
 ?>
 <!DOCTYPE html>
 <html>

@@ -1,6 +1,6 @@
 <?php
-include "lib/qr.php";
-include "lib/db.php";
+require_once "lib/qr.php";
+require_once "lib/db.php";
 
 
 function log_attendance($fullname, $email, $phone) {

@@ -1,7 +1,7 @@
 <?php
 
-require __DIR__ . "/../event/lib/person.php";
-require __DIR__ . "/conftest.php";
+require_once __DIR__ . "/../event/lib/person.php";
+require_once __DIR__ . "/conftest.php";
 
 
 function test_person_get() {
@@ -10,7 +10,11 @@ function test_person_get() {
   $phone = "111111111";
 
   $result = Person::get(
-    $fullname, $email, $phone
+    [
+      "fullname" => $fullname,
+      "email" => $email,
+      "phone" => $phone
+    ]
   );
 
   assert($result == null);
@@ -23,7 +27,45 @@ function test_person_get() {
   $person->save();
 
   $result = Person::get(
-    $fullname, $email, $phone
+    [
+      "fullname" => $fullname,
+      "email" => $email,
+      "phone" => $phone
+    ]
+  );
+
+  assert($result != null);
+  assert(is_a($result, 'Person'));
+  assert($result->fullname == $fullname);
+  assert($result->email == $email);
+  assert($result->phone == $phone);
+  assert($result->id == 1);
+}
+
+function test_person_get_by_id() {
+  $fullname = "test";
+  $email = "test@test.com";
+  $phone = "111111111";
+
+  $result = Person::get(
+    [
+      "id" => 1
+    ]
+  );
+
+  assert($result == null);
+
+  $person = new Person();
+
+  $person->fullname = $fullname;
+  $person->email = $email;
+  $person->phone = $phone;
+  $person->save();
+
+  $result = Person::get(
+    [
+      "id" => 1
+    ]
   );
 
   assert($result != null);
@@ -108,45 +150,26 @@ function test_person_invalid() {
       $person->email = $p["email"];
       $person->phone = $p["phone"];
       $error = $person->save();
+
+      assert($error == $p["error"]);
   }
 }
 
 function run_tests() {
   // Create a list of function names
-  $functionList = [
+  $test_list = [
     'test_person_get',
+    'test_person_get_by_id',
     'test_person_list',
     'test_person_invalid'
   ];
 
-  // Iterate over the function list and call the functions
-  foreach ($functionList as $functionName) {
-      // Check if the function exists
-      if (!function_exists($functionName)) {
-          echo "Function '$functionName' does not exist.";
-          continue;
-      }
+  $migrate_list = ['person_table'];
 
-      // start up step
-      // =============
-
-      // clean database
-      print("\nCleaning the database ... ");
-      clean_db();
-      print("OK\n");
-
-      // migrate the tables for person
-      print("\nMigrating database ... ");
-      person_table();
-      print("OK\n");
-
-      // Call test function
-      // ==================
-      print("\nRunning tests ... ");
-      $functionName();
-      print("OK\n");
-  }
+  TestCase::run_tests($test_list, $migrate_list);
 }
+
+
 run_tests();
 
 ?>

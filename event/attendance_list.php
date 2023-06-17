@@ -1,5 +1,5 @@
 <?php
-include "functions.php"
+die("No disponible aún.");
 ?>
 <!DOCTYPE html>
 <html>

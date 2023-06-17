@@ -1,6 +1,6 @@
 <?php
-require __DIR__ . "/qr.php";
-require __DIR__ . "/db.php";
+require_once __DIR__ . "/qr.php";
+require_once __DIR__ . "/db.php";
 
 
 class Person {
@@ -16,13 +16,22 @@ class Person {
         $this->id = $id;
     }
 
-    public static function get($fullname, $email, $phone) {
+    public static function get($data) {
         $db = get_db();
+
         $query = "
         SELECT * FROM person
-        WHERE fullname='$fullname'
-          AND email='$email'
-          AND phone='$phone'";
+        WHERE 1=1";
+
+        // Iterate over the data dictionary
+        foreach ($data as $key => $value) {
+            // Escape the values to prevent SQL injection (assuming using SQLite3 class)
+            $escapedValue = $db->escapeString($value);
+
+            // Add the key-value pair to the WHERE clause
+            $query .= " AND $key='$escapedValue'";
+        }
+
         $result = $db->query($query);
 
         $row = $result->fetchArray(SQLITE3_ASSOC);

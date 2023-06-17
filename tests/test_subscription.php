@@ -50,6 +50,7 @@ function test_subscription_get() {
   $subscription = new Subscription();
 
   $subscription->person = $person;
+  $subscription->qr = "asdf";
   $subscription->save();
 
   $result = Subscription::get(
@@ -72,6 +73,7 @@ function test_subscription_get_by_id() {
 
   $subscription = new Subscription();
   $subscription->person = $person;
+  $subscription->qr = "sdf";
   $subscription->save();
 
   $result = Subscription::get([
@@ -99,6 +101,7 @@ function test_subscription_list() {
   foreach ($max_rows as $index) {
     $subscription = new Subscription();
     $subscription->person = $people[$index - 1];
+    $subscription->qr = "asdf";
     $subscription->save();
   }
 
@@ -141,7 +144,7 @@ function test_subscription_invalid() {
           "error" => "Person is invalid."
       ],
       [
-        "person" => "Jane Smith",
+        "person" => $person,
         "qr" => "",
         "error" => "QR is required."
       ],
@@ -152,9 +155,13 @@ function test_subscription_invalid() {
       $subscription = new Subscription();
       $subscription->person = $p["person"];
       $subscription->qr = $p["qr"];
-      $error = $subscription->save();
 
-      assert($error == $p["error"]);
+      try {
+        $error = $subscription->save();
+        assert(False);
+      } catch (Exception $e) {
+        assert($e->getMessage() == $p["error"]);
+      }
   }
 }
 

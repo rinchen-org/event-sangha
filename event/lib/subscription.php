@@ -82,8 +82,8 @@ class Subscription {
             return "Person is invalid.";
         }
 
-        if (!$this->qr == "") {
-            return "QR is invalid.";
+        if ($this->qr == "") {
+            return "QR is required.";
         }
 
         return null;
@@ -100,7 +100,7 @@ class Subscription {
         $error = $this->validate();
 
         if ($error) {
-            return $error;
+            throw new Exception($error);
         }
 
         $this->qr = generate_qr(
@@ -131,11 +131,38 @@ class Subscription {
 
 function subscribe_person($fullname, $email, $phone) {
     // Open the SQLite database
-    $subscription = new Subscription($fullname, $email, $phone);
+    $person = Person::get([
+        "fullname" => $fullname,
+        "email" => $email,
+        "phone" => $phone
+    ]);
+
+    if ($person == null) {
+        $person = new Person();
+        $person->fullname = $fullname;
+        $person->email = $email;
+        $person->phone = $phone;
+        $error = $person->save();
+
+        if ($error) {
+            throw new Exception($error);
+        }
+    }
+
+    $subscription = Subscription::get([
+        "person" => $person
+    ]);
+
+    if ($subscription) {
+        throw new Exception("This person is already subscribed.");
+    }
+
+    $subscription = new Subscription();
+    $subscription->person = $person;
     $error = $subscription->insert();
 
     if ($error) {
-        die($error);
+        throw new Exception($error);
     }
 
     return $subscription->qr;

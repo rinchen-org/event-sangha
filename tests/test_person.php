@@ -149,9 +149,13 @@ function test_person_invalid() {
       $person->fullname = $p["fullname"];
       $person->email = $p["email"];
       $person->phone = $p["phone"];
-      $error = $person->save();
 
-      assert($error == $p["error"]);
+      try {
+        $person->save();
+        assert(false);
+      } catch (Exception $e) {
+        assert ($e->getMessage() == $p["error"]);
+      }
   }
 }
 
@@ -161,7 +165,7 @@ function run_tests() {
     'test_person_get',
     'test_person_get_by_id',
     'test_person_list',
-    'test_person_invalid'
+    'test_person_invalid',
   ];
 
   $migrate_list = ['person_table'];

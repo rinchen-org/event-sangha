@@ -17,9 +17,7 @@ function setup($n_samples=1) {
     $person->fullname = $fullname;
     $person->email = $email;
     $person->phone = $phone;
-    $error = $person->save();
-
-    assert(!$error);
+    $person->save();
 
     $person = Person::get([
       "fullname" => $fullname,
@@ -143,11 +141,6 @@ function test_subscription_invalid() {
           "qr" => "asdf",
           "error" => "Person is invalid."
       ],
-      [
-        "person" => $person,
-        "qr" => "",
-        "error" => "QR is required."
-      ],
   ];
 
   // Iterate over the list of dictionaries
@@ -165,6 +158,11 @@ function test_subscription_invalid() {
   }
 }
 
+function test_upload_csv() {
+  $csv = __DIR__ . '/data/google_forms.csv';
+
+  Subscription::upload_csv($csv);
+}
 
 function run_tests() {
   // Create a list of function names
@@ -172,7 +170,8 @@ function run_tests() {
     'test_subscription_get',
     'test_subscription_get_by_id',
     'test_subscription_list',
-    'test_subscription_invalid'
+    'test_subscription_invalid',
+    'test_upload_csv',
   ];
 
   $migrate_list = ['person_table', 'subscription_table'];

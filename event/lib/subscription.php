@@ -75,18 +75,14 @@ class Subscription {
     function validate() {
 
         if ($this->person == null) {
-            return "Person is required.";
+            throw new Exception("Person is required.");
         }
 
         if (!$this->person->id) {
-            return "Person is invalid.";
+            throw new Exception("Person is invalid.");
         }
 
-        if ($this->qr == "") {
-            return "QR is required.";
-        }
-
-        return null;
+        return true;
     }
 
     function save() {
@@ -97,11 +93,7 @@ class Subscription {
     }
 
     function insert() {
-        $error = $this->validate();
-
-        if ($error) {
-            throw new Exception($error);
-        }
+        $this->validate();
 
         $this->qr = generate_qr(
             $this->person->fullname,
@@ -118,109 +110,114 @@ class Subscription {
                         VALUES ('$person_id', '$this->datetime', '$this->qr')";
         $db->exec($insertQuery);
 
+        // Get the last inserted ID
+        $lastInsertID = $db->lastInsertRowID();
+
         // Close the database connection
         $db->close();
+
+        return Subscription::get(["id" => $lastInsertID]);
     }
 
     function update() {
-
+        throw new Exception("Not implemented yet.");
     }
 
-}
+    public static function subscribe_person($fullname, $email, $phone) {
+        // Open the SQLite database
+        $person_data = [
+            "fullname" => $fullname,
+            "email" => $email,
+            "phone" => $phone
+        ];
 
+        $person = Person::get($person_data);
 
-function subscribe_person($fullname, $email, $phone) {
-    // Open the SQLite database
-    $person = Person::get([
-        "fullname" => $fullname,
-        "email" => $email,
-        "phone" => $phone
-    ]);
+        if ($person == null) {
+            $person = new Person();
+            $person->fullname = $fullname;
+            $person->email = $email;
+            $person->phone = $phone;
 
-    if ($person == null) {
-        $person = new Person();
-        $person->fullname = $fullname;
-        $person->email = $email;
-        $person->phone = $phone;
-        $error = $person->save();
+            $person = $person->save();
+        }
 
-        if ($error) {
-            throw new Exception($error);
+        $subscription = Subscription::get([
+            "person_id" => $person->id
+        ]);
+
+        if ($subscription) {
+            throw new Exception("This person is already subscribed: $person_data");
+        }
+
+        $subscription = new Subscription();
+        $subscription->person = $person;
+
+        try {
+            return $subscription->insert();
+        } catch (Exception $e) {
+            throw new Exception($e);
         }
     }
 
-    $subscription = Subscription::get([
-        "person" => $person
-    ]);
+    public static function upload_csv($file) {
+        // Process the uploaded CSV file
+        $handle = fopen($file, 'r');
+        $header = fgetcsv($handle); // Read the header row
 
-    if ($subscription) {
-        throw new Exception("This person is already subscribed.");
-    }
-
-    $subscription = new Subscription();
-    $subscription->person = $person;
-    $error = $subscription->insert();
-
-    if ($error) {
-        throw new Exception($error);
-    }
-
-    return $subscription->qr;
-}
-
-function upload_csv($file) {
-    // Process the uploaded CSV file
-    $handle = fopen($file, 'r');
-    $header = fgetcsv($handle); // Read the header row
-
-    // Map the CSV fields to database columns
-    $fieldMappings = [
-        'Nombre' => 'fullname',
-        'Apellidos' => 'fullname',
-        'Correo electrónico' => 'email',
-        'Número de celular' => 'phone',
-    ];
-
-    $count = 0;
-    $existingRows = [];
-
-    while (($row = fgetcsv($handle)) !== false) {
-        $data = array_combine($header, $row); // Combine header with row data
-
-        // Select the desired fields
-        $selectedData = [
-            'subscription_datetime' => $data['Timestamp'],
-            'fullname' => $data['Nombre'] . ' ' . $data['Apellidos'],
-            'email' => $data['Correo electrónico'],
-            'phone' => $data['Número de celular'],
+        // Map the CSV fields to database columns
+        $fieldMappings = [
+            'Nombre' => 'fullname',
+            'Apellidos' => 'fullname',
+            'Correo electrónico' => 'email',
+            'Número de celular' => 'phone',
         ];
 
-        $qr = subscribe_person(
-            $selectedData['fullname'],
-            $selectedData['email'],
-            $selectedData['phone'],
-        );
+        $count = 0;
+        $existingRows = [];
+        $error = "";
 
-        if ($qr) {
+        while (($row = fgetcsv($handle)) !== false) {
+            $data = array_combine($header, $row); // Combine header with row data
+
+            // Select the desired fields
+            $selectedData = [
+                'fullname' => $data['Nombre'] . ' ' . $data['Apellidos'],
+                'email' => $data['Correo electrónico'],
+                'phone' => $data['Número de celular'],
+            ];
+
+            try {
+                $subscription = Subscription::subscribe_person(
+                    $selectedData['fullname'],
+                    $selectedData['email'],
+                    $selectedData['phone'],
+                );
+            } catch (Exception $e) {
+                $err = "Error processing $subscription: $e.\n";
+                print($err);
+                $error = $error . $err;
+                continue;
+            }
+
             // send QR vi email
             $count++;
         }
-    }
 
-    fclose($handle);
-    $db->close();
+        fclose($handle);
 
-    echo "<p>Successfully imported $count rows.</p>";
+        // note: it is not ideal to have this html here.
+        echo "<p>Successfully imported $count rows.</p>";
 
-    if (!empty($existingRows)) {
-        echo "<p>The following rows already exist in the database:</p>";
-        echo "<ul>";
-        foreach ($existingRows as $row) {
-            echo "<li>Fullname: " . $row['fullname'] . ", Email: " . $row['email'] . ", Phone: " . $row['phone'] . "</li>";
+        if (!empty($existingRows)) {
+            echo "<p>The following rows already exist in the database:</p>";
+            echo "<ul>";
+            foreach ($existingRows as $row) {
+                echo "<li>Fullname: " . $row['fullname'] . ", Email: " . $row['email'] . ", Phone: " . $row['phone'] . "</li>";
+            }
+            echo "</ul>";
         }
-        echo "</ul>";
     }
 }
-
 
 ?>

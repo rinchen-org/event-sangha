@@ -72,19 +72,19 @@ class Person {
 
     function validate() {
         if ($this->fullname == "") {
-            return "Fullname is required.";
+            throw new Exception("Fullname is required.");
         }
 
         if ($this->email == "") {
-            return "Email is required.";
+            throw new Exception("Email is required.");
         }
 
         if (!filter_var($this->email, FILTER_VALIDATE_EMAIL)) {
-            return "Email is invalid.";
+            throw new Exception("Email is invalid.");
         }
 
         if ($this->phone == "") {
-            return "Phone is required.";
+            throw new Exception("Phone is required.");
         }
 
         // Remove any whitespace from the phone number
@@ -95,10 +95,10 @@ class Person {
 
         // Perform the validation
         if (!preg_match($pattern, $phone)) {
-            return "Phone is invalid.";
+            throw new Exception("Phone is invalid.");
         }
 
-        return null;
+        return true;
     }
 
     function save() {
@@ -109,11 +109,7 @@ class Person {
     }
 
     function insert() {
-        $error = $this->validate();
-
-        if ($error) {
-            return $error;
-        }
+        $this->validate();
 
         $this->qr = generate_qr(
             $this->fullname,
@@ -127,8 +123,12 @@ class Person {
                         VALUES ('$this->fullname', '$this->email', '$this->phone')";
         $db->exec($insertQuery);
 
+        $lastInsertID = $db->lastInsertRowID();
+
         // Close the database connection
         $db->close();
+
+        return Person::get(["id" => $lastInsertID]);
     }
 
     function update() {

@@ -56,6 +56,10 @@ class Subscription {
 
         $subscription_list = [];
 
+        if (!$result) {
+            return null;
+        }
+
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
             $subscription = new Subscription();
 
@@ -147,7 +151,7 @@ class Subscription {
         ]);
 
         if ($subscription) {
-            throw new Exception("This person is already subscribed: $person_data");
+            throw new Exception("This person is already subscribed: " . $person_data["fullname"]);
         }
 
         $subscription = new Subscription();
@@ -180,6 +184,12 @@ class Subscription {
         while (($row = fgetcsv($handle)) !== false) {
             $data = array_combine($header, $row); // Combine header with row data
 
+            if ($data["valido"] != 1) {
+                $err = "Warning: Dato marcado como no valido (falta pago): " . $data['Correo electrónico'];
+                print("<p>$err</p>");
+                continue;
+            }
+
             // Select the desired fields
             $selectedData = [
                 'fullname' => $data['Nombre'] . ' ' . $data['Apellidos'],
@@ -193,30 +203,49 @@ class Subscription {
                     $selectedData['email'],
                     $selectedData['phone'],
                 );
+                $count++;
             } catch (Exception $e) {
-                $err = "Error processing $subscription: $e.\n";
-                print($err);
+                $subscription = null;
+                $err = "\nWarning: " . $e->getMessage() . "\n";
+                print("<p>$err</p>");
                 $error = $error . $err;
                 continue;
             }
 
             // send QR vi email
-            $count++;
+            try {
+                $subscription->email = "ivan.ogasawara@gmail.com";
+                Subscription::send_email($subscription);
+            } catch (Exception $e) {
+                $err = "$e->getMessage().\n";
+                print("<p>$err</p>");
+            }
         }
 
         fclose($handle);
 
         // note: it is not ideal to have this html here.
         echo "<p>Successfully imported $count rows.</p>";
+    }
 
-        if (!empty($existingRows)) {
-            echo "<p>The following rows already exist in the database:</p>";
-            echo "<ul>";
-            foreach ($existingRows as $row) {
-                echo "<li>Fullname: " . $row['fullname'] . ", Email: " . $row['email'] . ", Phone: " . $row['phone'] . "</li>";
-            }
-            echo "</ul>";
+    public static function send_email($subscription) {
+        $templateFile = __DIR__ . '/../templates/subscription_email.html';
+        $templateContent = file_get_contents($templateFile);
+
+        $qrCode = $subscription->qr; // Assuming $subscription is the subscription object
+        $htmlContent = str_replace('<QR>', $qrCode, $templateContent);
+
+        $to = $subscription->person->email;
+        $subject = 'Centro Sakya Rinchen Ling - Confirmação Inscripción al Retiro';
+        $headers = 'From: info@rinchen.org' . "\r\n";
+        $headers .= 'Reply-To: info@rinchen.org' . "\r\n";
+        $headers .= 'Content-Type: text/html; charset=utf-8' . "\r\n";
+
+        // Send the email
+        if (!mail($to, $subject, $htmlContent, $headers)) {
+            throw new Exception('Email could not be sent.');
         }
+        return true;
     }
 }
 

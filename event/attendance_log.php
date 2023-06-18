@@ -1,11 +1,12 @@
 <?php
+include __DIR__ . "/header.php";
 die("No disponible aún.");
 ?>
 <!DOCTYPE html>
 <html>
 <head>
     <title>Registro de asistencia manual</title>
-    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./static/style.css">
 </head>
 <body class="container">
 <?php

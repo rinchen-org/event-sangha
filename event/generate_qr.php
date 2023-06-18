@@ -1,7 +1,7 @@
 <?php
-include "functions.php";
+include __DIR__ . "/lib/qr.php";
 ?>
-<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./static/style.css">
 <?php
 
 $fullname = $_GET['fullname'];

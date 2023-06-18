@@ -1,11 +1,13 @@
 <?php
+include __DIR__ . "/header.php";
+
 die("No disponible aún.");
 ?>
 <!DOCTYPE html>
 <html>
 <head>
     <title>Lista de asistencia</title>
-    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./static/style.css">
 </head>
 <body>
     <h2>Lista de asistencia</h2>
@@ -41,5 +43,6 @@ die("No disponible aún.");
 
     <a href="./">&lt;&lt; Back to the menu</a>
 
-</body>
-</html>
+<?php
+include __DIR__ . "/footer.php";
+?>

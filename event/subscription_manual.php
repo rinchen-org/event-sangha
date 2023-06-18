@@ -1,14 +1,6 @@
 <?php
-include "functions.php";
+include __DIR__ . "/header.php";
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Formulario de suscripción para personas que ya han pagado la tasa de registro</title>
-    <link rel="stylesheet" href="./style.css">
-</head>
-<body class="container">
-
 <?php
 // SQLite database file
 
@@ -74,4 +66,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
 <?php
 }
+include __DIR__ . "/footer.php";
 ?>

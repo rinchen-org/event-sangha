@@ -3,3 +3,8 @@
     Header set Pragma "no-cache"
     Header set Expires 0
 </IfModule>
+
+AuthType Basic
+AuthName "Restricted Area"
+AuthUserFile .htpasswd
+Require valid-user

@@ -1,5 +1,6 @@
 <?php
 include __DIR__ . "/header.php";
+require_once __DIR__ . "/lib/subscription.php";
 ?>
 <?php
 // SQLite database file
@@ -11,14 +12,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $phone = $_POST['phone'];
 
-    $qr = subscribe_person($fullname, $email, $phone);
-
-    if (!$qr) {
-        echo '<p style="color:red;">';
-        echo "Error al procesar la suscripción!";
-        echo '</p>';
-        die();
+    try {
+        $subscription = Subscription::subscribe_person($fullname, $email, $phone);
+    } catch (Exception $e) {
+        print("<p>" . $e->getMessage() . "</p>");
+        echo '<p><a href="./subscription_manual.php">&lt;&lt; Back to the form</a></p>';
     }
+
+    if ($subscription) {
 ?>
 
 <h1>¡ CONFIRMAMOS TU PARTICIPACIÓN EN EL RETIRO!</h1>
@@ -35,10 +36,11 @@ Recuerda por favor llevar este código, ya que sin él no podrás ingresar.
 </p>
 
 <?php
-    echo "<pre class='qr'>\n";
-    echo $qr;
-    echo "\n</pre>";
-    echo '<a href="./subscription_manual.php">&lt;&lt; Back to the form</a>';
+        echo "<pre class='qr'>\n";
+        echo $subscription->qr;
+        echo "\n</pre>";
+        echo '<a href="./subscription_manual.php">&lt;&lt; Back to the form</a>';
+    }
 }
 
 // Check if the form is submitted

@@ -162,6 +162,14 @@ class Subscription {
         } catch (Exception $e) {
             throw new Exception($e);
         }
+
+        // send QR vi email
+        try {
+            Subscription::send_email($subscription);
+        } catch (Exception $e) {
+            $err = "$e->getMessage().\n";
+            print("<p>$err</p>");
+        }
     }
 
     public static function upload_csv($file) {
@@ -210,15 +218,6 @@ class Subscription {
                 print("<p>$err</p>");
                 $error = $error . $err;
                 continue;
-            }
-
-            // send QR vi email
-            try {
-                $subscription->email = "ivan.ogasawara@gmail.com";
-                Subscription::send_email($subscription);
-            } catch (Exception $e) {
-                $err = "$e->getMessage().\n";
-                print("<p>$err</p>");
             }
         }
 

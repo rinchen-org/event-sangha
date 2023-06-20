@@ -157,19 +157,9 @@ class Subscription {
         $subscription = new Subscription();
         $subscription->person = $person;
 
-        try {
-            return $subscription->insert();
-        } catch (Exception $e) {
-            throw new Exception($e);
-        }
-
-        // send QR vi email
-        try {
-            Subscription::send_email($subscription);
-        } catch (Exception $e) {
-            $err = "$e->getMessage().\n";
-            print("<p>$err</p>");
-        }
+        $subscription_saved = $subscription->insert();
+        Subscription::send_email($subscription_saved);
+        return $subscription_saved;
     }
 
     public static function upload_csv($file) {
@@ -228,7 +218,7 @@ class Subscription {
     }
 
     public static function send_email($subscription) {
-        $templateFile = __DIR__ . '/../templates/subscription_email.html';
+        $templateFile = __DIR__ . '/../templates/subscription-email.html';
         $templateContent = file_get_contents($templateFile);
 
         $qrCode = $subscription->qr; // Assuming $subscription is the subscription object

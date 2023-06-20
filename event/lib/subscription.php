@@ -221,11 +221,11 @@ class Subscription {
         $templateFile = __DIR__ . '/../templates/subscription-email.html';
         $templateContent = file_get_contents($templateFile);
 
-        $qrCode = $subscription->qr; // Assuming $subscription is the subscription object
+        $qrCode = "<img src='$subscription->qr'/>";
         $htmlContent = str_replace('<QR>', $qrCode, $templateContent);
 
         $to = $subscription->person->email;
-        $subject = 'Centro Sakya Rinchen Ling - Confirmação Inscripción al Retiro';
+        $subject = 'Centro Sakya Rinchen Ling - Confirmación Inscripción al Retiro';
         $headers = 'From: info@rinchen.org' . "\r\n";
         $headers .= 'Reply-To: info@rinchen.org' . "\r\n";
         $headers .= 'Content-Type: text/html; charset=utf-8' . "\r\n";

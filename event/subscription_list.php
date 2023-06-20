@@ -25,7 +25,7 @@ $result = Subscription::list();
               <td><?php echo $subscription->person->fullname; ?></td>
               <td><?php echo $subscription->person->email; ?></td>
               <td><?php echo $subscription->person->phone; ?></td>
-              <td><pre class="qr"><?php echo $subscription->qr; ?></pre></td>
+              <td><img src="<?php echo $subscription->qr; ?>" /></td>
             </tr>
 <?php } ?>
           </tbody>

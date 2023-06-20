@@ -2,17 +2,20 @@
 
 function generate_qr($fullname, $email, $phone) {
   // curl qrcode.show -d https://example.com
-  $qr_url = "https://qrcode.show";
+  $qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data";
 
   $fullname_clean = urlencode($fullname);
   $email_clean = urlencode($email);
   $phone_clean = urlencode($phone);
-  $endpoint = "https://rinchen.org/event-retiro/attendance_log.php";
-  //$endpoint = "http://localhost:9000/attendance_log.php";
 
-  $page_url = "$endpoint/?fullname=$fullname_clean&email=$email_clean&phone=$phone_clean";
+  $root_url = "https://rinchen.org/event-retiro";
+  // $root_url = "http://localhost:9000";
 
-  $qr_url_with_data = "$qr_url/$page_url";
+  $endpoint = "$root_url/attendance_log.php";
+
+  $page_url = "$endpoint/?fullname=$fullname&email=$email&phone=$phone";
+
+  $qr_url_with_data = "$qr_url=" . urlencode($page_url);
 
   $ch = curl_init($qr_url_with_data);
 
@@ -27,14 +30,19 @@ function generate_qr($fullname, $email, $phone) {
 
   // Check for errors
   if (!$response) {
-    die(
+    throw new Exception(
       'Error: "' . curl_error($ch) .
       '" - Code: ' . curl_errno($ch) .
       ' URL: ' . $qr_url_with_data
     );
   }
 
-  return $response;
+  $qr_filename = hash('sha256', $page_url) . ".jpg";
+  $qr_url = "$root_url/static/qr/$qr_filename";
+
+  file_put_contents(__DIR__ . "/../static/qr/$qr_filename", $response);
+
+  return $qr_url;
 }
 
 ?>

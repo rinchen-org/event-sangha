@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php
         echo "<pre class='qr'>\n";
-        echo $subscription->qr;
+        echo "<img src='$subscription->qr'/>";
         echo "\n</pre>";
         echo '<a href="./subscription_manual.php">&lt;&lt; Back to the form</a>';
 ?>

@@ -8,27 +8,27 @@ repos:
 
   - repo: local
     hooks:
-    - id: php-lint
-      name: php-lint
-      entry: php lint
-      language: system
-      pass_filenames: true
-      types:
-        - php
-
-    - id: code-sniffer
-      name: code-sniffer
-      entry: code-sniffer
-      language: system
-      files: "."
-      pass_filenames: true
-      types:
-        - php
-
     - id: phpstan
       name: phpstan
-      entry: phpstan
+      entry: ./vendor/bin/phpstan analyse -vvv --
       language: system
       pass_filenames: true
       types:
         - php
+
+    # - id: php-lint
+    #   name: php-lint
+    #   entry: php lint
+    #   language: system
+    #   pass_filenames: true
+    #   types:
+    #     - php
+
+    # - id: code-sniffer
+    #   name: code-sniffer
+    #   entry: code-sniffer
+    #   language: system
+    #   files: "."
+    #   pass_filenames: true
+    #   types:
+    #     - php

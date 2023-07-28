@@ -15,7 +15,7 @@ class Subscription {
         string $qr="",
         string $datetime="",
         ?int $id=null,
-        ?int $active=null,
+        ?int $active=null
     ) {
         $this->person = $person;
         $this->qr = $qr;

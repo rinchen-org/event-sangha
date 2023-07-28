@@ -15,7 +15,7 @@ class Person {
         string $email="",
         string $phone="",
         ?int $id=null,
-        ?int $active=null,
+        ?int $active=null
     ) {
         $this->fullname = $fullname;
         $this->email = $email;

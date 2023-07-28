@@ -1,6 +1,10 @@
 <?php
 include __DIR__ . "/header.php";
-die("No disponible aún.");
+// the current page is not available yet.
+$is_page_available = max(0 , -1); // it is just an workaround
+if (!$is_page_available) {
+    die("No disponible aún.");
+}
 ?>
 <!DOCTYPE html>
 <html>

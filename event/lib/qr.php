@@ -1,6 +1,8 @@
 <?php
+require_once __DIR__ . "/settings.php";
 
-function generate_qr($fullname, $email, $phone) {
+
+function generate_qr(string $fullname, string $email, string $phone): string {
   // curl qrcode.show -d https://example.com
   $qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data";
 
@@ -8,8 +10,7 @@ function generate_qr($fullname, $email, $phone) {
   $email_clean = urlencode($email);
   $phone_clean = urlencode($phone);
 
-  $root_url = "https://rinchen.org/event-retiro";
-  // $root_url = "http://localhost:9000";
+  $root_url = get_env("HOST_ADDRESS");
 
   $endpoint = "$root_url/attendance_log.php";
 
@@ -40,7 +41,7 @@ function generate_qr($fullname, $email, $phone) {
   $qr_filename = hash('sha256', $page_url) . ".jpg";
   $qr_url = "$root_url/static/qr/$qr_filename";
 
-  file_put_contents(__DIR__ . "/../static/qr/$qr_filename", $response);
+  file_put_contents(dirname(__DIR__) . "/static/qr/$qr_filename", $response);
 
   return $qr_url;
 }

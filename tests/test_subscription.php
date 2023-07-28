@@ -1,10 +1,12 @@
 <?php
 
-require_once __DIR__ . "/../event/lib/subscription.php";
+require_once dirname(__DIR__) . "/event/lib/subscription.php";
 require_once __DIR__ . "/conftest.php";
 
-
-function setup($n_samples=1) {
+/**
+ * @return array<string, array<int<0, max>, Person>>
+ */
+function setup(int $n_samples=1): array {
   $max_rows = range(1, $n_samples);
   $result = [];
 
@@ -25,7 +27,7 @@ function setup($n_samples=1) {
       "phone" => $phone,
     ]);
 
-    assert($person);
+    assert($person->id > 0);
     $result[] = $person;
   }
 
@@ -34,7 +36,7 @@ function setup($n_samples=1) {
   ];
 }
 
-function test_subscription_get() {
+function test_subscription_get(): void {
   $data = setup();
   $person = $data["people"][0];
 
@@ -65,7 +67,7 @@ function test_subscription_get() {
   assert($result->id == 1);
 }
 
-function test_subscription_get_by_id() {
+function test_subscription_get_by_id(): void {
   $data = setup();
   $person = $data["people"][0];
 
@@ -86,7 +88,7 @@ function test_subscription_get_by_id() {
   assert($result->id == 1);
 }
 
-function test_subscription_list() {
+function test_subscription_list(): void {
   $n_samples = 5;
   $data = setup($n_samples);
   $people = $data["people"];
@@ -122,11 +124,11 @@ function test_subscription_list() {
     assert($subscription->person->email == $people[$person_ind]->email);
     assert($subscription->person->phone);
     assert($subscription->person->phone == $people[$person_ind]->phone);
-    assert($subscription->id);
+    assert($subscription->id > 0);
   }
 }
 
-function test_subscription_invalid() {
+function test_subscription_invalid(): void {
   $data = setup();
   $person = $data["people"][0];
 
@@ -149,22 +151,24 @@ function test_subscription_invalid() {
       $subscription->person = $p["person"];
       $subscription->qr = $p["qr"];
 
+      $subscription_saved = false;
       try {
         $error = $subscription->save();
-        assert(False);
+        $subscription_saved = true;
       } catch (Exception $e) {
         assert($e->getMessage() == $p["error"]);
       }
+      assert($subscription_saved == false);
   }
 }
 
-function test_upload_csv() {
+function test_upload_csv(): void {
   $csv = __DIR__ . '/data/google_forms.csv';
 
   Subscription::upload_csv($csv);
 }
 
-function run_tests() {
+function run_tests(): void {
   // Create a list of function names
   $test_list = [
     'test_subscription_get',
@@ -174,9 +178,7 @@ function run_tests() {
     'test_upload_csv',
   ];
 
-  $migrate_list = ['person_table', 'subscription_table'];
-
-  TestCase::run_tests($test_list, $migrate_list);
+  TestCase::run_tests($test_list);
 }
 
 run_tests();

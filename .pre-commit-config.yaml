@@ -1,0 +1,35 @@
+default_stages:
+  - commit
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.1.0
+    hooks:
+      - id: end-of-file-fixer
+        exclude: "containers/public-html/"
+
+  - repo: local
+    hooks:
+    - id: phpstan
+      name: phpstan
+      entry: ./vendor/bin/phpstan analyse -vvv --
+      language: system
+      pass_filenames: true
+      types:
+        - php
+
+    # - id: php-lint
+    #   name: php-lint
+    #   entry: php lint
+    #   language: system
+    #   pass_filenames: true
+    #   types:
+    #     - php
+
+    # - id: code-sniffer
+    #   name: code-sniffer
+    #   entry: code-sniffer
+    #   language: system
+    #   files: "."
+    #   pass_filenames: true
+    #   types:
+    #     - php

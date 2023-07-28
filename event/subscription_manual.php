@@ -12,8 +12,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $phone = $_POST['phone'];
 
+    $subscription = null;
     try {
-        $subscription = Subscription::subscribe_person($fullname, $email, $phone);
+        $subscription = Subscription::subscribe_person(
+          $fullname, $email, $phone
+        );
     } catch (Exception $e) {
         print("<p>" . $e->getMessage() . "</p>");
         echo '<p><a href="./subscription_manual.php">&lt;&lt; Back to the form</a></p>';

@@ -4,19 +4,30 @@ require_once __DIR__ . "/db.php";
 
 
 class Person {
-    public $id;
-    public $fullname;
-    public $email;
-    public $phone;
+    public ?int $id;
+    public string $fullname;
+    public string $email;
+    public string $phone;
+    public ?int $active;
 
-    function __construct($fullname="", $email="", $phone="", $id=null) {
+    function __construct(
+        string $fullname="",
+        string $email="",
+        string $phone="",
+        ?int $id=null,
+        ?int $active=null
+    ) {
         $this->fullname = $fullname;
         $this->email = $email;
         $this->phone = $phone;
         $this->id = $id;
+        $this->active = $active;
     }
 
-    public static function get($data) {
+    /**
+     * @param array<string,string|int> $data
+     */
+    public static function get(array $data): ?Person {
         $db = get_db();
 
         $query = "
@@ -41,16 +52,20 @@ class Person {
             $person = null;
         } else {
             $person = new Person();
-            $person->id = $row['id'];
+            $person->id = intval($row['id']);
             $person->fullname = $row['fullname'];
             $person->email = $row['email'];
             $person->phone = $row['phone'];
+            $person->active = intval($row['active']);
         }
 
         return $person;
     }
 
-    public static function list() {
+    /**
+     * @return array<Person>
+     */
+    public static function list(): array {
         $db = get_db();
         $query = "SELECT * FROM person";
         $result = $db->query($query);
@@ -58,19 +73,16 @@ class Person {
         $person_list = [];
 
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-            $person = new Person();
-
-            $person->id = $row['id'];
-            $person->fullname = $row['fullname'];
-            $person->phone = $row['phone'];
-            $person->email = $row['email'];
+            $person = Person::get([
+                "id" => $row['id']
+            ]);
             $person_list[] = $person;
         }
 
         return $person_list;
     }
 
-    function validate() {
+    function validate(): bool {
         if ($this->fullname == "") {
             throw new Exception("Fullname is required.");
         }
@@ -101,26 +113,26 @@ class Person {
         return true;
     }
 
-    function save() {
-        if ($this->id) {
+    function save(): Person {
+        if ($this->id > 0) {
             return $this->update();
         }
         return $this->insert();
     }
 
-    function insert() {
+    function insert(): Person {
         $this->validate();
-
-        $this->qr = generate_qr(
-            $this->fullname,
-            $this->email,
-            $this->phone
-        );
 
         $db = get_db();
         // Insert the form data into the 'registrations' table
-        $insertQuery = "INSERT INTO person (fullname, email, phone)
-                        VALUES ('$this->fullname', '$this->email', '$this->phone')";
+        $insertQuery = "
+            INSERT INTO person (fullname, email, phone, active)
+            VALUES (
+                '$this->fullname',
+                '$this->email',
+                '$this->phone',
+                '$this->active'
+            )";
         $db->exec($insertQuery);
 
         $lastInsertID = $db->lastInsertRowID();
@@ -128,12 +140,39 @@ class Person {
         // Close the database connection
         $db->close();
 
-        return Person::get(["id" => $lastInsertID]);
+        $person = Person::get(["id" => $lastInsertID]);
+
+        if ($person === null) {
+            throw new Exception(
+                "The new person is not available yet in the database."
+            );
+        }
+
+        return $person;
     }
 
-    function update() {
+    function update(): Person {
+        $this->validate();
 
+        if (!$this->id > 0) {
+            throw new Exception("This person is not registered yet.");
+        }
+
+        $db = get_db();
+        $insertQuery = "
+            UPDATE person
+            SET
+                fullname='$this->fullname',
+                email='$this->email',
+                phone='$this->phone',
+                active=$this->active
+            WHERE id=$this->id";
+        $db->exec($insertQuery);
+
+        // Close the database connection
+        $db->close();
+
+        return $this;
     }
-
 }
 ?>

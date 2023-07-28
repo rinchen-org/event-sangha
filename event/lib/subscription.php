@@ -4,19 +4,30 @@ require_once __DIR__ . "/db.php";
 require_once __DIR__ . "/person.php";
 
 class Subscription {
-    public $id;
-    public $person;
-    public $datetime;
-    public $qr;
+    public ?int $id;
+    public ?Person $person;
+    public string $datetime;
+    public string $qr;
+    public ?int $active;
 
-    function __construct($person=null, $qr="", $datetime="", $id=null) {
+    function __construct(
+        ?Person $person=null,
+        string $qr="",
+        string $datetime="",
+        ?int $id=null,
+        ?int $active=null
+    ) {
         $this->person = $person;
         $this->qr = $qr;
         $this->id = $id;
         $this->datetime = $datetime;
+        $this->active = $active;
     }
 
-    public static function get($data) {
+    /**
+     * @param array<string,string|int> $data
+     */
+    public static function get(array $data): ?Subscription {
         $db = get_db();
 
         $query = "
@@ -31,8 +42,8 @@ class Subscription {
             // Add the key-value pair to the WHERE clause
             $query .= " AND $key='$escapedValue'";
         }
-        $result = $db->query($query);
 
+        $result = $db->query($query);
         $row = $result->fetchArray(SQLITE3_ASSOC);
 
         if ($row === false) {
@@ -40,18 +51,35 @@ class Subscription {
             $subscription = null;
         } else {
             $subscription = new Subscription();
-            $subscription->id = $row['id'];
+            $subscription->id = intval($row['id']);
             $subscription->person = Person::get(["id" => $row['id']]);
-            $subscription->qr= $row['qr'];
-            $subscription->datetime= $row['datetime'];
+            $subscription->qr = $row['qr'];
+            $subscription->datetime = $row['datetime'];
+            $subscription->active = intval($row['active']);
         }
 
         return $subscription;
     }
 
-    public static function list() {
+    /**
+     * @param array<string,string|int> $filter
+     * @return ?array<Subscription>
+     */
+    public static function list(?array $filter=null): ?array {
         $db = get_db();
-        $query = "SELECT * FROM subscription";
+        $query = "SELECT * FROM subscription WHERE 1=1";
+
+        if ($filter) {
+            // Iterate over the data dictionary
+            foreach ($filter as $key => $value) {
+                // Escape the values to prevent SQL injection (assuming using SQLite3 class)
+                $escapedValue = $db->escapeString($value);
+
+                // Add the key-value pair to the WHERE clause
+                $query .= " AND $key='$escapedValue'";
+            }
+        }
+
         $result = $db->query($query);
 
         $subscription_list = [];
@@ -61,14 +89,9 @@ class Subscription {
         }
 
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-            $subscription = new Subscription();
-
-            $subscription->id = $row['id'];
-            $subscription->person = Person::get([
-                "id" => $row['person_id']
+            $subscription = Subscription::get([
+                "id" => $row['id']
             ]);
-            $subscription->datetime = $row['datetime'];
-            $subscription->qr = $row['qr'];
             $subscription_list[] = $subscription;
         }
 
@@ -76,7 +99,7 @@ class Subscription {
     }
 
 
-    function validate() {
+    function validate(): bool {
 
         if ($this->person == null) {
             throw new Exception("Person is required.");
@@ -89,14 +112,14 @@ class Subscription {
         return true;
     }
 
-    function save() {
+    function save(): Subscription {
         if ($this->id) {
             return $this->update();
         }
         return $this->insert();
     }
 
-    function insert() {
+    function insert(): Subscription {
         $this->validate();
 
         $this->qr = generate_qr(
@@ -110,8 +133,8 @@ class Subscription {
         $db = get_db();
         $person_id = $this->person->id;
         // Insert the form data into the 'registrations' table
-        $insertQuery = "INSERT INTO subscription (person_id, datetime, qr)
-                        VALUES ('$person_id', '$this->datetime', '$this->qr')";
+        $insertQuery = "INSERT INTO subscription (person_id, datetime, qr, active)
+                        VALUES ('$person_id', '$this->datetime', '$this->qr', 1)";
         $db->exec($insertQuery);
 
         // Get the last inserted ID
@@ -123,16 +146,39 @@ class Subscription {
         return Subscription::get(["id" => $lastInsertID]);
     }
 
-    function update() {
-        throw new Exception("Not implemented yet.");
+    function update(): Subscription {
+        $this->validate();
+
+        if (!$this->id > 0) {
+            throw new Exception("This subscription is not registered yet.");
+        }
+
+        $db = get_db();
+        $person_id = $this->person->id;
+        $updateQuery = "
+            UPDATE subscription
+            SET
+                person_id='$person_id',
+                datetime='$this->datetime',
+                qr='$this->qr',
+                active=$this->active
+            WHERE id=$this->id";
+        $db->exec($updateQuery);
+
+        // Close the database connection
+        $db->close();
+
+        return $this;
     }
 
-    public static function subscribe_person($fullname, $email, $phone) {
+    public static function subscribe_person(
+        string $fullname, string $email, string $phone
+    ): Subscription {
         // Open the SQLite database
         $person_data = [
             "fullname" => $fullname,
             "email" => $email,
-            "phone" => $phone
+            "phone" => $phone,
         ];
 
         $person = Person::get($person_data);
@@ -142,6 +188,7 @@ class Subscription {
             $person->fullname = $fullname;
             $person->email = $email;
             $person->phone = $phone;
+            $person->active = 1;
 
             $person = $person->save();
         }
@@ -151,18 +198,23 @@ class Subscription {
         ]);
 
         if ($subscription) {
-            throw new Exception("This person is already subscribed: " . $person_data["fullname"]);
+            throw new Exception(
+                "This person is already subscribed: "
+                . $person_data["fullname"]
+            );
         }
 
         $subscription = new Subscription();
         $subscription->person = $person;
 
         $subscription_saved = $subscription->insert();
-        Subscription::send_email($subscription_saved);
+        // TODO: just skip it for development, it should be enabled
+        // before the PR is merged.
+        // Subscription::send_email($subscription_saved);
         return $subscription_saved;
     }
 
-    public static function upload_csv($file) {
+    public static function upload_csv(string $file): void {
         // Process the uploaded CSV file
         $handle = fopen($file, 'r');
         $header = fgetcsv($handle); // Read the header row
@@ -217,8 +269,8 @@ class Subscription {
         echo "<p>Successfully imported $count rows.</p>";
     }
 
-    public static function send_email($subscription) {
-        $templateFile = __DIR__ . '/../templates/subscription-email.html';
+    public static function send_email(Subscription $subscription): bool {
+        $templateFile = dirname(__DIR__) . '/templates/subscription-email.html';
         $templateContent = file_get_contents($templateFile);
 
         $qrCode = "<img src='$subscription->qr'/>";

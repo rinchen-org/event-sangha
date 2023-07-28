@@ -3,7 +3,7 @@ require_once "lib/qr.php";
 require_once "lib/db.php";
 
 
-function log_attendance($fullname, $email, $phone) {
+function log_attendance(string $fullname, string $email, string $phone): bool {
     $entry_time = date('Y-m-d H:i:s');
 
     // ensure that attendance_log table exists
@@ -42,7 +42,7 @@ function log_attendance($fullname, $email, $phone) {
     return true;
 }
 
-function get_attendance_list() {
+function get_attendance_list(): SQLite3Result {
     $db = new SQLite3('db.sqlite');
     $query = "SELECT * FROM attendance_log";
     return $db->query($query);

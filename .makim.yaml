@@ -1,0 +1,10 @@
+version: "1.0"
+groups:
+  dev:
+    targets:
+      runserver:
+        help: Run the server application
+        run: |
+          cd event
+          echo "HOST_ADDRESS=http://localhost:8081" > .env
+          php -S localhost:8081

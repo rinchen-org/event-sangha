@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . "/settings.php";
+
 
 function generate_qr(string $fullname, string $email, string $phone): string {
   // curl qrcode.show -d https://example.com
@@ -8,8 +10,7 @@ function generate_qr(string $fullname, string $email, string $phone): string {
   $email_clean = urlencode($email);
   $phone_clean = urlencode($phone);
 
-  $root_url = "https://rinchen.org/event-retiro";
-  // $root_url = "http://localhost:9000";
+  $root_url = get_env("HOST_ADDRESS");
 
   $endpoint = "$root_url/attendance_log.php";
 

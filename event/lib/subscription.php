@@ -39,8 +39,8 @@ class Subscription {
             // Add the key-value pair to the WHERE clause
             $query .= " AND $key='$escapedValue'";
         }
-        $result = $db->query($query);
 
+        $result = $db->query($query);
         $row = $result->fetchArray(SQLITE3_ASSOC);
 
         if ($row === false) {
@@ -116,6 +116,8 @@ class Subscription {
             $this->person->phone
         );
 
+        echo $this->qr;
+
         $datetime = date('Y-m-d H:i:s');
 
         $db = get_db();
@@ -145,7 +147,7 @@ class Subscription {
         $person_data = [
             "fullname" => $fullname,
             "email" => $email,
-            "phone" => $phone
+            "phone" => $phone,
         ];
 
         $person = Person::get($person_data);
@@ -155,6 +157,7 @@ class Subscription {
             $person->fullname = $fullname;
             $person->email = $email;
             $person->phone = $phone;
+            $person->active = 1;
 
             $person = $person->save();
         }
@@ -164,14 +167,19 @@ class Subscription {
         ]);
 
         if ($subscription) {
-            throw new Exception("This person is already subscribed: " . $person_data["fullname"]);
+            throw new Exception(
+                "This person is already subscribed: "
+                . $person_data["fullname"]
+            );
         }
 
         $subscription = new Subscription();
         $subscription->person = $person;
 
         $subscription_saved = $subscription->insert();
-        Subscription::send_email($subscription_saved);
+        // TODO: just skipt it for development, it should be enabled
+        // before the PR is merged.
+        // Subscription::send_email($subscription_saved);
         return $subscription_saved;
     }
 

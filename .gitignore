@@ -1,3 +1,4 @@
 db.sqlite
 event/.htpasswd
 vendor/
+.env*

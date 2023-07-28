@@ -8,23 +8,26 @@ class Person {
     public string $fullname;
     public string $email;
     public string $phone;
+    public ?int $active;
 
     function __construct(
         string $fullname="",
         string $email="",
         string $phone="",
-        ?int $id=null
+        ?int $id=null,
+        ?int $active=null,
     ) {
         $this->fullname = $fullname;
         $this->email = $email;
         $this->phone = $phone;
         $this->id = $id;
+        $this->active = $active;
     }
 
     /**
      * @param array<string,string|int> $data
      */
-    public static function get(array $data): Person {
+    public static function get(array $data): ?Person {
         $db = get_db();
 
         $query = "
@@ -53,6 +56,7 @@ class Person {
             $person->fullname = $row['fullname'];
             $person->email = $row['email'];
             $person->phone = $row['phone'];
+            $person->active = intval($row['active']);
         }
 
         return $person;
@@ -71,10 +75,11 @@ class Person {
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
             $person = new Person();
 
-            $person->id = $row['id'];
+            $person->id = intval($row['id']);
             $person->fullname = $row['fullname'];
             $person->phone = $row['phone'];
             $person->email = $row['email'];
+            $person->active = intval($row['active']);
             $person_list[] = $person;
         }
 
@@ -113,7 +118,7 @@ class Person {
     }
 
     function save(): Person {
-        if ($this->id) {
+        if ($this->id > 0) {
             return $this->update();
         }
         return $this->insert();
@@ -124,8 +129,14 @@ class Person {
 
         $db = get_db();
         // Insert the form data into the 'registrations' table
-        $insertQuery = "INSERT INTO person (fullname, email, phone)
-                        VALUES ('$this->fullname', '$this->email', '$this->phone')";
+        $insertQuery = "
+            INSERT INTO person (fullname, email, phone, active)
+            VALUES (
+                '$this->fullname',
+                '$this->email',
+                '$this->phone',
+                '$this->active'
+            )";
         $db->exec($insertQuery);
 
         $lastInsertID = $db->lastInsertRowID();
@@ -137,7 +148,27 @@ class Person {
     }
 
     function update(): Person {
-        // not implemented yet.
+        $this->validate();
+
+        if (!$this->id > 0) {
+            throw new Exception("This person is not registered yet.");
+        }
+
+        $db = get_db();
+        // Insert the form data into the 'registrations' table
+        $insertQuery = "
+            UPDATE person
+            SET
+                fullname='$this->fullname',
+                email='$this->email',
+                phone='$this->phone',
+                active=$this->active
+            WHERE id=$this->id";
+        $db->exec($insertQuery);
+
+        // Close the database connection
+        $db->close();
+
         return $this;
     }
 

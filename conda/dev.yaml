@@ -7,3 +7,6 @@ dependencies:
   - pre-commit
   - php
   - python
+  - pip
+  - pip:
+    - makim=="1.8.2"

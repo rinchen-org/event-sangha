@@ -15,6 +15,7 @@ $result = Subscription::list();
               <th>Full Name</th>
               <th>Email</th>
               <th>Phone</th>
+              <th>Active</th>
               <th>QR</th>
             </tr>
           </thead>
@@ -25,6 +26,7 @@ $result = Subscription::list();
               <td><?php echo $subscription->person->fullname; ?></td>
               <td><?php echo $subscription->person->email; ?></td>
               <td><?php echo $subscription->person->phone; ?></td>
+              <td><?php echo $subscription->person->active == 1 ? "Yes" : "No" ; ?></td>
               <td><img src="<?php echo $subscription->qr; ?>" /></td>
             </tr>
 <?php } ?>

@@ -1,6 +1,12 @@
 default_stages:
   - commit
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.1.0
+    hooks:
+      - id: end-of-file-fixer
+        exclude: "containers/public-html/"
+
   - repo: local
     hooks:
     - id: phpstan

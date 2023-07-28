@@ -40,7 +40,7 @@ function generate_qr($fullname, $email, $phone) {
   $qr_filename = hash('sha256', $page_url) . ".jpg";
   $qr_url = "$root_url/static/qr/$qr_filename";
 
-  file_put_contents(__DIR__ . "/../static/qr/$qr_filename", $response);
+  file_put_contents(dirname(__DIR__) . "/static/qr/$qr_filename", $response);
 
   return $qr_url;
 }

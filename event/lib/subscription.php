@@ -218,7 +218,7 @@ class Subscription {
     }
 
     public static function send_email($subscription) {
-        $templateFile = __DIR__ . '/../templates/subscription-email.html';
+        $templateFile = dirname(__DIR__) . '/templates/subscription-email.html';
         $templateContent = file_get_contents($templateFile);
 
         $qrCode = "<img src='$subscription->qr'/>";

@@ -1,5 +1,5 @@
 <?php
-$to = "ivan.ogasawara@gmail.com";
+$to = "ivan.ogasawara+rinchen@gmail.com";
 $subject = 'Subscription Confirmation';
 $headers = 'From: sender@example.com' . "\r\n";
 $headers .= 'Reply-To: sender@example.com' . "\r\n";

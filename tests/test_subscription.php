@@ -1,6 +1,7 @@
 <?php
 
-require_once __DIR__ . "/../event/lib/subscription.php";
+require_once dirname(__DIR__) . "/event/lib/subscription.php";
+require_once dirname(__DIR__) . "/event/migrations/all.php";
 require_once __DIR__ . "/conftest.php";
 
 

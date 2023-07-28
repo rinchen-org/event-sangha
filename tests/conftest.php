@@ -8,7 +8,7 @@ assert_options(ASSERT_CALLBACK, 'assert_failure');
 
 
 function clean_db() {
-  $file = __DIR__ . '/../db.sqlite';
+  $file = dirname(__DIR__) . '/event/db.sqlite';
 
   if (file_exists($file)) {
       if (unlink($file)) {

@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . "/../lib/db.php";
+require_once dirname(__DIR__) . "/lib/db.php";
 
 function person_add_activate_column() {
   $db = get_db();

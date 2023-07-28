@@ -1,7 +1,6 @@
 <?php
 
 require_once dirname(__DIR__) . "/event/lib/subscription.php";
-require_once dirname(__DIR__) . "/event/migrations/all.php";
 require_once __DIR__ . "/conftest.php";
 
 /**
@@ -179,9 +178,7 @@ function run_tests(): void {
     'test_upload_csv',
   ];
 
-  $migrate_list = ['person_table', 'subscription_table'];
-
-  TestCase::run_tests($test_list, $migrate_list);
+  TestCase::run_tests($test_list);
 }
 
 run_tests();

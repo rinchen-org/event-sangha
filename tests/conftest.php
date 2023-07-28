@@ -6,6 +6,8 @@ assert_options(ASSERT_BAIL,     true);
 assert_options(ASSERT_WARNING,  false);
 assert_options(ASSERT_CALLBACK, 'assert_failure');
 
+require_once dirname(__DIR__) . "/event/migrations/all.php";
+
 
 function clean_db(): void {
   $file = dirname(__DIR__) . '/event/db.sqlite';
@@ -26,11 +28,9 @@ class TestCase {
 
     /**
      * @param array<string> $test_list
-     * @param array<string> $migrate_list
      */
     public static function run_tests(
         array $test_list,
-        array $migrate_list = []
     ): void {
         // Iterate over the function list and call the functions
         foreach ($test_list as $test_fn) {
@@ -54,9 +54,7 @@ class TestCase {
 
             // migrate the tables for person
             print("\nMigrating database ... ");
-            foreach ($migrate_list as $migrate_fn) {
-                $migrate_fn();
-            }
+            migrate_all();
             print("OK\n");
 
             // Call test function

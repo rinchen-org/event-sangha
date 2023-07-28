@@ -73,13 +73,9 @@ class Person {
         $person_list = [];
 
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-            $person = new Person();
-
-            $person->id = intval($row['id']);
-            $person->fullname = $row['fullname'];
-            $person->phone = $row['phone'];
-            $person->email = $row['email'];
-            $person->active = intval($row['active']);
+            $person = Person::get([
+                "id" => $row['id']
+            ]);
             $person_list[] = $person;
         }
 
@@ -144,7 +140,15 @@ class Person {
         // Close the database connection
         $db->close();
 
-        return Person::get(["id" => $lastInsertID]);
+        $person = Person::get(["id" => $lastInsertID]);
+
+        if ($person === null) {
+            throw new Exception(
+                "The new person is not available yet in the database."
+            );
+        }
+
+        return $person;
     }
 
     function update(): Person {
@@ -155,7 +159,6 @@ class Person {
         }
 
         $db = get_db();
-        // Insert the form data into the 'registrations' table
         $insertQuery = "
             UPDATE person
             SET
@@ -171,6 +174,5 @@ class Person {
 
         return $this;
     }
-
 }
 ?>

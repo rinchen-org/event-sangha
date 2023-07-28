@@ -2,7 +2,7 @@
 
 require_once dirname(__DIR__) . "/lib/db.php";
 
-function person_add_activate_column(): void {
+function person_add_active_column(): void {
   $db = get_db();
 
   // add activate field to person table
@@ -13,7 +13,7 @@ function person_add_activate_column(): void {
   $db->close();
 }
 
-function subscription_add_activate_column(): void {
+function subscription_add_active_column(): void {
   $db = get_db();
 
   // add active field to subscription
@@ -24,5 +24,5 @@ function subscription_add_activate_column(): void {
   $db->close();
 }
 
-person_add_activate_column();
-subscription_add_activate_column();
+person_add_active_column();
+subscription_add_active_column();

@@ -8,3 +8,10 @@ groups:
           cd event
           echo "HOST_ADDRESS=http://localhost:8081" > .env
           php -S localhost:8081
+
+      tests:
+        help: Run the server application
+        run: |
+          php tests/test_settings.php
+          php tests/test_person.php
+          php tests/test_subscription.php

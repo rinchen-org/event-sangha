@@ -2,7 +2,7 @@
 
 require_once dirname(__DIR__) . "/lib/db.php";
 
-function person_table() {
+function person_table(): void {
   $db = get_db();
 
   // Create the 'registrations' table if it doesn't exist
@@ -17,7 +17,7 @@ function person_table() {
 }
 
 
-function subscription_table() {
+function subscription_table(): void {
   $db = get_db();
 
   // Create the 'registrations' table if it doesn't exist
@@ -32,7 +32,7 @@ function subscription_table() {
 }
 
 
-function attendance_table() {
+function attendance_table(): void {
   // Connect to the SQLite database
   $db = get_db();
 

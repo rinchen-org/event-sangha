@@ -1,6 +1,6 @@
 <?php
 
-function generate_qr($fullname, $email, $phone) {
+function generate_qr(string $fullname, string $email, string $phone): string {
   // curl qrcode.show -d https://example.com
   $qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data";
 

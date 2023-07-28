@@ -4,19 +4,27 @@ require_once __DIR__ . "/db.php";
 require_once __DIR__ . "/person.php";
 
 class Subscription {
-    public $id;
-    public $person;
-    public $datetime;
-    public $qr;
+    public ?int $id;
+    public ?Person $person;
+    public string $datetime;
+    public string $qr;
 
-    function __construct($person=null, $qr="", $datetime="", $id=null) {
+    function __construct(
+        ?Person $person=null,
+        string $qr="",
+        string $datetime="",
+        ?int $id=null
+    ) {
         $this->person = $person;
         $this->qr = $qr;
         $this->id = $id;
         $this->datetime = $datetime;
     }
 
-    public static function get($data) {
+    /**
+     * @param array<string,string|int> $data
+     */
+    public static function get(array $data): ?Subscription {
         $db = get_db();
 
         $query = "
@@ -49,7 +57,10 @@ class Subscription {
         return $subscription;
     }
 
-    public static function list() {
+    /**
+     * @return ?array<Subscription>
+     */
+    public static function list(): ?array {
         $db = get_db();
         $query = "SELECT * FROM subscription";
         $result = $db->query($query);
@@ -76,7 +87,7 @@ class Subscription {
     }
 
 
-    function validate() {
+    function validate(): bool {
 
         if ($this->person == null) {
             throw new Exception("Person is required.");
@@ -89,14 +100,14 @@ class Subscription {
         return true;
     }
 
-    function save() {
+    function save(): Subscription {
         if ($this->id) {
             return $this->update();
         }
         return $this->insert();
     }
 
-    function insert() {
+    function insert(): Subscription {
         $this->validate();
 
         $this->qr = generate_qr(
@@ -123,11 +134,13 @@ class Subscription {
         return Subscription::get(["id" => $lastInsertID]);
     }
 
-    function update() {
+    function update(): Subscription {
         throw new Exception("Not implemented yet.");
     }
 
-    public static function subscribe_person($fullname, $email, $phone) {
+    public static function subscribe_person(
+        string $fullname, string $email, string $phone
+    ): Subscription {
         // Open the SQLite database
         $person_data = [
             "fullname" => $fullname,
@@ -162,7 +175,7 @@ class Subscription {
         return $subscription_saved;
     }
 
-    public static function upload_csv($file) {
+    public static function upload_csv(string $file): void {
         // Process the uploaded CSV file
         $handle = fopen($file, 'r');
         $header = fgetcsv($handle); // Read the header row
@@ -217,7 +230,7 @@ class Subscription {
         echo "<p>Successfully imported $count rows.</p>";
     }
 
-    public static function send_email($subscription) {
+    public static function send_email(Subscription $subscription): bool {
         $templateFile = dirname(__DIR__) . '/templates/subscription-email.html';
         $templateContent = file_get_contents($templateFile);
 

@@ -4,19 +4,27 @@ require_once __DIR__ . "/db.php";
 
 
 class Person {
-    public $id;
-    public $fullname;
-    public $email;
-    public $phone;
+    public ?int $id;
+    public string $fullname;
+    public string $email;
+    public string $phone;
 
-    function __construct($fullname="", $email="", $phone="", $id=null) {
+    function __construct(
+        string $fullname="",
+        string $email="",
+        string $phone="",
+        ?int $id=null
+    ) {
         $this->fullname = $fullname;
         $this->email = $email;
         $this->phone = $phone;
         $this->id = $id;
     }
 
-    public static function get($data) {
+    /**
+     * @param array<string,string|int> $data
+     */
+    public static function get(array $data): Person {
         $db = get_db();
 
         $query = "
@@ -41,7 +49,7 @@ class Person {
             $person = null;
         } else {
             $person = new Person();
-            $person->id = $row['id'];
+            $person->id = intval($row['id']);
             $person->fullname = $row['fullname'];
             $person->email = $row['email'];
             $person->phone = $row['phone'];
@@ -50,7 +58,10 @@ class Person {
         return $person;
     }
 
-    public static function list() {
+    /**
+     * @return array<Person>
+     */
+    public static function list(): array {
         $db = get_db();
         $query = "SELECT * FROM person";
         $result = $db->query($query);
@@ -70,7 +81,7 @@ class Person {
         return $person_list;
     }
 
-    function validate() {
+    function validate(): bool {
         if ($this->fullname == "") {
             throw new Exception("Fullname is required.");
         }
@@ -101,21 +112,15 @@ class Person {
         return true;
     }
 
-    function save() {
+    function save(): Person {
         if ($this->id) {
             return $this->update();
         }
         return $this->insert();
     }
 
-    function insert() {
+    function insert(): Person {
         $this->validate();
-
-        $this->qr = generate_qr(
-            $this->fullname,
-            $this->email,
-            $this->phone
-        );
 
         $db = get_db();
         // Insert the form data into the 'registrations' table
@@ -131,8 +136,9 @@ class Person {
         return Person::get(["id" => $lastInsertID]);
     }
 
-    function update() {
-
+    function update(): Person {
+        // not implemented yet.
+        return $this;
     }
 
 }

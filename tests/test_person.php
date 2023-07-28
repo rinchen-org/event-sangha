@@ -5,7 +5,7 @@ require_once dirname(__DIR__) . "/event/migrations/all.php";
 require_once __DIR__ . "/conftest.php";
 
 
-function test_person_get() {
+function test_person_get(): void {
   $fullname = "test";
   $email = "test@test.com";
   $phone = "111111111";
@@ -43,7 +43,7 @@ function test_person_get() {
   assert($result->id == 1);
 }
 
-function test_person_get_by_id() {
+function test_person_get_by_id(): void {
   $fullname = "test";
   $email = "test@test.com";
   $phone = "111111111";
@@ -77,7 +77,7 @@ function test_person_get_by_id() {
   assert($result->id == 1);
 }
 
-function test_person_list() {
+function test_person_list(): void {
   $result = Person::list();
   assert($result == []);
 
@@ -106,11 +106,11 @@ function test_person_list() {
     assert($person->fullname == $fullname . $person->id);
     assert($person->email == $email . $person->id);
     assert($person->phone == $phone . $person->id);
-    assert($person->id);
+    assert($person->id > 0);
   }
 }
 
-function test_person_invalid() {
+function test_person_invalid(): void {
   $people = [
       [
           "fullname" => "",
@@ -151,16 +151,18 @@ function test_person_invalid() {
       $person->email = $p["email"];
       $person->phone = $p["phone"];
 
+      $person_saved = false;
       try {
         $person->save();
-        assert(false);
+        $person_saved = true;
       } catch (Exception $e) {
         assert ($e->getMessage() == $p["error"]);
       }
+      assert($person_saved == false);
   }
 }
 
-function run_tests() {
+function run_tests(): void {
   // Create a list of function names
   $test_list = [
     'test_person_get',

@@ -12,6 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $phone = $_POST['phone'];
 
+    $subscription = null;
     try {
         $subscription = Subscription::subscribe_person($fullname, $email, $phone);
     } catch (Exception $e) {

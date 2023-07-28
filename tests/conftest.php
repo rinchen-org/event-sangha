@@ -7,7 +7,7 @@ assert_options(ASSERT_WARNING,  false);
 assert_options(ASSERT_CALLBACK, 'assert_failure');
 
 
-function clean_db() {
+function clean_db(): void {
   $file = dirname(__DIR__) . '/event/db.sqlite';
 
   if (file_exists($file)) {
@@ -23,7 +23,15 @@ function clean_db() {
 
 
 class TestCase {
-    public static function run_tests($test_list, $migrate_list = []) {
+
+    /**
+     * @param array<string> $test_list
+     * @param array<string> $migrate_list
+     */
+    public static function run_tests(
+        array $test_list,
+        array $migrate_list = []
+    ): void {
         // Iterate over the function list and call the functions
         foreach ($test_list as $test_fn) {
             // Check if the function exists

@@ -87,6 +87,14 @@ if ($filter == "active") {
               </td>
               <td><img src="<?php echo $subscription->qr; ?>" /></td>
               <td>
+                <form action="./subscription_resend_email.php" method="POST">
+                  <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
+                  <input type="submit"
+                    value="reenviar email"
+                    class="btn btn-success"
+                    onclick="return confirm('Are you sure?')"
+                    style="background:#ffcc00!important;" />
+                </form>
   <?php if ($subscription->active == 0) { ?>
                 <form action="./subscription_activation.php" method="POST">
                   <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />

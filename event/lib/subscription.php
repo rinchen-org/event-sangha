@@ -1,7 +1,10 @@
 <?php
 require_once __DIR__ . "/qr.php";
+require_once __DIR__ . "/email.php";
 require_once __DIR__ . "/db.php";
 require_once __DIR__ . "/person.php";
+require_once __DIR__ . "/settings.php";
+
 
 class Subscription {
     public ?int $id;
@@ -271,19 +274,29 @@ class Subscription {
 
     public static function send_email(Subscription $subscription): bool {
         $templateFile = dirname(__DIR__) . '/templates/subscription-email.html';
-        $templateContent = file_get_contents($templateFile);
 
-        $qrCode = "<img src='$subscription->qr'/>";
-        $htmlContent = str_replace('<QR>', $qrCode, $templateContent);
+        $context = [
+            "<QR>" => "<img src='$subscription->qr'/>",
+        ];
 
         $to = $subscription->person->email;
+        $from = get_env("EMAIL_FROM");
+        $reply_to = get_env("EMAIL_REPLY_TO");
+        $cc = get_env("EMAIL_CC");
         $subject = 'Centro Sakya Rinchen Ling - Confirmación Inscripción al Retiro';
-        $headers = 'From: info@rinchen.org' . "\r\n";
-        $headers .= 'Reply-To: info@rinchen.org' . "\r\n";
-        $headers .= 'Content-Type: text/html; charset=utf-8' . "\r\n";
 
         // Send the email
-        if (!mail($to, $subject, $htmlContent, $headers)) {
+        if (
+            !send_email(
+                $templateFile,
+                $context,
+                $subject,
+                $from,
+                $to,
+                $reply_to,
+                $cc
+            )
+        ) {
             throw new Exception('Email could not be sent.');
         }
         return true;

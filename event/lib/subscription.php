@@ -211,9 +211,7 @@ class Subscription {
         $subscription->person = $person;
 
         $subscription_saved = $subscription->insert();
-        // TODO: just skip it for development, it should be enabled
-        // before the PR is merged.
-        // Subscription::send_email($subscription_saved);
+        Subscription::send_email($subscription_saved);
         return $subscription_saved;
     }
 

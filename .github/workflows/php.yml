@@ -18,6 +18,10 @@ jobs:
       run:
         shell: bash -l {0}
 
+    concurrency:
+      group: ci-tests-${{ github.ref }}
+      cancel-in-progress: true
+
     steps:
     - uses: actions/checkout@v3
 

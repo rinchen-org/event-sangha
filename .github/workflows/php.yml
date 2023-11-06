@@ -14,8 +14,21 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        shell: bash -l {0}
+
     steps:
     - uses: actions/checkout@v3
+
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        miniconda-version: "latest"
+        environment-file: conda/dev.yaml
+        channels: conda-forge,nodefaults
+        activate-environment: rinchen
+        use-mamba: true
+        miniforge-variant: Mambaforge
 
     - name: Validate composer.json and composer.lock
       run: composer validate --strict
@@ -30,14 +43,11 @@ jobs:
           ${{ runner.os }}-php-
 
     - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
+      run: |
+        composer install --prefer-dist --no-progress
 
     # Add a test script to composer.json, for instance: "test": "vendor/bin/phpunit"
     # Docs: https://getcomposer.org/doc/articles/scripts.md
 
     - name: Run test suite
-      run: |
-        cd tests
-        php test_person.php
-        php test_settings.php
-        php test_subscription.php
+      run: makim dev.tests

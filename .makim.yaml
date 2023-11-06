@@ -12,7 +12,7 @@ groups:
       tests:
         help: Run the server application
         run: |
-          # php tests/test_settings.php
-          # php tests/test_person.php
-          # php tests/test_subscription.php
-          ./vendor/bin/phpunit tests/test_person.php
+          ./vendor/bin/phpunit tests/SettingsTest.php
+          ./vendor/bin/phpunit tests/PersonTest.php
+          ./vendor/bin/phpunit tests/SubscriptionTest.php
+          ./vendor/bin/phpunit tests/EmailTest.php

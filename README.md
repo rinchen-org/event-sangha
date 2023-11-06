@@ -208,3 +208,12 @@ TBD
 
 This project is licensed under the MIT - see the
 [LICENSE.md](LICENSE.md) file for details.
+
+
+## Next steps
+
+It would be nice to have it using Lavarel: https://laravel.com/docs/10.x
+But it would require some work on the server side as well.
+
+Or, if it would be possible, it would be better to have it using Python with Django.
+But it would also depends on the server infrastructure.

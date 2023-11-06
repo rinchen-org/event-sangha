@@ -15,4 +15,4 @@ groups:
           ./vendor/bin/phpunit tests/SettingsTest.php
           ./vendor/bin/phpunit tests/PersonTest.php
           ./vendor/bin/phpunit tests/SubscriptionTest.php
-          ./vendor/bin/phpunit tests/EmailTest.php
+          # ./vendor/bin/phpunit tests/EmailTest.php

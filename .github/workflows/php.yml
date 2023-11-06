@@ -51,3 +51,6 @@ jobs:
 
     - name: Run test suite
       run: makim dev.tests
+
+    - name: linter
+      run: pre-commit run --all-files

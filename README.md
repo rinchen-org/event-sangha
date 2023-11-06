@@ -27,19 +27,19 @@ contribute to this project.
 2. Clone your forked repository to your local machine:
 
    ```bash
-   git clone https://github.com/your-username/project-name.git
+   git clone https://github.com/your-username/rinchen.org.git
    ```
 
 3. Change directory to the project:
 
    ```bash
-   cd project-name
+   cd rinchen.org
    ```
 
 4. Add the original repository as a remote:
 
    ```bash
-   git remote add upstream https://github.com/original-owner/project-name.git
+   git remote add upstream https://github.com/xmnlab/rinchen.org.git
    ```
 
 ### Making Changes
@@ -81,7 +81,7 @@ development environment.
 
 ### Prerequisites
 
-- PHP (version >= 8.2)
+- PHP (version >= 8.1)
 - Composer
 
 ### Installing Dependencies
@@ -92,13 +92,13 @@ development environment.
 2. Clone the repository to your local machine (if you haven't already):
 
    ```bash
-   git clone https://github.com/your-username/project-name.git
+   git clone https://github.com/your-username/rinchen.org.git
    ```
 
 3. Change directory to the project:
 
    ```bash
-   cd project-name
+   cd rinchen.org
    ```
 
 4. Install project dependencies using Composer:

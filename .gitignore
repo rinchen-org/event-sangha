@@ -2,3 +2,5 @@ db.sqlite
 event/.htpasswd
 vendor/
 .env*
+.phpunit.cache/
+.phpunit.result.cache

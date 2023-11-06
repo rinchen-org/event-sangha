@@ -5,7 +5,7 @@ channels:
 dependencies:
   - sqlite
   - pre-commit
-  - php
+  # - php 8.*
   - python
   - pip
   - pip:

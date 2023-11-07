@@ -9,10 +9,10 @@ include dirname(__DIR__) . "/header.php";
     <link rel="stylesheet" href="<?php $BASE_URL?>/static/style.css">
 </head>
 <body>
-    <h2>Lista de asistencia</h2>
+    <h2>Attendance Log</h2>
 
     <a href="../" class="btn btn-warning my-3">Back to the menu</a>
-    <a href="./form.php" class="btn btn-primary my-3">Log Attendance</a>
+    <a href="./form.php" class="btn btn-primary my-3">Log</a>
 
     <?php
     $result = Attendance::list();
@@ -24,17 +24,17 @@ include dirname(__DIR__) . "/header.php";
                 <th>Full Name</th>
                 <th>Email</th>
                 <th>Phone</th>
-                <th>Date and Time of entry</th>
+                <th>Log Time</th>
             </tr>
-            <?php while ($row = $result->fetchArray(SQLITE3_ASSOC)): ?>
+            <?php foreach ($result as $attendance): ?>
                 <tr>
-                    <td><?php echo $row['id']; ?></td>
-                    <td><?php echo $row['fullname']; ?></td>
-                    <td><?php echo $row['email']; ?></td>
-                    <td><?php echo $row['phone']; ?></td>
-                    <td><?php echo $row['entry_time']; ?></td>
+                    <td><?php echo $attendance->id; ?></td>
+                    <td><?php echo $attendance->person->fullname; ?></td>
+                    <td><?php echo $attendance->person->email; ?></td>
+                    <td><?php echo $attendance->person->phone; ?></td>
+                    <td><?php echo $attendance->logTime->format('Y-m-d H:i:s'); ?></td>
                 </tr>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </table>
     <?php else: ?>
         <p>No records found.</p>

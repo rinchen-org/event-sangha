@@ -1,55 +1,78 @@
 <?php
 include dirname(__DIR__) . "/header.php";
+require_once dirname(dirname(__DIR__)) . "/lib/attendance.php";
+require_once dirname(dirname(__DIR__)) . "/lib/person.php";
+require_once dirname(dirname(__DIR__)) . "/lib/event.php";
 
-// the current page is not available yet.
-$is_page_available = max(0 , -1); // it is just an workaround
-if (!$is_page_available) {
-    die("No disponible aún.");
-}
-?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Registro de asistencia manual</title>
-    <link rel="stylesheet" href="<?php $BASE_URL?>/static/style.css">
-</head>
-<body class="container">
-    <h2>Registro de asistencia manual</h2>
+// Check if the form is submitted
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Retrieve form data
+    $personId = $_POST['person'];
+    $eventId = $_POST['event'];
+    $eventSessionId = $_POST['event_session'];
 
-    <?php
+    $person = Person::get(["id" => $personId]);
+    $eventSession = EventSession::get(["id" => $eventSessionId]);
 
-    if (isset($_POST['submit'])) {
-        $fullname = $_POST['fullname'];
-        $email = $_POST['email'];
-        $phone = $_POST['phone'];
-
-        $result = log_attendance($fullname, $email, $phone);
-
-        if (!$result) {
-            die();
-        }
-
-        echo '<p style="color: green;">Asistencia registrada con éxito!</p>';
-        echo '<a href="./attendance_log_manual.php">Back to the form</a>';
-    } else {
-    ?>
-
-    <form method="POST" action="<?php echo $_SERVER['PHP_SELF']; ?>">
-        <label for="fullname">Full Name:</label>
-        <input type="text" name="fullname" required><br>
-
-        <label for="email">Email:</label>
-        <input type="email" name="email" required><br>
-
-        <label for="phone">Phone:</label>
-        <input type="text" name="phone" required><br>
-
-        <input type="submit" name="submit" value="Register">
-    </form>
-
-    <a href="../" class="btn btn-warning my-3">Back to the menu</a>
-<?php
+    // Log the attendance
+    try {
+        Attendance::log($person, $eventSession);
+        echo '<p class="alert alert-success">Attendance logged successfully!</p>';
+    } catch (Exception $e) {
+        echo '<p class="alert alert-danger">' . $e->getMessage() . '</p>';
     }
+}
+
+// Retrieve data for the dropdowns
+$personList = Person::list();
+$eventList = Event::list();
+$eventSessionList = EventSession::list();
+
 ?>
-</body>
-</html>
+
+<h1>Attendance Log</h1>
+
+<form method="POST" action="">
+    <div class="mb-3">
+        <label for="person" class="form-label">Select a Person:</label>
+        <select name="person" id="person" class="form-select" required>
+            <option value="" disabled selected>Select a Person</option>
+            <?php foreach ($personList as $person) { ?>
+                <option value="<?php echo $person->id; ?>"><?php
+                    echo $person->fullname . " &lt;" . $person->email . "&gt;";
+                ?></option>
+            <?php } ?>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label for="event" class="form-label">Event:</label>
+        <select name="event" id="event" class="form-select" required>
+            <option value="" disabled selected>Select an Event</option>
+            <?php foreach ($eventList as $event) { ?>
+                <option value="<?php echo $event->id; ?>"><?php echo $event->name; ?></option>
+            <?php } ?>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label for="event_session" class="form-label">Event Session:</label>
+        <select name="event_session" id="event_session" class="form-select" required>
+            <option value="" disabled selected>Select an Event Session</option>
+            <?php foreach ($eventSessionList as $eventSession) { ?>
+                <option value="<?php echo $eventSession->id; ?>"><?php echo $eventSession->name; ?></option>
+            <?php } ?>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <button type="submit" class="btn btn-primary">Log</button>
+    </div>
+</form>
+
+<a href="../" class="btn btn-warning my-3">Back to the menu</a>
+<a href="./list.php" class="btn btn-warning my-3">Back to the List</a>
+
+<?php
+include dirname(__DIR__) . "/footer.php";
+?>

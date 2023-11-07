@@ -41,8 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($event) {
         echo '<div class="alert alert-success" role="alert">';
         echo $isNewEvent ? 'Event created successfully!' : 'Event updated successfully!';
-        echo '<a href="' . $BASE_URL . '/event/list.php" class="btn btn-primary">Back to Event List</a>';
         echo '</div>';
+        echo '<a href="' . $BASE_URL . 'event/list.php" class="btn btn-primary">Back to Event List</a>';
     }
 }
 
@@ -77,7 +77,7 @@ if ($isNewEvent || $event) {
         <button type="submit" class="btn btn-primary"><?php echo $isNewEvent ? 'Create Event' : 'Update Event'; ?></button>
     </form>
 
-    <a href="<?php echo $BASE_URL; ?>/event/list.php" class="btn btn-secondary mt-3">Back to Event List</a>
+    <a href="<?php echo $BASE_URL; ?>/templates/event/list.php" class="btn btn-secondary mt-3">Back to Event List</a>
 </div>
 
 <?php

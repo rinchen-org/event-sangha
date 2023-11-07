@@ -12,7 +12,7 @@ function event_create_table(): void {
             name TEXT NOT NULL,
             description TEXT,
             start_date DATETIME NOT NULL,
-            end_date DATETIME NOT NULL,
+            end_date DATETIME NOT NULL
         )
     ";
 
@@ -31,7 +31,7 @@ function event_session_create_table(): void {
             name TEXT NOT NULL,
             description TEXT,
             start_date DATETIME NOT NULL,
-            end_date DATETIME NOT NULL,
+            end_date DATETIME NOT NULL
         )
     ";
 

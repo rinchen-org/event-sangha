@@ -1,22 +1,7 @@
 <?php
 
-function getBaseUrlFromEndpoint(string $endpoint) {
-  $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
-  $host = $_SERVER['HTTP_HOST'];
-  $directory = dirname($_SERVER['SCRIPT_NAME']);
+require_once dirname(__DIR__) . '/lib/settings.php';
 
-  // Remove trailing slash if present
-  $directory = rtrim($directory, '/');
-
-  $baseUrl = $protocol . $host . $directory;
-
-  // Append a trailing slash to the base URL
-  if ($baseUrl[strlen($baseUrl) - 1] !== '/') {
-      $baseUrl .= '/';
-  }
-
-  return $baseUrl;
-}
 
 function isEnvProduction() {
   // Get the current server's hostname from $_SERVER['HTTP_HOST']
@@ -31,6 +16,6 @@ function isEnvProduction() {
   );
 }
 
-$BASE_URL = getBaseUrlFromEndpoint($_SERVER['REQUEST_URI']);
+$BASE_URL = get_env("HOST_ADDRESS");
 $ENV_PROD = isEnvProduction();
 ?>

@@ -19,7 +19,7 @@ if ($filter == "active") {
 
 ?>
   <h2>Lista de suscriptos</h2>
-  <a href="../">&lt;&lt; Back to the menu</a>
+  <a href="../" class="btn btn-primary my-3">Back to the menu</a>
 
   <div class="alert alert-secondary input-group" role="alert">
     Filters: <br/>
@@ -123,7 +123,7 @@ if ($filter == "active") {
         <p>No records found.</p>
 <?php endif; ?>
 
-    <a href="../">&lt;&lt; Back to the menu</a>
+    <a href="../" class="btn btn-primary my-3">Back to the menu</a>
 
     <script>
         let table = new DataTable('#subscription_list');

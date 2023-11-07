@@ -11,7 +11,7 @@ include dirname(__DIR__) . "/header.php";
 <body>
     <h2>Lista de asistencia</h2>
 
-    <a href="../">&lt;&lt; Back to the menu</a>
+    <a href="../" class="btn btn-primary my-3">Back to the menu</a>
 
     <?php
     $result = Attendance::list();
@@ -39,7 +39,7 @@ include dirname(__DIR__) . "/header.php";
         <p>No records found.</p>
     <?php endif; ?>
 
-    <a href="../">&lt;&lt; Back to the menu</a>
+    <a href="../" class="btn btn-primary my-3">Back to the menu</a>
 
 <?php
 include dirname(__DIR__) . "/footer.php";

@@ -30,7 +30,7 @@ if (!$is_page_available) {
         }
 
         echo '<p style="color: green;">Asistencia registrada con éxito!</p>';
-        echo '<a href="./attendance_log_manual.php">&lt;&lt; Back to the form</a>';
+        echo '<a href="./attendance_log_manual.php">Back to the form</a>';
     } else {
     ?>
 
@@ -47,7 +47,7 @@ if (!$is_page_available) {
         <input type="submit" name="submit" value="Register">
     </form>
 
-    <a href="../">&lt;&lt; Back to the menu</a>
+    <a href="../" class="btn btn-primary my-3">Back to the menu</a>
 <?php
     }
 ?>

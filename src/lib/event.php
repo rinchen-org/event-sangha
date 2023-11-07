@@ -26,7 +26,7 @@ class Event {
     public static function get(array $data): ?Event {
         $db = get_db();
 
-        $query = "SELECT * FROM events WHERE 1=1";
+        $query = "SELECT * FROM event WHERE 1=1";
 
         foreach ($data as $key => $value) {
             $escapedValue = $db->escapeString($value);
@@ -60,7 +60,7 @@ class Event {
      */
     public static function list(): ?array {
         $db = get_db();
-        $query = "SELECT * FROM events";
+        $query = "SELECT * FROM event";
         $result = $db->query($query);
 
         if (!$result) {
@@ -70,13 +70,7 @@ class Event {
         $event_list = [];
 
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-            $event = new Event();
-            $event->id = intval($row['id']);
-            $event->name = $row['name'];
-            $event->description = $row['description'];
-            $event->startDate = new DateTime($row['start_date']);
-            $event->endDate = new DateTime($row['end_date']);
-            $event_list[] = $event;
+            $event_list[] = Event::get(["id" => $row['id']]);
         }
 
         return $event_list;
@@ -84,27 +78,23 @@ class Event {
 
     public function insert(): Event {
         $db = get_db();
+
         $startDateStr = $this->startDate->format('Y-m-d H:i:s');
         $endDateStr = $this->endDate->format('Y-m-d H:i:s');
 
         $insertQuery = "
-            INSERT INTO events (name, description, start_date, end_date)
+            INSERT INTO event (name, description, start_date, end_date)
             VALUES (
                 '$this->name',
                 '$this->description',
                 '$startDateStr',
-                '$endDateStr',
+                '$endDateStr'
             )";
         $db->exec($insertQuery);
         $lastInsertID = $db->lastInsertRowID();
+        $db->close();
 
-        $event = Event::get(["id" => $lastInsertID]);
-
-        if ($event === null) {
-            throw new Exception("The new event is not available yet in the database.");
-        }
-
-        return $event;
+        return Event::get(["id" => $lastInsertID]);
     }
 
     public function update(): Event {
@@ -117,7 +107,7 @@ class Event {
         }
 
         $insertQuery = "
-            UPDATE events
+            UPDATE event
             SET
                 name='$this->name',
                 description='$this->description',

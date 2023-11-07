@@ -18,7 +18,7 @@ include __DIR__ . "/header.php";
   <strong>Menu Asistencia</strong>
   <div class="list-group">
     <a class="list-group-item list-group-item-action"
-      href="<?php $BASE_URL?>/templates/attendance/log_manual.php">Registro manual de asistencia</a>
+      href="<?php $BASE_URL?>/templates/attendance/form.php">Registro manual de asistencia</a>
     <a class="list-group-item list-group-item-action"
       href="<?php $BASE_URL?>/templates/attendance/list.php">Lista de asistencia</a>
   </div>

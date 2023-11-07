@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . "/lib/subscription.php";
-include __DIR__ . "/header.php";
+require_once dirname(dirname(__DIR__)) . "/lib/subscription.php";
+include dirname(__DIR__) . "/header.php";
 
 $filter = $_POST["filter"] ?? "all";
 
@@ -19,7 +19,7 @@ if ($filter == "active") {
 
 ?>
   <h2>Lista de suscriptos</h2>
-  <a href="./">&lt;&lt; Back to the menu</a>
+  <a href="../">&lt;&lt; Back to the menu</a>
 
   <div class="alert alert-secondary input-group" role="alert">
     Filters: <br/>
@@ -105,7 +105,7 @@ if ($filter == "active") {
                     style="background:#1CD324!important;" />
                 </form>
   <?php } else { ?>
-                <form action="./subscription_activation.php" method="POST">
+                <form action="<?php $BASE_URL?>/subscription/activation.php" method="POST">
                   <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
                   <input type="hidden" name="active" value="0" />
                   <input type="submit"
@@ -123,12 +123,12 @@ if ($filter == "active") {
         <p>No records found.</p>
 <?php endif; ?>
 
-    <a href="./">&lt;&lt; Back to the menu</a>
+    <a href="../">&lt;&lt; Back to the menu</a>
 
     <script>
         let table = new DataTable('#subscription_list');
     </script>
 
 <?php
-include __DIR__ . "/footer.php";
+include dirname(__DIR__) . "/footer.php";
 ?>

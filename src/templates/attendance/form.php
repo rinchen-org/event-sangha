@@ -1,5 +1,5 @@
 <?php
-include __DIR__ . "/header.php";
+include dirname(__DIR__) . "/header.php";
 
 // the current page is not available yet.
 $is_page_available = max(0 , -1); // it is just an workaround
@@ -11,7 +11,7 @@ if (!$is_page_available) {
 <html>
 <head>
     <title>Registro de asistencia manual</title>
-    <link rel="stylesheet" href="./static/style.css">
+    <link rel="stylesheet" href="<?php $BASE_URL?>/static/style.css">
 </head>
 <body class="container">
     <h2>Registro de asistencia manual</h2>
@@ -47,7 +47,7 @@ if (!$is_page_available) {
         <input type="submit" name="submit" value="Register">
     </form>
 
-    <a href="./">&lt;&lt; Back to the menu</a>
+    <a href="../">&lt;&lt; Back to the menu</a>
 <?php
     }
 ?>

@@ -1,7 +1,7 @@
 <?php
 
-require_once dirname(__DIR__) . "/event/lib/email.php";
-require_once dirname(__DIR__) . "/event/lib/settings.php";
+require_once dirname(__DIR__) . "/src/lib/email.php";
+require_once dirname(__DIR__) . "/src/lib/settings.php";
 
 use PHPUnit\Framework\TestCase;
 
@@ -10,7 +10,7 @@ class EmailTest extends TestCase
 {
     protected function setUp(): void
     {
-        $envFilePath = dirname(__DIR__) . '/event/.env';
+        $envFilePath = dirname(__DIR__) . '/src/.env';
 
         $content = "TEST_EMAIL_TO=myemail+to@gmail.com\n";
         $content .= "EMAIL_REPLY_TO=myemail+replyto@gmail.com\n";
@@ -42,7 +42,7 @@ class EmailTest extends TestCase
             );
         }
 
-        $templateFile = dirname(__DIR__) . "/event/templates/subscription-email.html";
+        $templateFile = dirname(__DIR__) . "/src/templates/subscription-email.html";
 
         $qrCode = "<img src='https://rinchen.org/wp-content/uploads/2021/07/logo-head.png'/>";
         $context = [

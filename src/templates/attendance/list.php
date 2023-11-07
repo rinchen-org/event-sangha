@@ -1,28 +1,22 @@
 <?php
-include __DIR__ . "/header.php";
-
-// the current page is not available yet.
-$is_page_available = max(0 , -1); // it is just an workaround
-if (!$is_page_available) {
-    die("No disponible aún.");
-}
+require_once dirname(dirname(__DIR__)) . "/lib/attendance.php";
+include dirname(__DIR__) . "/header.php";
 ?>
 <!DOCTYPE html>
 <html>
 <head>
     <title>Lista de asistencia</title>
-    <link rel="stylesheet" href="./static/style.css">
+    <link rel="stylesheet" href="<?php $BASE_URL?>/static/style.css">
 </head>
 <body>
     <h2>Lista de asistencia</h2>
 
-    <a href="./">&lt;&lt; Back to the menu</a>
+    <a href="../">&lt;&lt; Back to the menu</a>
 
     <?php
-    $result = get_attendance_list();
-    ?>
+    $result = Attendance::list();
 
-    <?php if ($result->numColumns() > 0): ?>
+    if ($result): ?>
         <table>
             <tr>
                 <th>ID</th>
@@ -45,8 +39,8 @@ if (!$is_page_available) {
         <p>No records found.</p>
     <?php endif; ?>
 
-    <a href="./">&lt;&lt; Back to the menu</a>
+    <a href="../">&lt;&lt; Back to the menu</a>
 
 <?php
-include __DIR__ . "/footer.php";
+include dirname(__DIR__) . "/footer.php";
 ?>

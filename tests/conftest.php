@@ -6,11 +6,11 @@ assert_options(ASSERT_BAIL,     true);
 assert_options(ASSERT_WARNING,  false);
 assert_options(ASSERT_CALLBACK, 'assert_failure');
 
-require_once dirname(__DIR__) . "/event/migrations/all.php";
+require_once dirname(__DIR__) . "/src/migrations/all.php";
 
 
 function clean_db(): void {
-  $file = dirname(__DIR__) . '/event/db.sqlite';
+  $file = dirname(__DIR__) . '/src/db.sqlite';
 
   if (file_exists($file)) {
       if (unlink($file)) {

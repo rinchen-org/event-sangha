@@ -1,6 +1,6 @@
 <?php
-include __DIR__ . "/header.php";
-require_once __DIR__ . "/lib/subscription.php";
+include dirname(__DIR__) . "/header.php";
+require_once dirname(dirname(__DIR__)) . "/lib/subscription.php";
 ?>
 <h2>CSV Upload</h2>
 
@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csv_file'])) {
     <input type="submit" value="Upload">
 </form>
 
-<a href="./">&lt;&lt; Back to the menu</a>
+<a href="../">&lt;&lt; Back to the menu</a>
 <?php
-include __DIR__ . "/footer.php";
+include dirname(__DIR__) . "/footer.php";
 ?>

@@ -1,9 +1,6 @@
 <?php
-include __DIR__ . "/header.php";
-require_once __DIR__ . "/lib/subscription.php";
-?>
-<?php
-// SQLite database file
+include dirname(__DIR__) . "/header.php";
+require_once dirname(dirname(__DIR__)) . "/lib/subscription.php";
 
 // Check if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -19,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
     } catch (Exception $e) {
         print("<p>" . $e->getMessage() . "</p>");
-        echo '<p><a href="./subscription_manual.php">&lt;&lt; Back to the form</a></p>';
+        echo '<p><a href="'. $BASE_URL .'/subscription/form.php">&lt;&lt; Back to the form</a></p>';
     }
 
     if ($subscription) {
@@ -47,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo "<pre class='qr'>\n";
         echo "<img src='$subscription->qr'/>";
         echo "\n</pre>";
-        echo '<a href="./subscription_manual.php">&lt;&lt; Back to the form</a>';
+        echo '<a href="' . $BASE_URL . '/subscription/form.php">&lt;&lt; Back to the form</a>';
 ?>
 
 <h3>SUGERENCIAS</h3>
@@ -150,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <img src="https://rinchen.org/wp-content/uploads/2020/08/Sakya-Rinchen-Ling.png"
   alt="Equipo Sakya Rinchen Ling" />
 
-<a href="./subscription_manual.php">&lt;&lt; Back to the form</a>
+<a href="<?php $BASE_URL?>/subscription/form.php">&lt;&lt; Back to the form</a>
 
 <?php
     }
@@ -174,12 +171,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     <input type="submit" value="Submit">
 </form>
 
-<a href="./">&lt;&lt; Back to the menu</a>
+<a href="../">&lt;&lt; Back to the menu</a>
 
 </body>
 </html>
 
 <?php
 }
-include __DIR__ . "/footer.php";
+include dirname(__DIR__) . "/footer.php";
 ?>

@@ -1,6 +1,6 @@
 <?php
 
-require_once dirname(__DIR__) . "/event/lib/subscription.php";
+require_once dirname(__DIR__) . "/src/lib/subscription.php";
 require_once __DIR__ . "/conftest.php";
 
 use PHPUnit\Framework\TestCase;

@@ -1,5 +1,5 @@
 db.sqlite
-event/.htpasswd
+src/.htpasswd
 vendor/
 .env*
 .phpunit.cache/

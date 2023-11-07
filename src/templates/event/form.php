@@ -77,7 +77,9 @@ if ($isNewEvent || $event) {
         <button type="submit" class="btn btn-primary"><?php echo $isNewEvent ? 'Create Event' : 'Update Event'; ?></button>
     </form>
 
-    <a href="<?php echo $BASE_URL; ?>/templates/event/list.php" class="btn btn-secondary mt-3">Back to Event List</a>
+    <a href="../" class="btn btn-warning my-3">Back to the menu</a>
+    <a href="./list.php" class="btn btn-warning my-3">Back to Event List</a>
+
 </div>
 
 <?php

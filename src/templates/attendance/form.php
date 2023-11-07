@@ -47,7 +47,7 @@ if (!$is_page_available) {
         <input type="submit" name="submit" value="Register">
     </form>
 
-    <a href="../" class="btn btn-primary my-3">Back to the menu</a>
+    <a href="../" class="btn btn-warning my-3">Back to the menu</a>
 <?php
     }
 ?>

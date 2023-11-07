@@ -6,7 +6,8 @@ $result = Event::list();
 
 ?>
 <h2>Event List</h2>
-<a href="../" class="btn btn-primary my-3">Back to the menu</a>
+<a href="../" class="btn btn-warning my-3">Back to the menu</a>
+<a href="./form.php" class="btn btn-primary my-3">New Event</a>
 
 <?php if ($result): ?>
   <table id="event_list">
@@ -39,7 +40,7 @@ $result = Event::list();
   <p>No records found.</p>
 <?php endif; ?>
 
-<a href="../" class="btn btn-primary my-3">Back to the menu</a>
+<a href="../" class="btn btn-warning my-3">Back to the menu</a>
 
 <script>
   let table = new DataTable('#event_list');

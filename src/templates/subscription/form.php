@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
     } catch (Exception $e) {
         print("<p>" . $e->getMessage() . "</p>");
-        echo '<p><a href="'. $BASE_URL .'/subscription/form.php">Back to the form</a></p>';
+        echo '<p><a href="./form.php">Back to the form</a></p>';
     }
 
     if ($subscription) {
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo "<pre class='qr'>\n";
         echo "<img src='$subscription->qr'/>";
         echo "\n</pre>";
-        echo '<a href="' . $BASE_URL . '/subscription/form.php">Back to the form</a>';
+        echo '<a href="./form.php">Back to the form</a>';
 ?>
 
 <h3>SUGERENCIAS</h3>
@@ -147,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <img src="https://rinchen.org/wp-content/uploads/2020/08/Sakya-Rinchen-Ling.png"
   alt="Equipo Sakya Rinchen Ling" />
 
-<a href="<?php $BASE_URL?>/subscription/form.php">Back to the form</a>
+<a href="./form.php">Back to the form</a>
 
 <?php
     }
@@ -168,10 +168,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     <label for="phone">Phone:</label>
     <input type="tel" name="phone" id="phone" required><br><br>
 
-    <input type="submit" value="Submit">
+    <button type="submit" class="btn btn-primary">Save</button>
 </form>
 
-<a href="../" class="btn btn-primary my-3">Back to the menu</a>
+<a href="../" class="btn btn-warning my-3">Back to the menu</a>
+<a href="./list.php" class="btn btn-warning my-3">Back to the list</a>
 
 </body>
 </html>

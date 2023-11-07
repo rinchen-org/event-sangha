@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csv_file'])) {
     <input type="submit" value="Upload">
 </form>
 
-<a href="../" class="btn btn-primary my-3">Back to the menu</a>
+<a href="../" class="btn btn-warning my-3">Back to the menu</a>
 <?php
 include dirname(__DIR__) . "/footer.php";
 ?>

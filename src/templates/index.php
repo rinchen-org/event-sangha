@@ -38,9 +38,9 @@ include __DIR__ . "/header.php";
   <strong>Events' Session</strong>
   <div class="list-group">
     <a class="list-group-item list-group-item-action"
-      href="<?php $BASE_URL?>/templates/event/list.php">Event Sessions List</a>
+      href="<?php $BASE_URL?>/templates/event-session/list.php">Event Sessions List</a>
     <a class="list-group-item list-group-item-action"
-      href="<?php $BASE_URL?>/templates/event/form.php">Event Sessions Form</a>
+      href="<?php $BASE_URL?>/templates/event-session/form.php">Event Sessions Form</a>
   </div>
 </div>
 

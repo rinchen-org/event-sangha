@@ -1,6 +1,6 @@
 <?php
 
-require_once dirname(__DIR__) . "/event/lib/person.php";
+require_once dirname(__DIR__) . "/src/lib/person.php";
 require_once __DIR__ . "/conftest.php";
 
 use PHPUnit\Framework\TestCase;
@@ -154,10 +154,5 @@ class PersonTest extends TestCase
 
             $person->save();
         }
-    }
-
-    protected function tearDown(): void
-    {
-        // Clean up your test environment after each test case, if necessary.
     }
 }

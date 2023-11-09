@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . "/settings.php";
+
 /**
  * @param array<string,string> $context
  */
@@ -12,7 +14,9 @@ function send_email(
   string $reply_to,
   string $cc
 ): bool {
-  // $templateFile = dirname(__DIR__) . '/templates/subscription-email.html';
+  if (get_env("SEND_EMAIL") == "0") {
+    return false;
+  }
   $htmlContent = file_get_contents($templateFile);
 
   foreach ($context as $key => $value) {

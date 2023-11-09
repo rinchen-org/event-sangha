@@ -46,7 +46,10 @@ function attendance_table(): void {
   $db->close();
 }
 
+function migrate_0001(): void {
+  person_table();
+  subscription_table();
+  attendance_table();
+}
 
-person_table();
-subscription_table();
-attendance_table();
+migrate_0001();

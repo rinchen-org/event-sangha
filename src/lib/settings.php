@@ -7,7 +7,10 @@ function get_env(string $key, string $default = ""): string {
 
   $env_default = [
     'HOST_ADDRESS' => 'https://rinchen.org/event-retiro',
+    'SEND_EMAIL' => "1",
   ];
 
   return $env[$key] ?? $env_default[$key] ?? $default;
 }
+
+$BASE_URL = get_env("HOST_ADDRESS");

@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/lib/subscription.php";
+require_once dirname(dirname(__DIR__)) . "/lib/subscription.php";
 
 session_start();
 

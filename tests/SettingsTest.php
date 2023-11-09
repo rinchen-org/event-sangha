@@ -1,13 +1,13 @@
 <?php
 
-require_once dirname(__DIR__) . "/event/lib/settings.php";
+require_once dirname(__DIR__) . "/src/lib/settings.php";
 use PHPUnit\Framework\TestCase;
 
 class SettingsTest extends TestCase
 {
     public function testHostAddress(): void
     {
-        $envFilePath = dirname(__DIR__) . '/event/.env';
+        $envFilePath = dirname(__DIR__) . '/src/.env';
 
         $address = "http://localhost:8000";
         file_put_contents($envFilePath, "HOST_ADDRESS=$address\n");

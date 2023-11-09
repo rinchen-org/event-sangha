@@ -5,7 +5,7 @@ groups:
       runserver:
         help: Run the server application
         run: |
-          cd event
+          cd src
           # echo "HOST_ADDRESS=http://localhost:8081" > .env
           php -S localhost:8081
 
@@ -15,4 +15,7 @@ groups:
           ./vendor/bin/phpunit tests/SettingsTest.php
           ./vendor/bin/phpunit tests/PersonTest.php
           ./vendor/bin/phpunit tests/SubscriptionTest.php
+          ./vendor/bin/phpunit tests/EventTest.php
+          ./vendor/bin/phpunit tests/EventSessionTest.php
+          ./vendor/bin/phpunit tests/AttendanceTest.php
           # ./vendor/bin/phpunit tests/EmailTest.php

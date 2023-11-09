@@ -24,5 +24,9 @@ function subscription_add_active_column(): void {
   $db->close();
 }
 
-person_add_active_column();
-subscription_add_active_column();
+function migrate_0002(): void {
+  person_add_active_column();
+  subscription_add_active_column();
+}
+
+migrate_0002();

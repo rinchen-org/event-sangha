@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Retrieve data for the dropdowns
 $personList = Person::list();
-$eventList = Event::list();
+$eventList = EventSangha::list();
 $eventSessionList = EventSession::list();
 
 ?>

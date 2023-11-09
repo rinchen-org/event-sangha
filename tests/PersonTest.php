@@ -155,9 +155,4 @@ class PersonTest extends TestCase
             $person->save();
         }
     }
-
-    protected function tearDown(): void
-    {
-        // Clean up your test environment after each test case, if necessary.
-    }
 }

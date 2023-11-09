@@ -8,7 +8,7 @@ $isNewEvent = true;
 
 // Check if an event ID is provided for updating
 if (isset($_GET['id'])) {
-    $event = Event::get(['id' => $_GET['id']]);
+    $event = EventSangha::get(['id' => $_GET['id']]);
     if ($event) {
         $isNewEvent = false;
     }
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Create or update the event
     if ($isNewEvent) {
-        $event = new Event($name, $description, $startDate, $endDate);
+        $event = new EventSangha($name, $description, $startDate, $endDate);
         $event->save();
     } else {
         $event->name = $name;

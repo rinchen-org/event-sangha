@@ -14,16 +14,19 @@ class EventTest extends TestCase {
         migrate_all();
     }
 
-    public function testInsertAndGetEvent() {
-        $event = new Event("Test Event", "Description", new DateTime("2023-06-01 09:00:00"), new DateTime("2023-06-02 17:00:00"));
-        $event->startControlDateTime = new DateTime("2023-06-01 08:30:00");
-        $event->endControlDateTime = new DateTime("2023-06-02 17:30:00");
+    public function testInsertAndGetEvent(): void {
+        $event = new EventSangha(
+            "Test Event",
+            "Description",
+            new DateTime("2023-06-01 09:00:00"),
+            new DateTime("2023-06-02 17:00:00")
+        );
 
         // Insert the event into the database
         $insertedEvent = $event->save();
 
         // Get the event by ID
-        $retrievedEvent = Event::get(["id" => $insertedEvent->id]);
+        $retrievedEvent = EventSangha::get(["id" => $insertedEvent->id]);
 
         $this->assertNotNull($retrievedEvent);
         $this->assertEquals($event->name, $retrievedEvent->name);
@@ -32,8 +35,15 @@ class EventTest extends TestCase {
         $this->assertEquals($event->endDate->format('Y-m-d H:i:s'), $retrievedEvent->endDate->format('Y-m-d H:i:s'));
     }
 
-    public function testUpdateEvent() {
-        $event = new Event("Test Event", "Description", new DateTime("2023-06-01 09:00:00"), new DateTime("2023-06-02 17:00:00"));
+    public function testUpdateEvent(): void {
+        $event = (
+            new EventSangha(
+                "Test Event",
+                "Description",
+                new DateTime("2023-06-01 09:00:00"),
+                new DateTime("2023-06-02 17:00:00")
+            )
+        )->save();
         $event->startDate = new DateTime("2023-06-01 08:30:00");
         $event->endDate = new DateTime("2023-06-02 17:30:00");
 
@@ -41,7 +51,7 @@ class EventTest extends TestCase {
         $insertedEvent = $event->save();
 
         // Get the event by ID
-        $retrievedEvent = Event::get(["id" => $insertedEvent->id]);
+        $retrievedEvent = EventSangha::get(["id" => $insertedEvent->id]);
 
         // Update the event
         $retrievedEvent->name = "Updated Event Name";
@@ -53,7 +63,7 @@ class EventTest extends TestCase {
         $updatedEvent = $retrievedEvent->save();
 
         // Get the event again by ID
-        $retrievedUpdatedEvent = Event::get(["id" => $updatedEvent->id]);
+        $retrievedUpdatedEvent = EventSangha::get(["id" => $updatedEvent->id]);
 
         $this->assertEquals($updatedEvent->name, $retrievedUpdatedEvent->name);
         $this->assertEquals($updatedEvent->description, $retrievedUpdatedEvent->description);

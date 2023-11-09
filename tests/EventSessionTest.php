@@ -14,11 +14,16 @@ class EventSessionTest extends TestCase
         migrate_all();
     }
 
-    public function testInsertAndGet()
+    public function testInsertAndGet(): void
     {
         // Create an event
         $event = (
-            new Event("Test Event")
+            new EventSangha(
+                "Test Event",
+                "Test Event-Description",
+                new DateTime(),
+                new DateTime(),
+            )
         )->save();
 
         $this->assertNotNull($event);
@@ -41,15 +46,18 @@ class EventSessionTest extends TestCase
         $this->assertEquals($eventSession->name, $retrievedSession->name);
         $this->assertEquals($eventSession->startDate, $retrievedSession->startDate);
         $this->assertEquals($eventSession->endDate, $retrievedSession->endDate);
-        $this->assertEquals($eventSession->startControlDateTime, $retrievedSession->startControlDateTime);
-        $this->assertEquals($eventSession->endControlDateTime, $retrievedSession->endControlDateTime);
     }
 
-    public function testUpdate()
+    public function testUpdate(): void
     {
         // Create an event
         $event = (
-            new Event("Test Event")
+            new EventSangha(
+                "Test Event",
+                "Test Event-Description",
+                new DateTime(),
+                new DateTime(),
+            )
         )->save();
 
         $this->assertNotNull($event);
@@ -77,11 +85,16 @@ class EventSessionTest extends TestCase
         $this->assertEquals("2023-01-01 09:00:00", $retrievedSession->startDate->format('Y-m-d H:i:s'));
     }
 
-    public function testList()
+    public function testList(): void
     {
         // Create an event
         $event = (
-            new Event("Test Event")
+            new EventSangha(
+                "Test Event",
+                "Test Event-Description",
+                new DateTime(),
+                new DateTime(),
+            )
         )->save();
 
         $this->assertNotNull($event);

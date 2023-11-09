@@ -8,6 +8,10 @@ use PHPUnit\Framework\TestCase;
 
 class AttendanceTest extends TestCase
 {
+    public Person $person;
+    public EventSangha $event;
+    public EventSession $eventSession;
+
     public function setUp(): void
     {
         clean_db();
@@ -32,7 +36,7 @@ class AttendanceTest extends TestCase
         $oneHourAfter->modify('+1 hour');
 
         $this->event = (
-            new Event(
+            new EventSangha(
                 "Event1",
                 "Event1-Description",
                 $oneHourBefore,
@@ -50,7 +54,7 @@ class AttendanceTest extends TestCase
     }
 
     // Test the log method
-    public function testLogAttendance()
+    public function testLogAttendance(): void
     {
         $attendance = Attendance::log(
             $this->person,
@@ -62,7 +66,7 @@ class AttendanceTest extends TestCase
     }
 
     // Test the insert method (if necessary)
-    public function testInsertAttendance()
+    public function testInsertAttendance(): void
     {
         // Create an instance of Attendance (replace with actual constructor arguments)
         $attendance = new Attendance(

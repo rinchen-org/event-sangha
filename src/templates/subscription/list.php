@@ -106,7 +106,7 @@ if ($filter == "active") {
                     style="background:#1CD324!important;" />
                 </form>
   <?php } else { ?>
-                <form action="<?php $BASE_URL?>/subscription/activation.php" method="POST">
+                <form action="./activation.php" method="POST">
                   <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
                   <input type="hidden" name="active" value="0" />
                   <input type="submit"

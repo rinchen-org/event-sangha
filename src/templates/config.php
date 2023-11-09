@@ -3,7 +3,7 @@
 require_once dirname(__DIR__) . '/lib/settings.php';
 
 
-function isEnvProduction() {
+function isEnvProduction(): bool {
   // Get the current server's hostname from $_SERVER['HTTP_HOST']
   $currentHostWithPort = $_SERVER['HTTP_HOST'];
 

@@ -2,28 +2,32 @@
 
 require_once __DIR__ . "/db.php";
 
-class Event {
+
+class EventSangha {
     public ?int $id;
     public string $name;
     public string $description;
     public DateTime $startDate;
     public DateTime $endDate;
 
-    function __construct(
-        string $name="",
-        string $description="",
-        DateTime $startDate=null,
-        DateTime $endDate=null,
+    public function __construct(
+        string $name,
+        string $description,
+        DateTime $startDate,
+        DateTime $endDate,
         ?int $id=null
     ) {
         $this->name = $name;
         $this->description = $description;
-        $this->startDate = $startDate ?? new DateTime();
-        $this->endDate = $endDate ?? new DateTime();
+        $this->startDate = $startDate;
+        $this->endDate = $endDate;
         $this->id = $id;
     }
 
-    public static function get(array $data): ?Event {
+    /**
+     * @param array<string,string|int> $data
+     */
+    public static function get(array $data): ?EventSangha {
         $db = get_db();
 
         $query = "SELECT * FROM event WHERE 1=1";
@@ -45,22 +49,27 @@ class Event {
             return null;
         }
 
-        $event = new Event();
-        $event->id = intval($row['id']);
-        $event->name = $row['name'];
-        $event->description = $row['description'];
-        $event->startDate = new DateTime($row['start_date']);
-        $event->endDate = new DateTime($row['end_date']);
-
-        return $event;
+        return new EventSangha(
+            $row['name'],
+            $row['description'],
+            new DateTime($row['start_date']),
+            new DateTime($row['end_date']),
+            intval($row['id'])
+        );
     }
 
     /**
-     * @return ?array<Event>
+     * @param array<string,string|int> $filter
+     * @return array<EventSangha>
      */
-    public static function list(): ?array {
+    public static function list(array $filters = []): array {
         $db = get_db();
-        $query = "SELECT * FROM event";
+        $query = "SELECT * FROM event WHERE 1=1";
+
+        foreach ($filters as $key => $value) {
+            $escapedValue = $db->escapeString($value);
+            $query .= " AND $key='$escapedValue'";
+        }
         $result = $db->query($query);
 
         if (!$result) {
@@ -70,13 +79,13 @@ class Event {
         $event_list = [];
 
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-            $event_list[] = Event::get(["id" => $row['id']]);
+            $event_list[] = EventSangha::get(["id" => $row['id']]);
         }
 
         return $event_list;
     }
 
-    public function insert(): Event {
+    public function insert(): EventSangha {
         $db = get_db();
 
         $startDateStr = $this->startDate->format('Y-m-d H:i:s');
@@ -94,10 +103,10 @@ class Event {
         $lastInsertID = $db->lastInsertRowID();
         $db->close();
 
-        return Event::get(["id" => $lastInsertID]);
+        return EventSangha::get(["id" => $lastInsertID]);
     }
 
-    public function update(): Event {
+    public function update(): EventSangha {
         $db = get_db();
         $startDateStr = $this->startDate->format('Y-m-d H:i:s');
         $endDateStr = $this->endDate->format('Y-m-d H:i:s');
@@ -119,7 +128,7 @@ class Event {
         return $this;
     }
 
-    public function save(): Event {
+    public function save(): EventSangha {
         if ($this->id !== null) {
             return $this->update();
         } else {
@@ -156,13 +165,13 @@ class Event {
 
 class EventSession {
     public ?int $id;
-    public Event $event;
+    public EventSangha $event;
     public string $name;
     public DateTime $startDate;
     public DateTime $endDate;
 
     function __construct(
-        Event $event,
+        EventSangha $event,
         string $name,
         DateTime $startDate,
         DateTime $endDate,
@@ -195,9 +204,9 @@ class EventSession {
         if ($row === false) {
             return null;
         } else {
-            // Fetch the associated Event
+            // Fetch the associated EventSangha
             $eventId = intval($row['event_id']);
-            $event = Event::get(['id' => $eventId]);
+            $event = EventSangha::get(['id' => $eventId]);
 
             $eventSession = new EventSession(
                 $event,
@@ -212,6 +221,7 @@ class EventSession {
     }
 
     /**
+     * @param array<string,string|int> $filter
      * @return array<EventSession>
      */
     public static function list(array $filters = []): array {
@@ -228,9 +238,9 @@ class EventSession {
         $eventSessions = [];
 
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-            // Fetch the associated Event
+            // Fetch the associated EventSangha
             $eventId = intval($row['event_id']);
-            $event = Event::get(['id' => $eventId]);
+            $event = EventSangha::get(['id' => $eventId]);
 
             $eventSession = new EventSession(
                 $event,

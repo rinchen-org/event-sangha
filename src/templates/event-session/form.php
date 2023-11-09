@@ -2,7 +2,7 @@
 include dirname(__DIR__) . "/header.php";
 require_once dirname(dirname(__DIR__)) . "/lib/event.php";
 
-$eventList = Event::list();
+$eventList = EventSangha::list();
 
 // Check if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $eventSession = null;
     try {
-        $event_selected = Event::get(["id" => $eventId]);
+        $event_selected = EventSangha::get(["id" => $eventId]);
         $eventSession = new EventSession(
             $event_selected, $name, $startDateTime, $endDateTime
         );

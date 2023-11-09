@@ -2,7 +2,7 @@
 require_once dirname(dirname(__DIR__)) . "/lib/event.php";
 include dirname(__DIR__) . "/header.php";
 
-$result = Event::list();
+$result = EventSangha::list();
 
 ?>
 <h2>Event List</h2>

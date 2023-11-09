@@ -152,7 +152,7 @@ class Attendance
      */
     public function validate(): bool
     {
-        if ($this->person === null) {
+        if ($this->person == null) {
             throw new Exception("Person is required.");
         }
 
@@ -160,7 +160,7 @@ class Attendance
             throw new Exception("Person is invalid.");
         }
 
-        if ($this->eventSession === null) {
+        if ($this->eventSession == null) {
             throw new Exception("Event Session is required.");
         }
 

@@ -3,13 +3,15 @@ session_start();
 
 include_once __DIR__ . "/config.php";
 
+global $BASE_URL;
+global $ENV_PROD;
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
     <title>Evento Retiro con Su Santidad Sakya Trizin 42 y Venerable Lama Rinchen Gyaltsen</title>
-    <link rel="stylesheet" href="<?php $BASE_URL?>/static/style.css">
+    <link rel="stylesheet" href="<?php echo $BASE_URL; ?>/static/style.css">
     <!-- datatables -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.css" />

@@ -1,12 +1,14 @@
 <?php
 require_once dirname(dirname(__DIR__)) . "/lib/attendance.php";
 include dirname(__DIR__) . "/header.php";
+
+global $BASE_URL;
 ?>
 <!DOCTYPE html>
 <html>
 <head>
     <title>Lista de asistencia</title>
-    <link rel="stylesheet" href="<?php $BASE_URL?>/static/style.css">
+    <link rel="stylesheet" href="<?php echo $BASE_URL; ?>/static/style.css">
 </head>
 <body>
     <h2>Attendance Log</h2>

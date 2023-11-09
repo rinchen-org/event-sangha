@@ -59,7 +59,7 @@ class EventSangha {
     }
 
     /**
-     * @param array<string,string|int> $filter
+     * @param array<string,string|int> $filters
      * @return array<EventSangha>
      */
     public static function list(array $filters = []): array {
@@ -73,7 +73,7 @@ class EventSangha {
         $result = $db->query($query);
 
         if (!$result) {
-            return null;
+            return [];
         }
 
         $event_list = [];
@@ -221,7 +221,7 @@ class EventSession {
     }
 
     /**
-     * @param array<string,string|int> $filter
+     * @param array<string,string|int> $filters
      * @return array<EventSession>
      */
     public static function list(array $filters = []): array {
@@ -327,6 +327,9 @@ class EventSession {
         return $this->id === $firstSession->id;
     }
 
+    /**
+     * @return array<EventSession>
+     */
     public function getPreviousSessions(): array {
         // Retrieve all previous sessions of the same event
         $event = $this->event;

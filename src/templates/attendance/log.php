@@ -1,16 +1,13 @@
 <?php
 include dirname(__DIR__) . "/header.php";
-// the current page is not available yet.
-$is_page_available = max(0 , -1); // it is just an workaround
-if (!$is_page_available) {
-    die("No disponible aún.");
-}
+
+global $BASE_URL;
 ?>
 <!DOCTYPE html>
 <html>
 <head>
     <title>Registro de asistencia manual</title>
-    <link rel="stylesheet" href="<?php $BASE_URL?>/static/style.css">
+    <link rel="stylesheet" href="<?php echo $BASE_URL; ?>/static/style.css">
 </head>
 <body class="container">
 <?php

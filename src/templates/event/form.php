@@ -2,6 +2,8 @@
 include dirname(__DIR__) . "/header.php";
 require_once dirname(dirname(__DIR__)) . "/lib/event.php";
 
+global $BASE_URL;
+
 // Initialize variables
 $event = null;
 $isNewEvent = true;
@@ -28,13 +30,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Create or update the event
     if ($isNewEvent) {
-        $event = new EventSangha($name, $description, $startDate, $endDate);
-        $event->save();
+        $event = (
+            new EventSangha(
+                $name,
+                $description,
+                $startDate,
+                $endDate
+            )
+        )->save();
     } else {
         $event->name = $name;
         $event->description = $description;
-        $event->start_date = $startDate;
-        $event->end_date = $endDate;
+        $event->startDate = $startDate;
+        $event->endDate = $endDate;
         $event->update();
     }
 
@@ -66,12 +74,12 @@ if ($isNewEvent || $event) {
 
         <div class="mb-3">
             <label for="start_date" class="form-label">Start Date:</label>
-            <input type="date" class="form-control" name="start_date" id="start_date" required value="<?php echo $event ? $event->start_date : ''; ?>">
+            <input type="date" class="form-control" name="start_date" id="start_date" required value="<?php echo $event ? $event->startDate : ''; ?>">
         </div>
 
         <div class="mb-3">
             <label for="end_date" class="form-label">End Date:</label>
-            <input type="date" class="form-control" name="end_date" id="end_date" required value="<?php echo $event ? $event->end_date : ''; ?>">
+            <input type="date" class="form-control" name="end_date" id="end_date" required value="<?php echo $event ? $event->endDate : ''; ?>">
         </div>
 
         <button type="submit" class="btn btn-primary"><?php echo $isNewEvent ? 'Create Event' : 'Update Event'; ?></button>

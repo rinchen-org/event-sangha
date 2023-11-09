@@ -126,6 +126,32 @@ class Event {
             return $this->insert();
         }
     }
+
+    /**
+     * @return array<EventSession>
+     */
+    public function getSessions(): array {
+        return EventSession::list([
+            "event_id" => $this->id
+        ]);
+    }
+
+    public function getFirstSession(): ?EventSession {
+        // Retrieve the first session of the event
+        // Assuming $eventSessions is an array of EventSession objects for this event
+        $eventSessions = $this->getSessions();
+
+        if (empty($eventSessions)) {
+            return null; // No sessions for this event
+        }
+
+        // Sort sessions by start date (you may need to modify this depending on your data)
+        usort($eventSessions, function ($a, $b) {
+            return $a->startDate <=> $b->startDate;
+        });
+
+        return $eventSessions[0];
+    }
 }
 
 class EventSession {
@@ -246,6 +272,7 @@ class EventSession {
 
         $db->exec($insertQuery);
         $lastInsertID = $db->lastInsertRowID();
+        $this->id = $lastInsertID;
 
         $eventSession = EventSession::get(["id" => $lastInsertID]);
 
@@ -283,6 +310,27 @@ class EventSession {
         }
 
         return $this->insert();
+    }
+
+    public function isFirstSession(): bool {
+        $firstSession = $this->event->getFirstSession();
+        return $this->id === $firstSession->id;
+    }
+
+    public function getPreviousSessions(): array {
+        // Retrieve all previous sessions of the same event
+        $event = $this->event;
+        $eventSessions = $event->getSessions();
+
+        $previousSessions = [];
+
+        foreach ($eventSessions as $session) {
+            if ($session->startDate < $this->startDate) {
+                $previousSessions[] = $session;
+            }
+        }
+
+        return $previousSessions;
     }
 }
 

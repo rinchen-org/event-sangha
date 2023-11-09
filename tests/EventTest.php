@@ -25,18 +25,17 @@ class EventTest extends TestCase {
         // Get the event by ID
         $retrievedEvent = Event::get(["id" => $insertedEvent->id]);
 
+        $this->assertNotNull($retrievedEvent);
         $this->assertEquals($event->name, $retrievedEvent->name);
         $this->assertEquals($event->description, $retrievedEvent->description);
         $this->assertEquals($event->startDate->format('Y-m-d H:i:s'), $retrievedEvent->startDate->format('Y-m-d H:i:s'));
         $this->assertEquals($event->endDate->format('Y-m-d H:i:s'), $retrievedEvent->endDate->format('Y-m-d H:i:s'));
-        $this->assertEquals($event->startControlDateTime->format('Y-m-d H:i:s'), $retrievedEvent->startControlDateTime->format('Y-m-d H:i:s'));
-        $this->assertEquals($event->endControlDateTime->format('Y-m-d H:i:s'), $retrievedEvent->endControlDateTime->format('Y-m-d H:i:s'));
     }
 
     public function testUpdateEvent() {
         $event = new Event("Test Event", "Description", new DateTime("2023-06-01 09:00:00"), new DateTime("2023-06-02 17:00:00"));
-        $event->startControlDateTime = new DateTime("2023-06-01 08:30:00");
-        $event->endControlDateTime = new DateTime("2023-06-02 17:30:00");
+        $event->startDate = new DateTime("2023-06-01 08:30:00");
+        $event->endDate = new DateTime("2023-06-02 17:30:00");
 
         // Insert the event into the database
         $insertedEvent = $event->save();
@@ -49,8 +48,6 @@ class EventTest extends TestCase {
         $retrievedEvent->description = "Updated Description";
         $retrievedEvent->startDate = new DateTime("2023-06-03 10:00:00");
         $retrievedEvent->endDate = new DateTime("2023-06-04 18:00:00");
-        $retrievedEvent->startControlDateTime = new DateTime("2023-06-03 09:30:00");
-        $retrievedEvent->endControlDateTime = new DateTime("2023-06-04 18:30:00");
 
         // Save the updated event
         $updatedEvent = $retrievedEvent->save();
@@ -62,8 +59,6 @@ class EventTest extends TestCase {
         $this->assertEquals($updatedEvent->description, $retrievedUpdatedEvent->description);
         $this->assertEquals($updatedEvent->startDate->format('Y-m-d H:i:s'), $retrievedUpdatedEvent->startDate->format('Y-m-d H:i:s'));
         $this->assertEquals($updatedEvent->endDate->format('Y-m-d H:i:s'), $retrievedUpdatedEvent->endDate->format('Y-m-d H:i:s'));
-        $this->assertEquals($updatedEvent->startControlDateTime->format('Y-m-d H:i:s'), $retrievedUpdatedEvent->startControlDateTime->format('Y-m-d H:i:s'));
-        $this->assertEquals($updatedEvent->endControlDateTime->format('Y-m-d H:i:s'), $retrievedUpdatedEvent->endControlDateTime->format('Y-m-d H:i:s'));
     }
 }
 

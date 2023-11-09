@@ -15,21 +15,18 @@ class Attendance
     public function __construct(
         Person $person,
         EventSession $eventSession,
-        DateTime $logTime,
+        ?DateTime $logTime=null,
         ?int $id=null
     ) {
         $this->person = $person;
         $this->eventSession = $eventSession;
-        $this->logTime = $logTime;
-        $this->id = $id;
-    }
 
-    public static function log(
-        Person $person,
-        EventSession $eventSession
-    ): Attendance {
-        $attendance = new Attendance($person, $eventSession, new DateTime());
-        return $attendance->insert();
+        if ($logTime === null) {
+            $this->logTime = new DateTime();
+        } else {
+            $this->logTime = $logTime;
+        }
+        $this->id = $id;
     }
 
     /**
@@ -112,6 +109,14 @@ class Attendance
         return $attendance;
     }
 
+    public static function log(
+        Person $person,
+        EventSession $eventSession
+    ): Attendance {
+        $attendance = new Attendance($person, $eventSession, new DateTime());
+        return $attendance->insert();
+    }
+
     public function insert(): Attendance
     {
         $this->validate();
@@ -163,7 +168,52 @@ class Attendance
             throw new Exception("Event Session is invalid.");
         }
 
+        $currentDateTime = new DateTime();
+
+        // Check if the current date and time is within the event session's interval
+        if (
+            $currentDateTime < $this->eventSession->startDate
+            || $currentDateTime > $this->eventSession->endDate
+        ) {
+            throw new Exception(
+                "Attendance (" . $currentDateTime->format('Y-m-d H:i:s')
+                . ") is not allowed outside the event session ("
+                . $this->eventSession->startDate->format('Y-m-d H:i:s')
+                . " - "
+                . $this->eventSession->endDate->format('Y-m-d H:i:s')
+                . ")"
+
+            );
+        }
+
+        // Check if it's the first session of the event
+        $firstSession = $this->eventSession->isFirstSession(); // Implement this method
+
+        if (!$firstSession) {
+            // If it's not the first session, check if the person attended previous sessions
+            $previousSessions = $this->eventSession->getPreviousSessions(); // Implement this method
+
+            foreach ($previousSessions as $previousSession) {
+                // Check if the person attended each previous session
+                if (!$this->attendedSession($this->person, $previousSession)) { // Implement this method
+                    throw new Exception("Attendance is not allowed. Please attend previous sessions.");
+                }
+            }
+        }
+
+
         return true;
+    }
+
+    public static function attendedSession(
+        Person $person, EventSession $eventSession
+    ): bool {
+        $attendance = Attendance::get([
+            "person_id" => $person->id,
+            "event_session_id" => $eventSession->id
+        ]);
+
+        return $attendance !== null;
     }
 }
 

@@ -17,8 +17,11 @@ class EventSessionTest extends TestCase
     public function testInsertAndGet()
     {
         // Create an event
-        $event = new Event("Test Event");
-        $event->save();
+        $event = (
+            new Event("Test Event")
+        )->save();
+
+        $this->assertNotNull($event);
 
         // Create an event session
         $eventSession = new EventSession(
@@ -26,9 +29,7 @@ class EventSessionTest extends TestCase
             "Test Session",
             new DateTime("2023-01-01 10:00:00"),
             new DateTime("2023-01-01 12:00:00"),
-            null,
-            new DateTime("2023-01-01 09:30:00"),
-            new DateTime("2023-01-01 12:30:00")
+            null
         );
         $eventSession->save();
 
@@ -47,8 +48,11 @@ class EventSessionTest extends TestCase
     public function testUpdate()
     {
         // Create an event
-        $event = new Event("Test Event");
-        $event->save();
+        $event = (
+            new Event("Test Event")
+        )->save();
+
+        $this->assertNotNull($event);
 
         // Create an event session
         $eventSession = new EventSession(
@@ -56,15 +60,13 @@ class EventSessionTest extends TestCase
             "Test Session",
             new DateTime("2023-01-01 10:00:00"),
             new DateTime("2023-01-01 12:00:00"),
-            null,
-            new DateTime("2023-01-01 09:30:00"),
-            new DateTime("2023-01-01 12:30:00")
+            null
         );
         $eventSession->save();
 
         // Update the event session
         $eventSession->name = "Updated Session Name";
-        $eventSession->startControlDateTime = new DateTime("2023-01-01 09:00:00");
+        $eventSession->startDate = new DateTime("2023-01-01 09:00:00");
         $eventSession->update();
 
         // Get the updated event session by ID
@@ -72,14 +74,17 @@ class EventSessionTest extends TestCase
 
         // Assert that the retrieved event session matches the updated values
         $this->assertEquals("Updated Session Name", $retrievedSession->name);
-        $this->assertEquals("2023-01-01 09:00:00", $retrievedSession->startControlDateTime->format('Y-m-d H:i:s'));
+        $this->assertEquals("2023-01-01 09:00:00", $retrievedSession->startDate->format('Y-m-d H:i:s'));
     }
 
     public function testList()
     {
         // Create an event
-        $event = new Event("Test Event");
-        $event->save();
+        $event = (
+            new Event("Test Event")
+        )->save();
+
+        $this->assertNotNull($event);
 
         // Create multiple event sessions
         $eventSessions = [];

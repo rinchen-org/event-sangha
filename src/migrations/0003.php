@@ -29,7 +29,6 @@ function event_session_create_table(): void {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             event_id INTEGER NOT NULL,
             name TEXT NOT NULL,
-            description TEXT,
             start_date DATETIME NOT NULL,
             end_date DATETIME NOT NULL
         )

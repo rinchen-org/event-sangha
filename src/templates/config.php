@@ -1,5 +1,7 @@
 <?php
 
+date_default_timezone_set("America/La_Paz");
+
 require_once dirname(__DIR__) . '/lib/settings.php';
 
 

@@ -29,4 +29,6 @@ function migrate_0002(): void {
   subscription_add_active_column();
 }
 
-migrate_0002();
+if (isset($_GET['migrate']) && $_GET['migrate'] == 1) {
+  migrate_0002();
+}

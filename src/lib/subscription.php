@@ -4,19 +4,20 @@ require_once __DIR__ . "/email.php";
 require_once __DIR__ . "/db.php";
 require_once __DIR__ . "/person.php";
 require_once __DIR__ . "/settings.php";
+require_once __DIR__ . "/datetime.php";
 
 
 class Subscription {
     public ?int $id;
     public ?Person $person;
-    public string $datetime;
+    public DateTime $datetime;
     public string $qr;
     public ?int $active;
 
     function __construct(
         ?Person $person=null,
         string $qr="",
-        string $datetime="",
+        DateTime $datetime=new DateTime(),
         ?int $id=null,
         ?int $active=null
     ) {
@@ -57,7 +58,7 @@ class Subscription {
             $subscription->id = intval($row['id']);
             $subscription->person = Person::get(["id" => $row['id']]);
             $subscription->qr = $row['qr'];
-            $subscription->datetime = $row['datetime'];
+            $subscription->datetime = convert_from_utc0(new DateTime($row['datetime']));
             $subscription->active = intval($row['active']);
         }
 
@@ -131,13 +132,13 @@ class Subscription {
             $this->person->phone
         );
 
-        $datetime = date('Y-m-d H:i:s');
+        $datetime = convert_to_utc0($this->datetime)->format('Y-m-d H:i:s');
 
         $db = get_db();
         $person_id = $this->person->id;
         // Insert the form data into the 'registrations' table
         $insertQuery = "INSERT INTO subscription (person_id, datetime, qr, active)
-                        VALUES ('$person_id', '$this->datetime', '$this->qr', 1)";
+                        VALUES ('$person_id', '$datetime', '$this->qr', 1)";
         $db->exec($insertQuery);
 
         // Get the last inserted ID
@@ -157,12 +158,15 @@ class Subscription {
         }
 
         $db = get_db();
+
         $person_id = $this->person->id;
+        $datetime = convert_to_utc0($this->datetime)->format('Y-m-d H:i:s');
+
         $updateQuery = "
             UPDATE subscription
             SET
                 person_id='$person_id',
-                datetime='$this->datetime',
+                datetime='$datetime',
                 qr='$this->qr',
                 active=$this->active
             WHERE id=$this->id";

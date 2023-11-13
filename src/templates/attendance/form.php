@@ -24,9 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Retrieve data for the dropdowns
-$personList = Person::list();
-$eventList = EventSangha::list();
-$eventSessionList = EventSession::list();
+$subscriptionList = Subscription::list(["active" => 1]);
+// this is a temporarily workflow
+$eventList = [EventSangha::get(["id" => 1])];
+$eventSessionList = EventSession::list(["event_id" => 1]);
 
 ?>
 
@@ -37,9 +38,9 @@ $eventSessionList = EventSession::list();
         <label for="person" class="form-label">Select a Person:</label>
         <select name="person" id="person" class="form-select" required>
             <option value="" disabled selected>Select a Person</option>
-            <?php foreach ($personList as $person) { ?>
-                <option value="<?php echo $person->id; ?>"><?php
-                    echo $person->fullname . " &lt;" . $person->email . "&gt;";
+            <?php foreach ($subscriptionList as $subscription) { ?>
+                <option value="<?php echo $subscription->person->id; ?>"><?php
+                    echo $subscription->person->fullname . " &lt;" . $subscription->person->email . "&gt;";
                 ?></option>
             <?php } ?>
         </select>
@@ -48,7 +49,9 @@ $eventSessionList = EventSession::list();
     <div class="mb-3">
         <label for="event" class="form-label">Event:</label>
         <select name="event" id="event" class="form-select" required>
+            <!--
             <option value="" disabled selected>Select an Event</option>
+            -->
             <?php foreach ($eventList as $event) { ?>
                 <option value="<?php echo $event->id; ?>"><?php echo $event->name; ?></option>
             <?php } ?>

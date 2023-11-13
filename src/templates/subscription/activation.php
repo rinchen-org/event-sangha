@@ -22,5 +22,5 @@ $_SESSION['message'] = [
   "text" => $message,
 ];
 
-header('Location: subscription/list.php');
+header('Location: ./list.php');
 exit();

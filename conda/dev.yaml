@@ -8,6 +8,6 @@ dependencies:
   # - php 8.*
   - python
   - pip
+  - makim 1.8.3
   - pip:
-    - makim==1.8.2
     - pygments

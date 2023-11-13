@@ -69,6 +69,7 @@ if ($filter == "active") {
               <th>Phone</th>
               <th>Active</th>
               <th>QR</th>
+              <th>DateTime</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -87,8 +88,9 @@ if ($filter == "active") {
                 <?php } ?>
               </td>
               <td><img src="<?php echo $subscription->qr; ?>" /></td>
+              <td><?php echo $subscription->datetime->format('Y-m-d H:i:s'); ?></td>
               <td>
-                <form action="./subscription_resend_email.php" method="POST">
+                <form action="./resend_email.php" method="POST">
                   <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
                   <input type="submit"
                     value="reenviar email"
@@ -97,7 +99,7 @@ if ($filter == "active") {
                     style="background:#ffcc00!important;" />
                 </form>
   <?php if ($subscription->active == 0) { ?>
-                <form action="./subscription_activation.php" method="POST">
+                <form action="./activation.php" method="POST">
                   <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
                   <input type="hidden" name="active" value="1" />
                   <input type="submit"

@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . "/db.php";
+require_once __DIR__ . "/datetime.php";
 
 
 class EventSangha {
@@ -52,8 +53,8 @@ class EventSangha {
         return new EventSangha(
             $row['name'],
             $row['description'],
-            new DateTime($row['start_date']),
-            new DateTime($row['end_date']),
+            convert_from_utc0(new DateTime($row['start_date'])),
+            convert_from_utc0(new DateTime($row['end_date'])),
             intval($row['id'])
         );
     }
@@ -88,8 +89,8 @@ class EventSangha {
     public function insert(): EventSangha {
         $db = get_db();
 
-        $startDateStr = $this->startDate->format('Y-m-d H:i:s');
-        $endDateStr = $this->endDate->format('Y-m-d H:i:s');
+        $startDateStr = convert_to_utc0($this->startDate)->format('Y-m-d H:i:s');
+        $endDateStr = convert_to_utc0($this->endDate)->format('Y-m-d H:i:s');
 
         $insertQuery = "
             INSERT INTO event (name, description, start_date, end_date)
@@ -108,8 +109,8 @@ class EventSangha {
 
     public function update(): EventSangha {
         $db = get_db();
-        $startDateStr = $this->startDate->format('Y-m-d H:i:s');
-        $endDateStr = $this->endDate->format('Y-m-d H:i:s');
+        $startDateStr = convert_to_utc0($this->startDate)->format('Y-m-d H:i:s');
+        $endDateStr = convert_to_utc0($this->endDate)->format('Y-m-d H:i:s');
 
         if (!$this->id) {
             throw new Exception("This event is not registered yet.");
@@ -211,8 +212,8 @@ class EventSession {
             $eventSession = new EventSession(
                 $event,
                 $row['name'],
-                new DateTime($row['start_date']),
-                new DateTime($row['end_date']),
+                convert_from_utc0(new DateTime($row['start_date'])),
+                convert_from_utc0(new DateTime($row['end_date'])),
                 intval($row['id'])
             );
 
@@ -239,18 +240,8 @@ class EventSession {
 
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
             // Fetch the associated EventSangha
-            $eventId = intval($row['event_id']);
-            $event = EventSangha::get(['id' => $eventId]);
-
-            $eventSession = new EventSession(
-                $event,
-                $row['name'],
-                new DateTime($row['start_date']),
-                new DateTime($row['end_date']),
-                intval($row['id'])
-            );
-
-            $eventSessions[] = $eventSession;
+            $eventSessionId = intval($row['id']);
+            $eventSessions[] = EventSession::get(['id' => $eventSessionId]);
         }
 
         return $eventSessions;
@@ -272,12 +263,16 @@ class EventSession {
         $this->validate();
 
         $db = get_db();
+
+        $startDate = convert_to_utc0($this->startDate)->format('Y-m-d H:i:s');
+        $endDate = convert_to_utc0($this->endDate)->format('Y-m-d H:i:s');
+
         $insertQuery = "INSERT INTO event_session (event_id, name, start_date, end_date)
             VALUES (
                 {$this->event->id},
                 '$this->name',
-                '{$this->startDate->format('Y-m-d H:i:s')}',
-                '{$this->endDate->format('Y-m-d H:i:s')}'
+                '{$startDate}',
+                '{$endDate}'
             )";
 
         $db->exec($insertQuery);
@@ -301,12 +296,16 @@ class EventSession {
         }
 
         $db = get_db();
+
+        $startDate = convert_to_utc0($this->startDate)->format('Y-m-d H:i:s');
+        $endDate = convert_to_utc0($this->endDate)->format('Y-m-d H:i:s');
+
         $updateQuery = "UPDATE event_session
             SET
                 event_id = {$this->event->id},
                 name = '$this->name',
-                start_date = '{$this->startDate->format('Y-m-d H:i:s')}',
-                end_date = '{$this->endDate->format('Y-m-d H:i:s')}'
+                start_date = '{$startDate}',
+                end_date = '{$endDate}'
             WHERE id = {$this->id}";
 
         $db->exec($updateQuery);
@@ -344,6 +343,39 @@ class EventSession {
         }
 
         return $previousSessions;
+    }
+
+    public static function getNextSession(int $eventId): ?EventSession
+    {
+        // Get the current datetime in UTC
+        $currentDatetimeUtc = (
+          new DateTime('now', new DateTimeZone('UTC'))
+        )->format('Y-m-d H:i:s');
+
+        // Connect to the database (You can use your own method for this)
+        $db = get_db();
+
+        // Query to find the next session for the specified event
+        $query = "
+          SELECT id FROM event_session
+          WHERE event_id = {$eventId}
+          AND datetime('{$currentDatetimeUtc}') >= datetime(start_date)
+          AND datetime('{$currentDatetimeUtc}') <= datetime(end_date)
+          ORDER BY start_date ASC
+          LIMIT 1
+        ";
+
+        $result = $db->query($query);
+
+        if ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+            // Construct and return the EventSession object
+            return EventSession::get(
+                ["id" => $row['id']]
+            );
+        }
+
+        // No next session found
+        return null;
     }
 }
 

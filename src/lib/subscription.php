@@ -17,14 +17,14 @@ class Subscription {
     function __construct(
         ?Person $person=null,
         string $qr="",
-        DateTime $datetime=new DateTime(),
+        ?DateTime $datetime=null,
         ?int $id=null,
         ?int $active=null
     ) {
         $this->person = $person;
         $this->qr = $qr;
         $this->id = $id;
-        $this->datetime = $datetime;
+        $this->datetime = $datetime ?? new DateTime('now', new DateTimeZone("America/La_Paz"));
         $this->active = $active;
     }
 

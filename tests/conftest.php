@@ -6,7 +6,7 @@ assert_options(ASSERT_BAIL,     true);
 assert_options(ASSERT_WARNING,  false);
 assert_options(ASSERT_CALLBACK, 'assert_failure');
 
-require_once dirname(__DIR__) . "/src/migrations/all.php";
+require_once dirname(__DIR__) . "/src/migrations/all_unittest.php";
 
 
 function clean_db(): void {

@@ -25,7 +25,9 @@ class AttendanceTest extends TestCase
             new Person($fullName, $email, $phone)
         )->save();
 
-        $currentDateTime = new DateTime();
+        $TZ = new DateTimeZone("America/La_Paz");
+
+        $currentDateTime = new DateTime('now', $TZ);
 
         // Create a datetime 1 hour before the current datetime
         $oneHourBefore = clone $currentDateTime;
@@ -43,6 +45,7 @@ class AttendanceTest extends TestCase
                 $oneHourAfter,
             )
         )->save();
+
         $this->eventSession = (
             new EventSession(
                 $this->event,
@@ -68,10 +71,12 @@ class AttendanceTest extends TestCase
     // Test the insert method (if necessary)
     public function testInsertAttendance(): void
     {
+        $TZ = new DateTimeZone("America/La_Paz");
         // Create an instance of Attendance (replace with actual constructor arguments)
         $attendance = new Attendance(
             $this->person,
             $this->eventSession,
+            new DateTime("now", $TZ)
         );
 
         // Execute the insert method

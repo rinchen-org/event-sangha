@@ -29,11 +29,12 @@ class EventSessionTest extends TestCase
         $this->assertNotNull($event);
 
         // Create an event session
+        $TZ = new DateTimeZone("America/La_Paz");
         $eventSession = new EventSession(
             $event,
             "Test Session",
-            new DateTime("2023-01-01 10:00:00"),
-            new DateTime("2023-01-01 12:00:00"),
+            new DateTime("2023-01-01 10:00:00", $TZ),
+            new DateTime("2023-01-01 12:00:00", $TZ),
             null
         );
         $eventSession->save();
@@ -87,13 +88,15 @@ class EventSessionTest extends TestCase
 
     public function testList(): void
     {
+        $TZ = new DateTimeZone("America/La_Paz");
+
         // Create an event
         $event = (
             new EventSangha(
                 "Test Event",
                 "Test Event-Description",
-                new DateTime(),
-                new DateTime(),
+                new DateTime('now', $TZ),
+                new DateTime('now', $TZ),
             )
         )->save();
 
@@ -105,8 +108,8 @@ class EventSessionTest extends TestCase
             $eventSession = new EventSession(
                 $event,
                 "Session $i",
-                new DateTime("2023-01-01 10:00:00"),
-                new DateTime("2023-01-01 12:00:00")
+                new DateTime("2023-01-01 10:00:00", $TZ),
+                new DateTime("2023-01-01 12:00:00", $TZ)
             );
             $eventSession->save();
             $eventSessions[] = $eventSession;

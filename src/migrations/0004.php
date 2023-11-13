@@ -60,7 +60,7 @@ function create_event_records(): void {
     ],
   ];
 
-  foreach ($sessions as $session){
+  foreach ($sessions as $session) {
     $name = $session["name"];
     $startDate = $session["startDate"]->format('Y-m-d H:i:s');
     $endDate = $session["endDate"]->format('Y-m-d H:i:s');

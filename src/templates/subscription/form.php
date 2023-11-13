@@ -1,6 +1,7 @@
 <?php
-include dirname(__DIR__) . "/header.php";
 require_once dirname(dirname(__DIR__)) . "/lib/subscription.php";
+
+include dirname(__DIR__) . "/header.php";
 
 // Check if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -158,24 +159,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 ?>
 <h1>Formulario de suscripción para personas que ya han pagado la tasa de registro</h1>
 
-<form method="POST" action="">
-    <label for="fullname">Full Name:</label>
-    <input type="text" name="fullname" id="fullname" required><br><br>
+<div class="mt-5">
+  <form method="POST" action="">
+      <label for="fullname">Full Name:</label>
+      <input type="text" name="fullname" id="fullname" required><br><br>
 
-    <label for="email">Email:</label>
-    <input type="email" name="email" id="email" required><br><br>
+      <label for="email">Email:</label>
+      <input type="email" name="email" id="email" required><br><br>
 
-    <label for="phone">Phone:</label>
-    <input type="tel" name="phone" id="phone" required><br><br>
+      <label for="phone">Phone:</label>
+      <input type="tel" name="phone" id="phone" required><br><br>
 
-    <button type="submit" class="btn btn-primary">Save</button>
-</form>
+      <button type="submit" class="btn btn-primary">Save</button>
+  </form>
 
-<a href="../" class="btn btn-warning my-3">Back to the menu</a>
-<a href="./list.php" class="btn btn-warning my-3">Back to the list</a>
-
-</body>
-</html>
+  <a href="../" class="btn btn-warning my-3">Back to the menu</a>
+  <a href="./list.php" class="btn btn-warning my-3">Back to the list</a>
+</div>
 
 <?php
 }

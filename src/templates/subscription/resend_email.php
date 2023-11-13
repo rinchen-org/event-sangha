@@ -20,5 +20,5 @@ try {
   ];
 }
 
-header('Location: subscription_list.php');
+header('Location: ./list.php');
 exit();

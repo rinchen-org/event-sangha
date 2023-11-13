@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . "/datetime.php";
 require_once __DIR__ . "/event.php";
 require_once __DIR__ . "/subscription.php";
 require_once __DIR__ . "/person.php";
@@ -10,7 +11,7 @@ class Attendance
     public ?int $id;
     public Person $person;
     public EventSession $eventSession;
-    public DateTime $logTime;
+    public ?DateTime $logTime;
 
     public function __construct(
         Person $person,
@@ -21,11 +22,7 @@ class Attendance
         $this->person = $person;
         $this->eventSession = $eventSession;
 
-        if ($logTime === null) {
-            $this->logTime = new DateTime();
-        } else {
-            $this->logTime = $logTime;
-        }
+        $this->logTime = $logTime;
         $this->id = $id;
     }
 
@@ -82,6 +79,10 @@ class Attendance
 
         // Execute the statement
         $result = $db->query($query);
+
+        if (!$result) {
+            return null;
+        }
         $row = $result->fetchArray(SQLITE3_ASSOC);
 
         if ($row === false) {
@@ -99,7 +100,7 @@ class Attendance
         $attendance = new Attendance(
             $person,
             $event_session,
-            new DateTime($row['log_time']),
+            convert_from_utc0(new DateTime($row['log_time'])),
             intval($row['id'])
         );
 
@@ -126,7 +127,7 @@ class Attendance
         // Prepare the SQL statement
         $personId = $this->person->id;
         $sessionId = $this->eventSession->id;
-        $logTime = $this->logTime->format('Y-m-d H:i:s');
+        $logTime = convert_to_utc0($this->logTime)->format('Y-m-d H:i:s');
         $insertQuery = "
             INSERT INTO attendance (
                 person_id, event_session_id, log_time

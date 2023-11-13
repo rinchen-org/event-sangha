@@ -52,4 +52,6 @@ function migrate_0001(): void {
   attendance_table();
 }
 
-migrate_0001();
+if (isset($_GET['migrate']) && $_GET['migrate'] == 1) {
+  migrate_0001();
+}

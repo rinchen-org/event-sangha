@@ -9,5 +9,7 @@ dependencies:
   - python
   - pip
   - makim 1.8.3
+  - containers-sugar 1.9.0
   - pip:
     - pygments
+    - compose-go>=1.23

@@ -1,6 +1,6 @@
 <?php
 
-require_once "./lib/settings.php";
+require_once dirname(__DIR__) . "/lib/settings.php";
 
 global $BASE_URL;
 

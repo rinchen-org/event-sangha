@@ -30,7 +30,12 @@ $result = EventSession::list();
           <td><?php echo $session->startDate->format('Y-m-d H:i:s'); ?></td>
           <td><?php echo $session->endDate->format('Y-m-d H:i:s'); ?></td>
           <td>
-            <!-- Add action buttons here as needed -->
+            <form action="./form.php" method="GET">
+              <input type="hidden" name="id" value="<?php echo $session->id; ?>" />
+              <button type="submit" class="btn btn-success">
+                update
+              </button>
+            </form>
           </td>
         </tr>
       <?php endforeach; ?>

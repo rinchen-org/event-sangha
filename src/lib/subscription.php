@@ -71,7 +71,12 @@ class Subscription {
      */
     public static function list(?array $filter=null): ?array {
         $db = get_db();
-        $query = "SELECT * FROM subscription WHERE 1=1";
+        $query = "
+            SELECT subscription.*
+            FROM subscription INNER JOIN person
+              ON (subscription.person_id=person.id)
+            WHERE 1=1
+        ";
 
         if ($filter) {
             // Iterate over the data dictionary
@@ -80,10 +85,11 @@ class Subscription {
                 $escapedValue = $db->escapeString($value);
 
                 // Add the key-value pair to the WHERE clause
-                $query .= " AND $key='$escapedValue'";
+                $query .= " AND subscription.{$key}='$escapedValue'";
             }
         }
 
+        $query .= " ORDER BY person.fullname";
         $result = $db->query($query);
 
         $subscription_list = [];

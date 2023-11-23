@@ -36,7 +36,7 @@ class Attendance
         $db = get_db();
 
         // Perform a query to retrieve all attendance records
-        $query = "SELECT * FROM attendance";
+        $query = "SELECT * FROM attendance ORDER BY event_session_id, log_time";
         $result = $db->query($query);
 
         $attendanceList = [];

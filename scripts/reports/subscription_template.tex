@@ -1,0 +1,38 @@
+\documentclass[a4paper]{article}
+
+% Include the geometry package to set page layout
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{longtable} % To support multi-page tables
+\usepackage{geometry}  % To adjust page margins
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs,multirow,array}
+
+% Set custom page margins
+\geometry{left=0.5cm, right=0.5cm, top=0.5cm, bottom=0.5cm}
+
+\begin{document}
+\title{Subscription List}
+
+\begin{longtable}{|c|c|}
+\hline
+\textbf{Personal Information} & \textbf{QR Code} \\
+\hline
+\endhead
+{% for subscription in subscriptions -%}
+\multirow{3}{*}{
+  \begin{tabular}{@{}c@{}}
+    \texttt{ {{- subscription["person"]["fullname"] -}} } \\
+    \texttt{ {{- subscription["person"]["email"].replace("_", "\\_").replace("%", "\\%") -}} }  \\
+    \texttt{ {{- subscription["person"]["phone"] -}} }
+  \end{tabular} } &
+\begin{tabular}{@{}c@{}}
+  \setlength{\fboxsep}{20pt} % Adjust the padding here
+  \fbox{ \includegraphics[width=2in]{ {{- subscription.qr_filename -}} } }
+\end{tabular} \\
+\hline
+{% endfor %}
+
+\end{longtable}
+
+\end{document}

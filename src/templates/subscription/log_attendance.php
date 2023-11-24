@@ -50,9 +50,13 @@ function log_attendance(int $subscription_id): void {
     ]);
 
     if ($attendance !== null) {
+      // Output a success message
+      $person = $subscription->person;
+      $name = $person->fullname;
+
       $_SESSION['message'] = [
         "type" => "warning",
-        "text" => "Asistencia previamente confirmada!",
+        "text" => "Asistencia previamente confirmada ($name)!",
       ];
       return;
     }
@@ -68,9 +72,12 @@ function log_attendance(int $subscription_id): void {
     }
 
     // Output a success message
+    $person = $subscription->person;
+    $name = $person->fullname;
+
     $_SESSION['message'] = [
       "type" => "success",
-      "text" => "Asistencia confirmada",
+      "text" => "Asistencia confirmada ({$name})",
     ];
     return;
 }

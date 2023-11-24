@@ -127,6 +127,13 @@ global $MESSAGE;
                   >log attendance</button>
 
                 </form>
+                <form action="./log_attendance_force.php" method="POST">
+                  <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
+                  <button type="submit"
+                    class="btn btn-warning"
+                  >log FORCE</button>
+
+                </form>
               </td>
             </tr>
 <?php } ?>

@@ -3,32 +3,26 @@ session_start();
 
 require_once dirname(dirname(__DIR__)) . '/lib/attendance.php';
 
+include_once __DIR__ . "/config.php";
+
+
 global $BASE_URL;
 ?>
 
 <?php
 
-function log_attendance(): void {
-    // Check if all fields are present
-    if (!isset($_GET['fullname'], $_GET['email'], $_GET['phone'])) {
-      // Output an error message if any field is missing
+function log_attendance(int $subscription_id): void {
+    $subscription = Subscription::get(["id" => $subscription_id]);
+
+    if ($subscription === null) {
       $_SESSION['message'] = [
         "type" => "error",
-        "text" => "All fields are required!",
+        "text" => "Subscription not found!",
       ];
       return;
     }
 
-    // Get the values from GET parameters
-    $fullname = $_GET['fullname'];
-    $email = $_GET['email'];
-    $phone = $_GET['phone'];
-
-    $person = Person::get([
-      "fullname" => $fullname,
-      "email" => $email,
-      "phone" => $phone,
-    ]);
+    $person = $subscription->person;
 
     if ($person === null) {
       $_SESSION['message'] = [
@@ -45,7 +39,7 @@ function log_attendance(): void {
     if ($eventSession === null) {
       $_SESSION['message'] = [
         "type" => "error",
-        "text" => "Event Session not found!",
+        "text" => "Session not found!",
       ];
       return;
     }
@@ -56,15 +50,19 @@ function log_attendance(): void {
     ]);
 
     if ($attendance !== null) {
+      // Output a success message
+      $person = $subscription->person;
+      $name = $person->fullname;
+
       $_SESSION['message'] = [
         "type" => "warning",
-        "text" => "Asistencia previamente confirmada ({$fullname})",
+        "text" => "Asistencia previamente confirmada ($name)!",
       ];
       return;
     }
 
     try {
-      Attendance::log($person, $eventSession);
+      Attendance::log_force($person, $eventSession);
     } catch (Exception $e) {
       $_SESSION['message'] = [
         "type" => "error",
@@ -74,17 +72,18 @@ function log_attendance(): void {
     }
 
     // Output a success message
+    $person = $subscription->person;
+    $name = $person->fullname;
+
     $_SESSION['message'] = [
       "type" => "success",
-      "text" => "Asistencia confirmada ({$fullname})</strong>!",
+      "text" => "Asistencia confirmada ({$name})",
     ];
     return;
 }
 
-log_attendance();
+log_attendance(intval($_POST["id"]));
 
-include dirname(__DIR__) . "/header.php";
-
-include dirname(__DIR__) . "/footer.php";
+include __DIR__ . "/list.php";
 
 ?>

@@ -15,7 +15,8 @@ $result = Attendance::list();
 
 if ($result): ?>
 
-    <table class="w-100">
+    <table id="attendance_list" class="w-100">
+      <thead>
         <tr>
             <th>ID</th>
             <th>Full Name</th>
@@ -25,23 +26,31 @@ if ($result): ?>
             <th>Session</th>
             <th>Log Time</th>
         </tr>
+      </thead>
+      <tbody>
         <?php foreach ($result as $attendance): ?>
-            <tr>
-                <td><?php echo $attendance->id; ?></td>
-                <td><?php echo $attendance->person->fullname; ?></td>
-                <td><?php echo $attendance->person->email; ?></td>
-                <td><?php echo $attendance->person->phone; ?></td>
-                <td><?php echo $attendance->eventSession->event->name; ?></td>
-                <td><?php echo $attendance->eventSession->name; ?></td>
-                <td><?php echo $attendance->logTime->format('Y-m-d H:i:s'); ?></td>
-            </tr>
+        <tr>
+            <td><?php echo $attendance->id; ?></td>
+            <td><?php echo $attendance->person->fullname; ?></td>
+            <td><?php echo $attendance->person->email; ?></td>
+            <td><?php echo $attendance->person->phone; ?></td>
+            <td><?php echo $attendance->eventSession->event->name; ?></td>
+            <td><?php echo $attendance->eventSession->name; ?></td>
+            <td><?php echo $attendance->logTime->format('Y-m-d H:i:s'); ?></td>
+        </tr>
         <?php endforeach; ?>
+      </tbody>
     </table>
 <?php else: ?>
     <p>No records found.</p>
 <?php endif; ?>
 
 <a href="../" class="btn btn-warning my-3">Back to the menu</a>
+
+<script>
+    let table = new DataTable('#attendance_list');
+</script>
+
 
 <?php
 include dirname(__DIR__) . "/footer.php";

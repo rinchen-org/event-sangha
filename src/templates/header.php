@@ -45,7 +45,9 @@ global $ENV_PROD;
 <?php
 if ($message_type != "" || $message_text != ""){
 
-  print("<div class='alert alert-{$message_type}' role='alert'>");
+  $alert_type = $message_type == "error" ? "danger" : $message_type;
+
+  print("<div class='alert alert-{$alert_type}' role='alert'>");
   print($message_text);
   print("</div>");
 }

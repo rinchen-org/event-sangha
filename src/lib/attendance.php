@@ -115,12 +115,22 @@ class Attendance
         EventSession $eventSession
     ): Attendance {
         $attendance = new Attendance($person, $eventSession, new DateTime());
-        return $attendance->insert();
+        return $attendance->insert(false);
     }
 
-    public function insert(): Attendance
+    public static function log_force(
+        Person $person,
+        EventSession $eventSession
+    ): Attendance {
+        $attendance = new Attendance($person, $eventSession, new DateTime());
+        return $attendance->insert(true);
+    }
+
+    public function insert(bool $force=false): Attendance
     {
-        $this->validate();
+        if ($force !== true) {
+            $this->validate();
+        }
 
         $db = get_db(); // Assuming get_db returns a database connection
 
@@ -188,16 +198,17 @@ class Attendance
         }
 
         // Check if it's the first session of the event
-        $firstSession = $this->eventSession->isFirstSession(); // Implement this method
+        $firstSession = $this->eventSession->isFirstSession();
 
         if (!$firstSession) {
             // If it's not the first session, check if the person attended previous sessions
-            $previousSessions = $this->eventSession->getPreviousSessions(); // Implement this method
+            $previousSessions = $this->eventSession->getPreviousSessions();
 
             foreach ($previousSessions as $previousSession) {
                 // Check if the person attended each previous session
-                if (!$this->attendedSession($this->person, $previousSession)) { // Implement this method
-                    throw new Exception("Attendance is not allowed. Please attend previous sessions.");
+                // HARD CODED: don't do it without a support of an adult!
+                if (!$this->attendedSession($this->person, $previousSession) && $previousSession->id != 1) {
+                    throw new Exception("Attendance is not allowed. The participant didn't attend previous sessions.");
                 }
             }
         }

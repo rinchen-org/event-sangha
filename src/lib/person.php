@@ -30,9 +30,9 @@ class Person {
     public static function get(array $data): ?Person {
         $db = get_db();
 
-        $query = "
-        SELECT * FROM person
-        WHERE 1=1";
+        $query = "SELECT * FROM person";
+        $query_filter = "";
+        $query_filter_sep = "";
 
         // Iterate over the data dictionary
         foreach ($data as $key => $value) {
@@ -40,7 +40,12 @@ class Person {
             $escapedValue = $db->escapeString($value);
 
             // Add the key-value pair to the WHERE clause
-            $query .= " AND $key='$escapedValue'";
+            $query_filter .= " {$query_filter_sep} $key='$escapedValue'";
+            $query_filter_sep = "AND";
+        }
+
+        if ($query_filter != "") {
+            $query .= " WHERE {$query_filter};";
         }
 
         $result = $db->query($query);
@@ -48,7 +53,6 @@ class Person {
         $row = $result->fetchArray(SQLITE3_ASSOC);
 
         if ($row === false) {
-            // No rows returned, result is empty
             $person = null;
         } else {
             $person = new Person();

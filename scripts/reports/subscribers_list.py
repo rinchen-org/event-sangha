@@ -25,17 +25,17 @@ if response.status_code == 200:
 
         for subscription in subscriptions:
             image_url = subscription["qr"]
-            # response = requests.get(image_url)
+            response = requests.get(image_url)
 
             tex_file_path = f"images/{image_url.split('/')[-1]}"
             local_file_path = f"./output/{tex_file_path}"
-            # image_data = response.content
+            image_data = response.content
 
             subscription["qr_filename"] = f"./{tex_file_path}"
 
             # Save the image to the local file
-            # with open(local_file_path, 'wb') as file:
-            #     file.write(image_data)
+            with open(local_file_path, 'wb') as file:
+                file.write(image_data)
 
 
         # Render the LaTeX document with data

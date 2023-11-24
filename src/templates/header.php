@@ -50,5 +50,8 @@ if ($message_type != "" || $message_text != ""){
   print("<div class='alert alert-{$alert_type}' role='alert'>");
   print($message_text);
   print("</div>");
+
+  $_SESSION['message']["type"] = "";
+  $_SESSION['message']["text"] = "";
 }
 ?>

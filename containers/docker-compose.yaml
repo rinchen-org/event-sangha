@@ -1,11 +1,15 @@
 version: '3.3'
 
 services:
-  my-apache2:
+  web:
     build:
-      context: .
-      dockerfile: ./Dockerfile
+      context: ..
+      dockerfile: ./containers/Dockerfile
+      args:
+        - UID=${UID}
+        - GID=${GID}
     ports:
-      - 8080:80
+      - ${HOST_PORT}:80
+    user: "${UID}:${GID}"
     volumes:
-      - ./public-html:/usr/local/apache2/htdocs/
+      - ../src:/app

@@ -5,9 +5,9 @@ groups:
       runserver:
         help: Run the server application
         run: |
-          cd src
-          # echo "HOST_ADDRESS=http://localhost:8081" > .env
-          php -S localhost:8081
+          sugar down
+          sugar build
+          sugar ext restart
 
       tests:
         help: Run the server application

@@ -17,6 +17,8 @@ if ($filter == "active") {
   $result = Subscription::list();
 }
 
+global $MESSAGE;
+
 ?>
   <h2>Lista de suscriptos</h2>
   <a href="../" class="btn btn-warning my-3">Back to the menu</a>
@@ -117,6 +119,21 @@ if ($filter == "active") {
                     style="background:#E50E0E!important;"/>
                 </form>
   <?php } ?>
+                <form action="./log_attendance.php" method="POST">
+                  <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
+                  <button type="submit"
+                    class="btn btn-success"
+                    style="background:ea3c89!important;"
+                  >log attendance</button>
+
+                </form>
+                <form action="./log_attendance_force.php" method="POST">
+                  <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
+                  <button type="submit"
+                    class="btn btn-warning"
+                  >log FORCE</button>
+
+                </form>
               </td>
             </tr>
 <?php } ?>

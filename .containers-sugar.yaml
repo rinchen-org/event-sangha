@@ -1,0 +1,14 @@
+version: 1.0
+compose-app: docker compose
+env-file: ./src/.env
+defaults:
+  group: dev
+  project-name: rinchen
+service-groups:
+  - name: dev
+    compose-path: containers/docker-compose.yaml
+    env-file: ./src/.env
+    services:
+      default: web
+      available:
+        - name: web

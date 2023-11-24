@@ -42,13 +42,16 @@ global $ENV_PROD;
   $message_text = $_SESSION['message']["text"] ?? "";
   $_SESSION['message'] = [];
 ?>
-<?php if ($message_type == "success") { ?>
-      <div class="alert alert-success" role="alert">
-<?php print($message_text); ?>
-      </div>
-<?php } else if ($message_type == "error") { ?>
-      <div class="alert alert-danger" role="alert">
-<?php print($message_text); ?>
-      </div>
-<?php } ?>
-    </div>
+<?php
+if ($message_type != "" || $message_text != ""){
+
+  $alert_type = $message_type == "error" ? "danger" : $message_type;
+
+  print("<div class='alert alert-{$alert_type}' role='alert'>");
+  print($message_text);
+  print("</div>");
+
+  $_SESSION['message']["type"] = "";
+  $_SESSION['message']["text"] = "";
+}
+?>

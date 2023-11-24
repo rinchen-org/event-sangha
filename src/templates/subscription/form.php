@@ -3,6 +3,9 @@ require_once dirname(dirname(__DIR__)) . "/lib/subscription.php";
 
 include dirname(__DIR__) . "/header.php";
 
+$status = true;
+$subscription = null;
+
 // Check if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Retrieve form data
@@ -10,17 +13,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $phone = $_POST['phone'];
 
-    $subscription = null;
     try {
         $subscription = Subscription::subscribe_person(
           $fullname, $email, $phone
         );
     } catch (Exception $e) {
-        print("<p>" . $e->getMessage() . "</p>");
-        echo '<p><a href="./form.php">Back to the form</a></p>';
+        $msg = $e->getMessage();
+        print("<p class='alert alert-danger'>" . $msg . "</p>");
+
+        $status = false;
+        $person = new Person($fullname, $email, $phone);
+        $subscription = new Subscription($person);
+
+        if ($msg == "Email could not be sent.") {
+          // exception of the exception
+          $status = true;
+        }
     }
 
-    if ($subscription) {
+    if ($subscription !== null && $status === true) {
 ?>
 
 <h1>¡ CONFIRMAMOS TU PARTICIPACIÓN EN EL RETIRO!</h1>
@@ -155,20 +166,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Check if the form is submitted
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+if ($_SERVER['REQUEST_METHOD'] === 'GET' || $status == false) {
 ?>
 <h1>Formulario de suscripción para personas que ya han pagado la tasa de registro</h1>
 
 <div class="mt-5">
   <form method="POST" action="">
       <label for="fullname">Full Name:</label>
-      <input type="text" name="fullname" id="fullname" required><br><br>
+      <input
+        type="text"
+        name="fullname"
+        id="fullname"
+        required
+        value="<?php echo $subscription !== null ? $subscription->person->fullname : ""; ?>"
+      /><br><br>
 
       <label for="email">Email:</label>
-      <input type="email" name="email" id="email" required><br><br>
+      <input
+        type="email"
+        name="email"
+        id="email"
+        required
+        value="<?php echo $subscription !== null ? $subscription->person->email : ""; ?>"
+      /><br><br>
 
       <label for="phone">Phone:</label>
-      <input type="tel" name="phone" id="phone" required><br><br>
+      <input
+        type="tel"
+        name="phone"
+        id="phone"
+        required
+        value="<?php echo $subscription !== null ? $subscription->person->phone : ""; ?>"
+      /><br><br>
 
       <button type="submit" class="btn btn-primary">Save</button>
   </form>

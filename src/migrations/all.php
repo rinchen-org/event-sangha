@@ -12,3 +12,5 @@ function migrate_all(): void {
   migrate_0003();
   migrate_0004();
 }
+
+migrate_all();

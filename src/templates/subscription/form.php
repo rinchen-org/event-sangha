@@ -4,6 +4,7 @@ require_once dirname(dirname(__DIR__)) . "/lib/subscription.php";
 include dirname(__DIR__) . "/header.php";
 
 $status = true;
+$subscription = null;
 
 // Check if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -11,8 +12,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fullname = $_POST['fullname'];
     $email = $_POST['email'];
     $phone = $_POST['phone'];
-
-    $subscription = null;
 
     try {
         $subscription = Subscription::subscribe_person(
@@ -32,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    if ($subscription && $status == true) {
+    if ($subscription !== null && $status === true) {
 ?>
 
 <h1>¡ CONFIRMAMOS TU PARTICIPACIÓN EN EL RETIRO!</h1>
@@ -179,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' || $status == false) {
         name="fullname"
         id="fullname"
         required
-        value="<?php echo $subscription ? $subscription->person->fullname : ""; ?>"
+        value="<?php echo $subscription !== null ? $subscription->person->fullname : ""; ?>"
       /><br><br>
 
       <label for="email">Email:</label>
@@ -188,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' || $status == false) {
         name="email"
         id="email"
         required
-        value="<?php echo $subscription ? $subscription->person->email : ""; ?>"
+        value="<?php echo $subscription !== null ? $subscription->person->email : ""; ?>"
       /><br><br>
 
       <label for="phone">Phone:</label>
@@ -197,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' || $status == false) {
         name="phone"
         id="phone"
         required
-        value="<?php echo $subscription ? $subscription->person->phone : ""; ?>"
+        value="<?php echo $subscription !== null ? $subscription->person->phone : ""; ?>"
       /><br><br>
 
       <button type="submit" class="btn btn-primary">Save</button>

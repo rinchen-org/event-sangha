@@ -1,5 +1,6 @@
 <?php
-include dirname(__DIR__) . "/header.php";
+session_start();
+
 require_once dirname(dirname(__DIR__)) . "/lib/attendance.php";
 require_once dirname(dirname(__DIR__)) . "/lib/person.php";
 require_once dirname(dirname(__DIR__)) . "/lib/event.php";
@@ -10,16 +11,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $personId = $_POST['person'];
     $eventId = $_POST['event'];
     $eventSessionId = $_POST['event_session'];
+    $force = $_POST['force'];
 
     $person = Person::get(["id" => $personId]);
     $eventSession = EventSession::get(["id" => $eventSessionId]);
 
     // Log the attendance
     try {
-        Attendance::log($person, $eventSession);
-        echo '<p class="alert alert-success">Attendance logged successfully!</p>';
+        if ($force == "1") {
+            Attendance::log_force($person, $eventSession);
+        } else {
+            Attendance::log($person, $eventSession);
+        }
+        $_SESSION['message'] = [
+            "type" => "success",
+            "text" => "Attendance logged successfully!",
+        ];
     } catch (Exception $e) {
-        echo '<p class="alert alert-danger">' . $e->getMessage() . '</p>';
+        $_SESSION['message'] = [
+            "type" => "error",
+            "text" => $e->getMessage(),
+        ];
     }
 }
 
@@ -29,6 +41,7 @@ $subscriptionList = Subscription::list(["active" => 1]);
 $eventList = [EventSangha::get(["id" => 1])];
 $eventSessionList = EventSession::list(["event_id" => 1]);
 
+include dirname(__DIR__) . "/header.php";
 ?>
 
 <h1>Attendance Log</h1>
@@ -66,6 +79,11 @@ $eventSessionList = EventSession::list(["event_id" => 1]);
                 <option value="<?php echo $eventSession->id; ?>"><?php echo $eventSession->name; ?></option>
             <?php } ?>
         </select>
+    </div>
+
+    <div class="mb-3">
+        <label for="event_session" class="form-label">Force:</label>
+        <input type="checkbox" name="force" value="1" />
     </div>
 
     <div class="mb-3">

@@ -138,6 +138,16 @@ class Attendance
         $personId = $this->person->id;
         $sessionId = $this->eventSession->id;
         $logTime = convert_to_utc0($this->logTime)->format('Y-m-d H:i:s');
+
+        $attendanceCheck = Attendance::get([
+            "person_id" => $personId,
+            "event_session_id" => $sessionId,
+        ]);
+
+        if ($attendanceCheck !== null) {
+            throw new Exception("Attendance already logged.");
+        }
+
         $insertQuery = "
             INSERT INTO attendance (
                 person_id, event_session_id, log_time

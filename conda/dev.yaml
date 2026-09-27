@@ -10,8 +10,10 @@ dependencies:
   - pip
   - makim 1.8.3
   - containers-sugar 1.9.0
+  - nodejs
   - jinja2
   - requests
   - pip:
     - pygments
     - compose-go>=1.23
+    - pre-commit

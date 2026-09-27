@@ -8,7 +8,19 @@ and attendance on larger screens. Retain the PHP/SQLite backend and Conda-based
 developer workflow. Migrate in small, verifiable steps with a usable legacy UI
 throughout the transition.
 
-All checklist items below are planned work, not completed implementation.
+## Implementation update — React interface
+
+Implemented: the React/TypeScript/Vite shell, responsive visual system, overview,
+event/session views and forms, participant search/status filters, attendance
+views, CSV exports, and Makim install/dev/check/test/build tasks. Existing list
+routes now provide read-only JSON; writes still submit to the existing PHP
+handlers. A development-only preview, frontend regression tests, relative build
+assets, hash navigation, and the legacy menu fallback are available. See
+[frontend/README.md](frontend/README.md).
+
+The milestones below remain release gates: this first frontend increment does
+not claim completion of test isolation, PHP runtime alignment, mutation APIs,
+server-side access controls, production integration tests, or rollout.
 
 ## Current baseline
 
@@ -23,7 +35,7 @@ All checklist items below are planned work, not completed implementation.
 - Conda provides Python tools and Node.js; CI provisions PHP separately. The
   container still uses PHP 7.4 while CI uses 8.1 and PHPUnit requires >=8.1.
 - Tests share the application database path and overwrite local configuration.
-  No React build, frontend test suite, or isolated API test harness exists yet.
+  React now has its own build and tests; an isolated PHP API test harness remains future work.
 
 ## 1. Make development and testing reproducible
 
@@ -97,14 +109,11 @@ Review the designs with the maintainer before broad screen migration.
 
 ## 4. Introduce the React application
 
-- [ ] Establish a dedicated `frontend/` application using React. Proposed tooling
-  is TypeScript and Vite; confirm compatible versions at implementation time and
-  commit the selected package-manager lockfile.
+- [x] Establish `frontend/` using React, TypeScript, and Vite with an npm lockfile.
 - [ ] Use Node.js from Conda for frontend tooling; keep production serving of
   compiled static assets compatible with PHP hosting, without requiring a Node
   application server.
-- [ ] Add Makim targets for frontend development, build, lint/type checks, and
-  tests. Document their actual names once implemented.
+- [x] Add Makim frontend install, dev, build, check (TypeScript), and tests targets.
 - [ ] Build the application shell, navigation, design tokens, reusable form and
   feedback components, and one shared API client.
 - [ ] Configure development API proxying and production asset/API base paths for

@@ -1,6 +1,23 @@
-# Project Name
+# Rinchen event management
 
-Welcome to the Project Name repository! This document provides guidelines on how
+The main interface now uses React with a responsive, minimalist layout. PHP and
+SQLite continue to handle event, subscription, and attendance workflows.
+
+```bash
+conda activate rinchen
+makim frontend.install
+makim frontend.build
+```
+
+Run the existing PHP application to open the built interface. For frontend
+work, use `makim frontend.dev`; see [frontend/README.md](frontend/README.md) for
+PHP proxy setup, the sample-data preview, deployment, and checks. The classic
+menu remains available at `templates/index.php?legacy=1`.
+
+See [AGENTS.md](AGENTS.md) for repository guidance and [ROADMAP.md](ROADMAP.md)
+for the remaining migration milestones.
+
+Welcome to the Rinchen repository! This document provides guidelines on how
 to contribute to this project and set up your local development environment.
 
 ## Table of Contents
@@ -169,7 +186,7 @@ To set up the Conda environment for this project, use the following commands:
 
 ```bash
 # Create the Conda environment from the provided YAML file
-mamba env create -n conda/dev.yaml
+mamba env create -f conda/dev.yaml
 
 # Activate the Conda environment
 conda activate rinchen

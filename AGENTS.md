@@ -31,10 +31,22 @@ migration. The README's Laravel/Django ideas are historical suggestions.
 | `.containers-sugar.yaml`, `containers/` | Sugar configuration, Compose service, and PHP image |
 | `.github/workflows/` | Conda + external PHP CI, Composer validation, tests, and pre-commit |
 
-The current frontend uses PHP templates, Bootstrap, jQuery, DataTables, and
-custom CSS. There is no React application or frontend package manifest yet.
-Business logic and request handling are partly mixed into templates; inspect
-both templates and libraries before moving a workflow.
+The main interface is now React + TypeScript in `frontend/`, built by Vite into
+`src/static/app/`. `src/templates/index.php` reads its build manifest and falls
+back to `menu.php` when assets are absent or `?legacy=1` is requested. Existing
+PHP action/result pages retain Bootstrap, jQuery, and DataTables. React forms
+submit to those handlers; JSON mutation/result migration remains future work.
+
+Existing list routes expose read-only `?format=json` responses through
+`src/lib/frontend.php`, preserving their route-level access boundaries. Retain
+those protections in deployments. The helper joins subscriptions by `person_id`
+without using the legacy library's assumption that person/subscription IDs match.
+See [frontend/README.md](frontend/README.md) for the exact migration boundary.
+
+Use `makim frontend.install`, `makim frontend.dev`, `makim frontend.check`,
+`makim frontend.tests`, and `makim frontend.build`. Build assets before deployment;
+they are ignored by Git. The explicit development `?preview=1` mode uses synthetic
+data and must never become an automatic fallback for unavailable production data.
 
 ## Environment and commands
 

@@ -1,4 +1,9 @@
 <?php
+if (($_GET['format'] ?? '') === 'json') {
+    require_once dirname(dirname(__DIR__)) . '/lib/frontend.php';
+    frontend_list_response('attendance');
+    exit;
+}
 require_once dirname(dirname(__DIR__)) . "/lib/attendance.php";
 include dirname(__DIR__) . "/header.php";
 

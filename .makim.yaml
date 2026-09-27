@@ -19,3 +19,21 @@ groups:
           ./vendor/bin/phpunit tests/EventSessionTest.php
           ./vendor/bin/phpunit tests/AttendanceTest.php
           # ./vendor/bin/phpunit tests/EmailTest.php
+
+  frontend:
+    targets:
+      install:
+        help: Install locked React dependencies
+        run: npm ci --prefix frontend
+      dev:
+        help: Start React development server (PHP_ORIGIN selects the PHP backend)
+        run: npm run dev --prefix frontend
+      build:
+        help: Type-check and build React assets for PHP hosting
+        run: npm run build --prefix frontend
+      check:
+        help: Type-check the React frontend
+        run: npm run check --prefix frontend
+      tests:
+        help: Run isolated frontend tests
+        run: npm test --prefix frontend

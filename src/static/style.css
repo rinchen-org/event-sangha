@@ -78,3 +78,17 @@ th, td {
 th {
   background-color: #f2f2f2;
 }
+
+/* Keep legacy action/result pages comfortable during the React migration. */
+body { background: #faf9f6; color: #423a33; }
+.rinchen-back { display: block; padding: 16px 24px; color: #79364b; background: #fff; border-bottom: 1px solid #eae6e0; text-decoration: none; font-size: 14px; }
+.container { border-radius: 12px; margin-top: 20px; margin-bottom: 20px; padding: clamp(16px, 4vw, 32px); box-sizing: border-box; }
+input, select, textarea { box-sizing: border-box; max-width: 100%; }
+img { max-width: 100%; height: auto; }
+.spiritual-std-logo { max-height: 85px; width: auto; }
+.logo_image { padding: 20px; }
+.btn, input[type="submit"] { min-height: 44px; border-radius: 7px; }
+@media (max-width: 600px) {
+  .container { width: calc(100% - 24px); overflow-x: auto; }
+  h1 { font-size: 24px; }
+}

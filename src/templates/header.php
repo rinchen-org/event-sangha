@@ -8,8 +8,9 @@ global $ENV_PROD;
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Evento Retiro con Su Santidad Sakya Trizin 42 y Venerable Lama Rinchen Gyaltsen</title>
     <link rel="stylesheet" href="<?php echo $BASE_URL; ?>/static/style.css">
     <!-- datatables -->
@@ -27,6 +28,7 @@ global $ENV_PROD;
       </script>
 </head>
 <body>
+  <a class="rinchen-back" href="<?php echo htmlspecialchars($BASE_URL, ENT_QUOTES, 'UTF-8'); ?>/templates/index.php">← Volver a mi comunidad</a>
   <div class="logo_image" style="background-image: url('https://rinchen.org/wp-content/uploads/2021/07/head5.png');">
     <a href="https://rinchen.org">
         <img class="spiritual-std-logo" src="https://rinchen.org/wp-content/uploads/2021/07/logo-head.png" alt="Sakya Rinchen Ling" data-retina="https://rinchen.org/wp-content/uploads/2021/07/logo_head_retina.png">

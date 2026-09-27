@@ -21,6 +21,8 @@ include __DIR__ . "/header.php";
       href="./attendance/form.php">Registro manual de asistencia</a>
     <a class="list-group-item list-group-item-action"
       href="./attendance/list.php">Lista de asistencia</a>
+    <a class="list-group-item list-group-item-action"
+      href="./attendance/report.php">Informe</a>
   </div>
 </div>
 

@@ -5,9 +5,9 @@ groups:
       runserver:
         help: Run the server application
         run: |
-          sugar down
-          sugar build
-          sugar ext restart
+          sugar compose down
+          sugar compose build
+          sugar compose-ext restart
 
       tests:
         help: Run the server application

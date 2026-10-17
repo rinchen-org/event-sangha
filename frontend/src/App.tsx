@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDownToLine, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Flower2, LayoutDashboard, ListChecks, Menu, Plus, RefreshCw, Sprout, Upload, Users, X, ChartNoAxesCombined, ExternalLink } from 'lucide-react';
+import { LogOut, ArrowDownToLine, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Flower2, LayoutDashboard, ListChecks, Menu, Plus, RefreshCw, Sprout, Upload, Users, X, ChartNoAxesCombined, ExternalLink } from 'lucide-react';
 import type { AppData, Editor as EditorType, Page, SubscriptionRecord } from './types';
-import { dateValue, downloadCsv, emptyData, eventStatus, formatDate, initials, legacyUrl, loadData, matchesSearch, preview } from './data';
+import { AuthenticationError, getCsrfToken, loginUrl, dateValue, downloadCsv, emptyData, eventStatus, formatDate, initials, legacyUrl, loadData, matchesSearch, preview } from './data';
 import { Editor } from './components/Editor';
 import { Empty, EventCard, SearchInput, SectionTitle } from './components/Shared';
 import logo from '../../src/static/images/logo-head-square.png';
@@ -43,10 +43,16 @@ export function App() {
   const [data, setData] = useState<AppData>(emptyData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [authRequired, setAuthRequired] = useState(false);
   const [revision, setRevision] = useState(0);
   const [editor, setEditor] = useState<EditorType | null>(null);
   const [notice, setNotice] = useState('');
   const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    const restore = (event: PageTransitionEvent) => { if (event.persisted && !preview) location.reload(); };
+    window.addEventListener('pageshow', restore);
+    return () => window.removeEventListener('pageshow', restore);
+  }, []);
   useEffect(() => {
     const change = () => { setPage(currentPage()); setMobileOpen(false); };
     window.addEventListener('hashchange', change);
@@ -55,9 +61,9 @@ export function App() {
   useEffect(() => { document.title = `${navigation.find(n => n.id === page)?.label} · Rinchen`; heading.current?.focus(); }, [page]);
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true); setError('');
+    setLoading(true); setError(''); setAuthRequired(false);
     loadData(controller.signal).then(result => { if (!controller.signal.aborted) setData(result); })
-      .catch(err => { if (!controller.signal.aborted) setError(err instanceof Error && err.message.startsWith('No pudimos') ? err.message : 'No pudimos conectar con el centro. Vuelve a intentarlo en un momento.'); })
+      .catch(err => { if (controller.signal.aborted) return; if (err instanceof AuthenticationError) { setAuthRequired(true); setData(emptyData); setError(err.message); return; } setError(err instanceof Error && err.message.startsWith('No pudimos') ? err.message : 'No pudimos conectar con el centro. Vuelve a intentarlo en un momento.'); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [revision]);
@@ -88,7 +94,7 @@ export function App() {
       <div className="workspace"><span className="workspace-icon"><Flower2 size={19} /></span><div>Espacio de comunidad<small>Gestión de encuentros</small></div><span className="workspace-dot" /></div>
       <div className="nav-label">ORGANIZAR</div>
       <nav aria-label="Navegación principal">{navigation.map(({ id, label, icon: Icon }) => <a key={id} href={`#${id}`} onClick={() => setMobileOpen(false)} className={page === id ? 'nav-link selected' : 'nav-link'} aria-current={page === id ? 'page' : undefined}><Icon size={19} strokeWidth={1.65} /><span>{label}</span>{id === 'eventos' && ready && <span className="nav-count">{data.events.length}</span>}</a>)}</nav>
-      <div className="sidebar-bottom"><div className="sidebar-note"><Sprout size={24} strokeWidth={1.4} /><p>Pequeños encuentros.<br /><strong>Grandes conexiones.</strong></p><span>Cultivemos comunidad, juntos.</span></div><a className="external-link" href={legacyUrl('index.php?legacy=1')}><ExternalLink size={16} /> Menú clásico <ArrowUpRight size={14} /></a><div className="center-signature"><span className="center-avatar">RL</span><div>Sakya Rinchen Ling<small>La Paz, Bolivia</small></div></div></div>
+      <div className="sidebar-bottom"><div className="sidebar-note"><Sprout size={24} strokeWidth={1.4} /><p>Pequeños encuentros.<br /><strong>Grandes conexiones.</strong></p><span>Cultivemos comunidad, juntos.</span></div><a className="external-link" href={legacyUrl('index.php?legacy=1')}><ExternalLink size={16} /> Menú clásico <ArrowUpRight size={14} /></a><form action={legacyUrl('logout.php')} method="POST" className="logout-form"><input type="hidden" name="csrf_token" value={getCsrfToken()} /><button className="external-link" type="submit" disabled={preview || !ready}><LogOut size={16} /> Cerrar sesión</button></form><div className="center-signature"><span className="center-avatar">RL</span><div>Sakya Rinchen Ling<small>La Paz, Bolivia</small></div></div></div>
     </aside>
     {mobileOpen && <button tabIndex={-1} className="nav-backdrop" aria-label="Cerrar panel lateral" onClick={() => setMobileOpen(false)} />}
     <div className="main-shell">
@@ -97,7 +103,7 @@ export function App() {
         {preview && <div className="preview-banner"><Sprout size={16} /> Vista previa · Datos de ejemplo · No se guardan cambios</div>}
         {notice && <div className="notice" role="status"><p>{notice}</p><button className="icon-button" aria-label="Cerrar ayuda" onClick={() => setNotice('')}><X size={18} /></button></div>}
         <div className="page-heading"><div><span className="eyebrow">{page === 'inicio' ? 'NUESTRA COMUNIDAD' : navigation.find(n => n.id === page)?.label.toUpperCase()}</span><h1 ref={heading} tabIndex={-1}>{titles[page][0]}</h1><p>{titles[page][1]}</p></div><button className="button primary" disabled={!ready} onClick={() => open(page === 'sesiones' ? 'session' : page === 'asistencia' ? 'attendance' : page === 'participantes' ? 'subscription' : 'event')}><Plus size={17} />{page === 'sesiones' ? 'Nueva sesión' : page === 'asistencia' ? 'Registrar asistencia' : page === 'participantes' ? 'Nueva inscripción' : 'Crear evento'}</button></div>
-        {loading ? <div className="loading-state" role="status"><RefreshCw className="spin" size={23} /><span>Preparando tu espacio…</span></div> : error ? <div className="connection-state" role="alert"><CircleHelp size={34} strokeWidth={1.2} /><h2>Volvamos a conectar</h2><p>{error}</p><button className="button primary" onClick={() => setRevision(r => r + 1)}><RefreshCw size={16} /> Volver a intentar</button><a href={legacyUrl('index.php?legacy=1')}>Abrir el menú clásico</a></div> : <>
+        {loading ? <div className="loading-state" role="status"><RefreshCw className="spin" size={23} /><span>Preparando tu espacio…</span></div> : error ? <div className="connection-state" role="alert"><CircleHelp size={34} strokeWidth={1.2} /><h2>{authRequired ? 'Inicia sesión para continuar' : 'Volvamos a conectar'}</h2><p>{error}</p>{authRequired ? <a className="button primary" href={loginUrl()}>Iniciar sesión</a> : <button className="button primary" onClick={() => setRevision(r => r + 1)}><RefreshCw size={16} /> Volver a intentar</button>}<a href={legacyUrl('index.php?legacy=1')}>Abrir el menú clásico</a></div> : <>
           {page === 'inicio' && <>
             <section className="stats" aria-label="Resumen de la comunidad">{[
               { title: 'Eventos', value: data.events.length, note: `${data.events.filter(e => eventStatus(e.start_date, e.end_date).className !== 'neutral').length} próximos o en curso`, icon: CalendarDays, color: 'rose' },
@@ -116,7 +122,7 @@ export function App() {
           {page === 'asistencia' && <Attendance data={data} />}
           {page === 'informes' && <Reports data={data} />}
         </>}
-        <footer className="page-footer"><span><Flower2 size={15} strokeWidth={1.4} /> Hecho para cultivar comunidad.</span><span>Sakya Rinchen Ling · Bolivia</span></footer>
+        <footer className="page-footer"><span><Flower2 size={15} strokeWidth={1.4} /> Hecho para cultivar comunidad.</span><span>Sakya Rinchen Ling · Bolivia</span><span>Desarrollado por <a href="https://scistitch.com/" target="_blank" rel="noopener noreferrer">SciStitch</a></span></footer>
       </main>
     </div>
     {editor && <Editor editor={editor} data={data} close={() => setEditor(null)} />}
@@ -149,6 +155,7 @@ function ParticipantTable({ rows, compact = false }: { rows: SubscriptionRecord[
 }
 function LegacyAction({ path, fields, label }: { path: string; fields: Record<string, number>; label: string }) {
   return <form action={legacyUrl(path)} method="POST" onSubmit={e => { if (preview) e.preventDefault(); }}>
+    <input type="hidden" name="csrf_token" value={getCsrfToken()} />
     {Object.entries(fields).map(([key, value]) => <input type="hidden" name={key} value={value} key={key} />)}<button disabled={preview} type="submit">{label}</button>
   </form>;
 }

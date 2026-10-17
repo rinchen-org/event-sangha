@@ -1048,6 +1048,7 @@ td small {
 
 .page-footer {
   display:flex;
+  flex-wrap:wrap;
   justify-content:space-between;
   gap:15px;
   color:#84786c;
@@ -2035,3 +2036,10 @@ h1[tabindex]:focus-visible {
     top: 10px;
   }
 }
+
+.logout-form { margin: 0; }
+.logout-form button { width: 100%; border: 0; background: transparent; cursor: pointer; }
+.logout-form button:hover { color: var(--wine); }
+
+.page-footer a { color:inherit; text-decoration:underline; text-underline-offset:3px; }
+.page-footer a:hover { color:#79364b; }

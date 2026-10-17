@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__, 2) . '/lib/auth.php';
+auth_require();
 include dirname(__DIR__) . "/header.php";
 require_once dirname(dirname(__DIR__)) . "/lib/event.php";
 
@@ -62,6 +64,7 @@ if ($isNewEvent || $event) {
     <h1><?php echo $isNewEvent ? 'Create New Event' : 'Update Event'; ?></h1>
 
     <form method="POST" action="">
+      <?php auth_csrf_field(); ?>
         <div class="mb-3">
             <label for="name" class="form-label">Event Name:</label>
             <input type="text" class="form-control" name="name" id="name" required value="<?php echo $event ? $event->name : ''; ?>">

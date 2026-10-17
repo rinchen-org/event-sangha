@@ -12,7 +12,7 @@ makim frontend.install
 makim frontend.dev
 ```
 
-Open <http://localhost:5173>. Vite forwards `/templates/` requests to the PHP
+Open <http://localhost:5173>. Vite forwards `/templates/` and `/static/` requests to the PHP
 application at `http://127.0.0.1:8000`. Start PHP using your existing runtime or
 container. To use another origin:
 
@@ -21,7 +21,7 @@ PHP_ORIGIN=http://127.0.0.1:8081 makim frontend.dev
 ```
 
 The development PHP server must expose `src/` as its document root. If PHP is
-installed separately, `php -S 127.0.0.1:8000 -t src` is sufficient for local use
+installed separately, `makim dev.serve-local` uses the protected development router for local use
 with an already initialized development database. Do not use the PHP development
 server for production. No migrations run automatically.
 
@@ -43,12 +43,12 @@ deploying and include the entire directory, including `.vite/manifest.json`, in
 the deployment artifact. PHP reads that manifest in `src/templates/index.php`.
 No Node server is needed in production. The existing `src/index.php` redirect
 opens this page automatically. Relative assets and hash navigation support both
-root hosting and `/event-retiro` without new server rewrite rules.
+root hosting and `/event-retiro` with the authentication file-protection rules described in [containers/README.md](../containers/README.md).
 
 Before a build exists, the original menu remains available. After building, use
 `templates/index.php?legacy=1` for the same fallback. PHP result pages include a
-link back to the React interface. The original QR redirect and Python report API
-are unchanged.
+link back to the React interface. Issued QR URLs and the Python report API remain compatible, but now require
+an authenticated session. QR attendance requires a POST confirmation.
 
 ## Migration boundary
 
@@ -72,12 +72,15 @@ Dates render in `America/La_Paz`. Reads open the existing SQLite file read-only;
 missing databases or schema failures return HTTP 503, unsupported methods return
 405. The helper never creates tables, writes QR files, or sends email. No new
 public API route is introduced; retain the existing access controls on all
-administrative list/action routes when deploying. The repository does not itself
-implement authentication.
+administrative list/action routes when deploying. PHP session authentication now protects these routes. React loads
+`templates/session.php` before private data and includes its CSRF token in POST
+forms. HTTP 401 displays a login link. Rebuild assets when deploying authentication
+so stale forms do not fail CSRF checks. Logout is a CSRF-protected POST.
 
 ## Verification
 
 ```bash
+makim dev.auth-tests
 makim frontend.check
 makim frontend.tests
 makim frontend.build

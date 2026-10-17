@@ -14,14 +14,17 @@ const endpointData: Record<string, unknown> = {
 };
 beforeEach(() => {
   location.hash = '';
-  vi.stubGlobal('fetch', vi.fn(async (url: string) => ({ ok: true, json: async () => ({ success: true, data: endpointData[new URL(url).pathname] }) })));
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => new URL(url).pathname.endsWith('/session.php') ? { success: true, csrfToken: 'test-csrf-token' } : { success: true, data: endpointData[new URL(url).pathname] } })));
 });
 describe('React management views', () => {
   it('renders real endpoint counts and keeps legacy access', async () => {
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'Nuestros encuentros' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Menú clásico/ })).toHaveAttribute('href', expect.stringContaining('index.php?legacy=1'));
-    expect(fetch).toHaveBeenCalledTimes(4);
+    const credit = within(screen.getByRole('contentinfo')).getByRole('link', { name: 'SciStitch' });
+    expect(credit).toHaveAttribute('href', 'https://scistitch.com/');
+    expect(credit).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(fetch).toHaveBeenCalledTimes(5);
     expect(screen.getByRole('region', { name: 'Resumen de la comunidad' })).toHaveTextContent('8');
   });
   it('shows connection failures without substituting sample data and allows retry', async () => {
@@ -71,4 +74,22 @@ describe('compatibility forms', () => {
     await userEvent.selectOptions(screen.getByLabelText('Evento'), '2');
     expect(within(screen.getByLabelText('Sesión')).getAllByRole('option')).toHaveLength(1);
   });
+});
+
+it('requires login on an expired session instead of showing private data', async () => {
+  vi.mocked(fetch).mockResolvedValueOnce({ ok: false, status: 401 } as Response);
+  render(<App />);
+  expect(await screen.findByRole('heading', { name: 'Inicia sesión para continuar' })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute('href', expect.stringContaining('/templates/login.php'));
+  expect(screen.queryByText('Ana Flores')).not.toBeInTheDocument();
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+it('includes the server CSRF token in forms and logout', async () => {
+  render(<App />);
+  await screen.findByRole('heading', { name: 'Nuestros encuentros' });
+  const logout = screen.getByRole('button', { name: 'Cerrar sesión' }).closest('form')!;
+  expect(logout.querySelector('input[name="csrf_token"]')).toHaveValue('test-csrf-token');
+  await userEvent.click(screen.getByRole('button', { name: 'Crear evento' }));
+  const dialog = screen.getByRole('dialog');
+  expect(dialog.querySelector('input[name="csrf_token"]')).toHaveValue('test-csrf-token');
 });

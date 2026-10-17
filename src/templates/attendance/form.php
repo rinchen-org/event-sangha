@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once dirname(__DIR__, 2) . '/lib/auth.php';
+auth_require();
 
 require_once dirname(dirname(__DIR__)) . "/lib/attendance.php";
 require_once dirname(dirname(__DIR__)) . "/lib/person.php";
@@ -47,6 +48,7 @@ include dirname(__DIR__) . "/header.php";
 <h1>Attendance Log</h1>
 
 <form method="POST" action="">
+      <?php auth_csrf_field(); ?>
     <div class="mb-3">
         <label for="person" class="form-label">Select a Person:</label>
         <select name="person" id="person" class="form-select" required>

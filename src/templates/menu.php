@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__) . '/lib/auth.php';
+auth_require();
 include __DIR__ . "/header.php";
 ?>
 <h1>Evento Retiro con Su Santidad Sakya Trizin 42 y Venerable Lama Rinchen Gyaltsen</h1>

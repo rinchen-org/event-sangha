@@ -7,6 +7,50 @@ registration, subscriptions, sessions, and attendance. Preserve those workflows
 while following the incremental React frontend plan in [ROADMAP.md](ROADMAP.md).
 The roadmap describes future work, not features already implemented.
 
+## Staff-led event policies
+
+Only staff use the application. Attendees carry a QR code and present it to
+staff at the door; they do not log in or make admission decisions.
+
+
+The product direction is flexibility: monks and organizers may change event
+rules at any time, and staff—not hardcoded application policies—make the final
+operational decision. Prefer advisory warnings over blocking business rules.
+This direction supersedes older guidance to preserve strict policy enforcement,
+including roadmap wording where it conflicts. It is a target for future changes;
+this documentation update does not remove existing runtime restrictions.
+
+- Treat event-policy deviations (for example attendance time windows,
+  previous-session prerequisites, or inactive subscription eligibility) as
+  visible warnings, not automatic rejection. Inventory existing checks and
+  hardcoded exceptions when migrating each workflow.
+- Explain each deviation in clear Spanish before committing the action, with
+  explicit choices to cancel or continue anyway. Staff must be able to proceed
+  without editing code or using an obscure separate bypass workflow. Do not
+  silently ignore warnings or require repeated confirmations for the same action.
+- Keep policy evaluation in PHP and return structured warnings for React and
+  legacy screens. A UI-only override must not leave the backend blocking the
+  same operation. Re-evaluate the requested action server-side on confirmation;
+  do not trust client claims about which warnings apply.
+- Make changing event policies configurable where practical rather than adding
+  more event-specific exceptions. Do not invent new mandatory approval chains
+  or mandatory justification fields for ordinary staff decisions.
+- As these flows are implemented, record the action, applicable warnings,
+  staff confirmation, timestamp, and available actor identity for later review.
+  Allow optional notes. The current shared admin account cannot identify an
+  individual staff member; do not claim individual accountability until unique
+  accounts or another explicit attribution mechanism exist.
+- Flexibility applies to operational policy, not security or data integrity.
+  Authentication, authorization, CSRF protection, safe database operations,
+  required valid identifiers, and referential integrity remain mandatory.
+  Prevent accidental duplicate writes; distinguish correcting an attendance
+  record from creating a duplicate. Technical failures must not appear as
+  overridable policy warnings or successful actions.
+- Add regression tests for ordinary actions, warning display, cancellation,
+  confirmed continuation, and retained security/integrity failures. Preserve
+  existing records and integrations while replacing policy gates incrementally.
+
+
 Keep Conda as the development environment for Python tooling, Makim, Sugar,
 and Node.js. PHP has been unreliable inside Conda: use a separately provisioned
 PHP/Composer runtime or a compatible container, invoked from the Conda workflow.
@@ -148,11 +192,14 @@ of the data-mutating PHP suite.
 
 - Read the working tree diff first and preserve unrelated user edits. Keep
   changes focused; follow surrounding PHP style without mass reformatting.
-- Keep domain validation in PHP. React should render and orchestrate requests,
-  not duplicate attendance eligibility, activation, or session rules.
+- Keep domain validation and advisory policy evaluation in PHP. React should
+  render warnings and orchestrate staff decisions, not duplicate attendance
+  eligibility, activation, or session rules.
 - Preserve `America/La_Paz` time semantics and UTC conversions, subscription
-  status behavior, CSV mappings, forced attendance, and previous-session checks.
-  Characterize hardcoded exceptions before changing them.
+  status data, CSV mappings, and recorded attendance. Migrate eligibility and
+  previous-session gates to the staff-led warning/confirmation approach above;
+  retain override capabilities without requiring a separate forced-action path.
+  Characterize hardcoded exceptions before replacing them with flexible policy.
 - Preserve existing QR links (including `/attendance_log.php/` and query-string
   handling), deployment under `/event-retiro`, and the subscription API consumed
   by reports. Add compatibility adapters when routes or responses change.
@@ -167,3 +214,96 @@ of the data-mutating PHP suite.
 - Expose new recurring tasks through Makim and keep container orchestration in
   Sugar. Update this file and the roadmap when actual commands or architecture
   change; do not document proposed tasks as available commands.
+
+## Authentication
+
+All business PHP pages, JSON endpoints, and QR media require the shared admin
+session. Login is public; CSS/JS/fonts/branding remain public. Credentials are
+verified against a server-side bcrypt hash in `src/lib/auth.php`; never place
+them in frontend code. Individual accounts remain future work.
+
+Include `auth_require()` before output or domain work on every new route.
+Mutations must use POST and CSRF validation, including React forms. GET QR
+check-in now renders confirmation rather than recording attendance. Libraries
+reject direct HTTP access; migrations are CLI-only. Preserve these boundaries.
+
+Use `makim dev.serve-local`, not a bare PHP server: its router also protects
+private static files. `makim dev.auth-tests` runs isolated HTTP tests using
+temporary code copies and synthetic files; unlike the legacy PHPUnit suite it
+does not touch working data. Optional Apache coverage:
+`RINCHEN_TEST_SERVER=apache python tests/auth/test_auth.py` (Debian-style Apache
+module paths and mod_php required).
+
+Deployment must install the Apache/Nginx protections documented in
+[containers/README.md](containers/README.md). Rebuild the frontend and container.
+Sessions expire after 30 idle minutes / 12 hours total, and failed login attempts
+are limited per IP. Keep session and throttle storage outside the document root;
+`RINCHEN_AUTH_STATE_DIR` and `RINCHEN_HTTPS` are PHP process environment
+settings, not settings read from `src/.env`. Reports authenticate using their
+own session; protected QR images no longer load in anonymous email clients.
+
+## Staff QR admission workflow
+
+Implemented in `src/templates/attendance/log.php` and `src/lib/qr_admission.php`:
+a scan is read-only and shows the person, current session, missing previous
+attendance, and any existing denial. Staff explicitly permit or deny entry.
+Permitting records attendance; denying records only a session-specific decision.
+Rescans show the denial, which staff can explicitly revise to allow entry.
+An existing attendance is not duplicated or deleted through this screen.
+
+Missing previous sessions are advisory, including the formerly exempt session
+ID 1. This QR-specific change does not remove other legacy attendance gates.
+QR selects the event from `app_setting.qr_event_id` when configured through web
+setup, otherwise it falls back to event ID 1. Its active time-window selection
+is unchanged; time-window flexibility remains separate work.
+
+Decisions and missing-session snapshots are appended to
+`qr_admission_decision` with UTC timestamps and the authenticated account.
+The shared `admin` account identifies the account, not an individual staff member.
+Server-side, expiring single-use review tokens bind the person, session, and
+reviewed state; changed warnings/decisions require another review. Attendance and
+the decision audit are written in one transaction. Technical failures fail closed.
+
+Before deploying this flow, back up the database and run `makim dev.qr-migrate`
+with the external PHP SQLite runtime. This runs only the additive
+`0006_qr_admission.php` migration; do not rerun `migrations/all.php` on existing
+data (older migrations can destroy attendance). No migration runs on a scan.
+Use `makim dev.qr-tests` for isolated SQLite/HTTP regression tests; it requires
+PHP's sqlite3 extension and does not touch the working database or configuration.
+
+## Authenticated browser event setup
+
+`src/scripts/setup.php` is the staff-only web endpoint `/scripts/setup.php`
+under the deployment base path. It is not a public migration endpoint. GET is
+read-only; POST requires authentication, CSRF, and an expiring single-use token.
+It defaults to November 12–15, 2026, 09:00–12:00 and 14:00–18:00 on days 12
+and 15, afternoon only on days 13 and 14, in Bolivia;
+these are editable proposed values, not fixed event policy.
+
+`src/lib/event_setup.php` creates/updates the event and six sessions in one
+transaction. `setup_event` maps a November/year key to an event; `setup_session`
+maps each daily slot to its stable session ID. Update retained sessions in
+place and preserve attendance and decision references. Existing
+unlinked sessions are adopted only on unambiguous exact start-time matches;
+unrelated sessions remain untouched. Obsolete setup-managed morning slots on
+November 13 and 14 are removed only if they have no attendance or admission
+decisions. If either has history, the whole update rolls back for explicit
+historical-data review; never delete that history to force the new schedule.
+Explicit event selection is required to
+adopt an existing event; a new year defaults to a separate event.
+
+`src/lib/schema.php` provides additive current-schema initialization and the
+shared QR decision schema used by the CLI migration. Never call the historical
+migration bundle from setup: it can destroy attendance. Incompatible old
+attendance layouts fail closed and need a separately reviewed migration.
+
+Existing DBs are snapshotted via SQLite backup to private `src/.backups/`
+before setup writes. Keep it ignored, inaccessible over HTTP, and mode 0700
+(files 0600); do not serve backups via a download endpoint. No mail, QR generation,
+or participant seeding occurs. No schema changes happen merely by opening setup.
+A successful setup includes the QR decision table, so console access is not needed.
+
+Optional selection for QR writes `app_setting.qr_event_id`; review confirmation
+must still reject a stale QR session when the selected event changes. This does
+not change the older manual/forced-attendance shortcuts, which still hardcode
+event ID 1. Use `makim dev.setup-tests` for isolated HTTP/SQLite tests.

@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__, 2) . '/lib/auth.php';
+auth_require();
 include dirname(__DIR__) . "/header.php";
 require_once dirname(dirname(__DIR__)) . "/lib/subscription.php";
 ?>
@@ -11,6 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csv_file'])) {
 ?>
 
 <form method="POST" enctype="multipart/form-data">
+      <?php auth_csrf_field(); ?>
     <input type="file" name="csv_file" accept=".csv" required>
     <input type="submit" value="Upload">
 </form>

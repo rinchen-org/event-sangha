@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__, 2) . '/lib/auth.php';
+auth_require();
 if (($_GET['format'] ?? '') === 'json') {
     require_once dirname(dirname(__DIR__)) . '/lib/frontend.php';
     frontend_list_response('attendance');

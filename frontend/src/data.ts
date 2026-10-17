@@ -7,14 +7,29 @@ export const templatesUrl = import.meta.env.DEV
   : new URL('./', location.href);
 export const legacyUrl = (path: string) => new URL(path, templatesUrl).href;
 
+let csrfToken = '';
+export const getCsrfToken = () => csrfToken;
+export const loginUrl = () => legacyUrl('login.php');
+export class AuthenticationError extends Error {
+  constructor() { super('Tu sesión ha caducado. Inicia sesión para continuar.'); }
+}
+
 export async function loadData(signal: AbortSignal): Promise<AppData> {
   if (preview) return (await import('./preview')).previewData;
+  csrfToken = '';
+  const session = await fetch(legacyUrl('session.php'), { signal, credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } });
+  if (session.status === 401) throw new AuthenticationError();
+  if (!session.ok) throw new Error('No pudimos verificar la sesión. Vuelve a intentarlo.');
+  const identity = await session.json();
+  if (!identity.success || typeof identity.csrfToken !== 'string') throw new Error('La sesión del servidor no es válida.');
+  csrfToken = identity.csrfToken;
   const endpoints = {
     events: 'event/list.php', sessions: 'event-session/list.php',
     subscriptions: 'subscription/list.php', attendance: 'attendance/list.php',
   };
   const results = await Promise.all(Object.entries(endpoints).map(async ([key, path]) => {
     const response = await fetch(legacyUrl(`${path}?format=json`), { signal, credentials: 'same-origin', cache: 'no-store' });
+    if (response.status === 401) throw new AuthenticationError();
     if (!response.ok) throw new Error('No pudimos cargar los datos. Comprueba la conexión y vuelve a intentarlo.');
     const body = await response.json();
     if (!body.success || !Array.isArray(body.data)) throw new Error('La respuesta del servidor no es válida. Inténtalo de nuevo.');

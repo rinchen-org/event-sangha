@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, CalendarDays, Check, Upload, X } from 'lucide-react';
 import type { AppData, Editor as EditorType } from '../types';
-import { inputDate, legacyUrl, preview } from '../data';
+import { getCsrfToken, inputDate, legacyUrl, preview } from '../data';
 
 const labels = { event: 'Nuevo evento', session: 'Nueva sesión', subscription: 'Nueva inscripción', attendance: 'Registrar asistencia', upload: 'Importar participantes' };
 
@@ -37,6 +37,7 @@ export function Editor({ editor, data, close }: { editor: EditorType; data: AppD
         if (busy) { e.preventDefault(); return; }
         setBusy(true);
       }}>
+        <input type="hidden" name="csrf_token" value={getCsrfToken()} />
         {editor.kind === 'subscription' && <>
           <label>Nombre completo<input autoComplete="name" name="fullname" required placeholder="Nombre y apellidos" /></label>
           <label>Correo electrónico<input autoComplete="email" type="email" name="email" required placeholder="nombre@ejemplo.com" /></label>

@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/auth.php';
+auth_block_direct(__FILE__);
 
 require_once __DIR__ . "/datetime.php";
 require_once __DIR__ . "/event.php";

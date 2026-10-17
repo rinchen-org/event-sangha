@@ -38,7 +38,16 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.1'
-        extensions: mbstring
+        extensions: mbstring, sqlite3
+
+    - name: Authentication HTTP tests (isolated temporary files)
+      run: python tests/auth/test_auth.py
+
+    - name: Staff QR admission tests (isolated temporary SQLite)
+      run: python tests/auth/test_qr_admission.py
+
+    - name: Authenticated event setup tests (isolated temporary SQLite)
+      run: python tests/auth/test_event_setup.py
 
     - name: Validate composer.json and composer.lock
       run: composer validate --strict

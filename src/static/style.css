@@ -92,3 +92,8 @@ img { max-width: 100%; height: auto; }
   .container { width: calc(100% - 24px); overflow-x: auto; }
   h1 { font-size: 24px; }
 }
+.rinchen-logout { display: flex; justify-content: flex-end; margin: 12px 24px; }
+.rinchen-logout button { border: 1px solid #eae6e0; padding: 10px 16px; min-height: 44px; background: white; color: #79364b; border-radius: 7px; }
+
+.developer-credit { padding:24px 16px; text-align:center; color:#796c5e; font-size:12px; }
+.developer-credit a { color:inherit; text-decoration:underline; text-underline-offset:3px; }

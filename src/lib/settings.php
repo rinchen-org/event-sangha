@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/auth.php';
+auth_block_direct(__FILE__);
 
 date_default_timezone_set("America/La_Paz");
 

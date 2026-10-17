@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__) . '/lib/auth.php';
+auth_require();
 
 date_default_timezone_set("America/La_Paz");
 

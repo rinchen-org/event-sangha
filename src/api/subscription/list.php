@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__, 2) . '/lib/auth.php';
+auth_require();
 require_once dirname(dirname(__DIR__)) . '/lib/subscription.php'; // Adjust the path as needed
 
 // Set the response content type to JSON

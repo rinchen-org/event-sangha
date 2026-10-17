@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__) . '/lib/auth.php';
+auth_require();
 // Keep the existing menu usable before building React, or as a fallback.
 $manifestPath = dirname(__DIR__) . '/static/app/.vite/manifest.json';
 $manifest = is_file($manifestPath) ? json_decode(file_get_contents($manifestPath), true) : null;

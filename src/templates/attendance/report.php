@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__, 2) . '/lib/auth.php';
+auth_require();
 require_once dirname(dirname(__DIR__)) . "/lib/attendance.php";
 require_once dirname(dirname(__DIR__)) . "/lib/event.php";
 require_once dirname(dirname(__DIR__)) . "/lib/event.php";

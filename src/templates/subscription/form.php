@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__, 2) . '/lib/auth.php';
+auth_require();
 require_once dirname(dirname(__DIR__)) . "/lib/subscription.php";
 
 include dirname(__DIR__) . "/header.php";
@@ -172,6 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' || $status == false) {
 
 <div class="mt-5">
   <form method="POST" action="">
+      <?php auth_csrf_field(); ?>
       <label for="fullname">Full Name:</label>
       <input
         type="text"

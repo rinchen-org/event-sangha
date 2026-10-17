@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/lib/auth.php';
+auth_require();
+auth_confirm_action('Generar código QR');
 include __DIR__ . "/lib/settings.php";
 include __DIR__ . "/lib/qr.php";
 

@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__, 2) . '/lib/auth.php';
+auth_require();
 include dirname(__DIR__) . "/header.php";
 require_once dirname(dirname(__DIR__)) . "/lib/event.php";
 
@@ -59,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
   <h1>Event Session Form</h1>
 
   <form method="POST" action="">
+      <?php auth_csrf_field(); ?>
     <div class="mb-3">
       <label for="event_id" class="form-label">Event</label>
       <select class="form-select" name="event_id" id="event_id" required>

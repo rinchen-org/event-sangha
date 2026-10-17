@@ -6,3 +6,9 @@ vendor/
 .phpunit.result.cache
 frontend/node_modules/
 src/static/app/
+
+# Python report and authentication-test bytecode
+__pycache__/
+
+# Private database snapshots created by authenticated event setup
+src/.backups/

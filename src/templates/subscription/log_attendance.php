@@ -1,5 +1,7 @@
 <?php
-session_start();
+require_once dirname(__DIR__, 2) . '/lib/auth.php';
+auth_require();
+auth_post_only();
 
 require_once dirname(dirname(__DIR__)) . '/lib/attendance.php';
 

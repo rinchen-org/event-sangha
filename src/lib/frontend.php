@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/auth.php';
+auth_block_direct(__FILE__);
 
 /**
  * Read-only data for the React views. Called from each existing list route so

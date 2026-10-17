@@ -1,0 +1,26 @@
+:root { color-scheme: light; font-family: system-ui, sans-serif; color: #423a33; background: #faf9f6; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 32px 20px; background: radial-gradient(ellipse at top right, #eee6d8, transparent 55%); }
+.auth-card { width: min(100%, 460px); padding: clamp(24px, 6vw, 48px); background: #fffdf9; border: 1px solid #eae3d9; border-radius: 20px; box-shadow: 0 16px 60px #57412a08; }
+.auth-logo { display: block; width: 60px; height: 60px; object-fit: contain; margin-bottom: 30px; }
+.eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 2px; color: #817050; }
+h1 { font: 400 clamp(28px, 7vw, 36px)/1.2 Georgia, serif; letter-spacing: -.8px; margin: 16px 0; }
+h1 em { color: #8b7151; }
+p { color: #796c5e; font-size: 13px; line-height: 1.8; }
+form { margin-top: 28px; }
+label { display: block; font-size: 13px; margin: 18px 0 8px; }
+input:not([type=hidden]) { width: 100%; min-height: 48px; padding: 12px; border: 1px solid #ded6cb; border-radius: 8px; font: inherit; background: white; }
+button { display: flex; justify-content: space-between; width: 100%; min-height: 48px; padding: 13px 18px; margin-top: 26px; background: #79364b; color: white; border: 0; border-radius: 8px; cursor: pointer; font: 600 14px system-ui, sans-serif; }
+button:hover { background: #62283b; }
+a { color: #79364b; display: inline-block; margin-top: 16px; }
+:focus-visible { outline: 3px solid #ab8057; outline-offset: 3px; }
+.auth-error { padding: 12px; background: #f8e9eb; color: #842e41; border-radius: 8px; }
+.auth-footnote { margin: 30px 0 0; font-size: 11px; text-align: center; }
+.auth-warning { padding: 16px; background: #fff4dc; color: #694715; border: 1px solid #e5c986; border-radius: 8px; }
+.auth-warning h2 { font-size: 18px; }
+.auth-warning p { color: inherit; }
+.auth-deny { background: white; color: #79364b; border: 1px solid #79364b; margin-top: 12px; }
+.auth-deny:hover { background: #f8e9eb; }
+select { width: 100%; min-height: 48px; padding: 10px; border: 1px solid #ded6cb; border-radius: 8px; background: white; color: inherit; font: inherit; }
+
+.auth-footnote a { display:inline; margin:0; text-underline-offset:3px; }

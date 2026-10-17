@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once dirname(__DIR__) . '/lib/auth.php';
+auth_require();
 
 include_once __DIR__ . "/config.php";
 
@@ -26,9 +27,14 @@ global $ENV_PROD;
         integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
         crossorigin="anonymous">
       </script>
+    <script defer src="<?php echo auth_escape(auth_url('static/auth-navigation.js')); ?>"></script>
 </head>
 <body>
   <a class="rinchen-back" href="<?php echo htmlspecialchars($BASE_URL, ENT_QUOTES, 'UTF-8'); ?>/templates/index.php">← Volver a mi comunidad</a>
+  <form class="rinchen-logout" method="post" action="<?php echo auth_escape(auth_url('templates/logout.php')); ?>">
+    <?php auth_csrf_field(); ?>
+    <button type="submit">Cerrar sesión</button>
+  </form>
   <div class="logo_image" style="background-image: url('https://rinchen.org/wp-content/uploads/2021/07/head5.png');">
     <a href="https://rinchen.org">
         <img class="spiritual-std-logo" src="https://rinchen.org/wp-content/uploads/2021/07/logo-head.png" alt="Sakya Rinchen Ling" data-retina="https://rinchen.org/wp-content/uploads/2021/07/logo_head_retina.png">

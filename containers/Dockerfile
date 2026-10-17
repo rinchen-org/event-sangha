@@ -16,3 +16,6 @@ RUN apt-get update -y \
 #   && useradd --uid ${UID} --gid ${GID} -ms /bin/bash devops \
 #   && echo "devops ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/devops \
 #   && chmod 0440 /etc/sudoers.d/devops
+
+# Nginx ignores .htaccess. Load equivalent private-file and QR protections.
+COPY containers/auth-nginx.conf /opt/docker/etc/nginx/vhost.common.d/01-rinchen-auth.conf

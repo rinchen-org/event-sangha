@@ -9,6 +9,26 @@ groups:
           sugar compose build
           sugar compose-ext restart
 
+      auth-tests:
+        help: Run isolated login and route-protection HTTP tests
+        run: python tests/auth/test_auth.py
+
+      setup-tests:
+        help: Run isolated authenticated event setup tests (requires PHP sqlite3)
+        run: python tests/auth/test_event_setup.py
+
+      qr-tests:
+        help: Run isolated staff QR admission tests (requires PHP sqlite3)
+        run: python tests/auth/test_qr_admission.py
+
+      qr-migrate:
+        help: Add QR decision audit table only (back up the database first)
+        run: php src/migrations/0006_qr_admission.php
+
+      serve-local:
+        help: Run PHP locally with required private-file and QR protections
+        run: php -S 127.0.0.1:8000 -t src scripts/dev-router.php
+
       tests:
         help: Run the server application
         run: |

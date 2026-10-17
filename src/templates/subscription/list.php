@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__, 2) . '/lib/auth.php';
+auth_require();
 if (($_GET['format'] ?? '') === 'json') {
     require_once dirname(dirname(__DIR__)) . '/lib/frontend.php';
     frontend_list_response('subscriptions');
@@ -32,6 +34,7 @@ global $MESSAGE;
   <div class="alert alert-secondary input-group" role="alert">
     Filters: <br/>
     <form method="POST" class="mx-1">
+      <?php auth_csrf_field(); ?>
       <input type="hidden" name="filter" value="all">
       <input type="submit"
         value="Todos"
@@ -43,6 +46,7 @@ global $MESSAGE;
       />
     </form>
     <form method="POST" class="mx-1">
+      <?php auth_csrf_field(); ?>
       <input type="hidden" name="filter" value="active">
       <input type="submit"
         value="Activos"
@@ -54,6 +58,7 @@ global $MESSAGE;
       />
     </form>
     <form method="POST" class="mx-1">
+      <?php auth_csrf_field(); ?>
       <input type="hidden" name="filter" value="inactive">
       <input type="submit"
         value="Inactivos"
@@ -98,6 +103,7 @@ global $MESSAGE;
               <td><?php echo $subscription->datetime->format('Y-m-d H:i:s'); ?></td>
               <td>
                 <form action="./resend_email.php" method="POST">
+      <?php auth_csrf_field(); ?>
                   <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
                   <input type="submit"
                     value="reenviar email"
@@ -107,6 +113,7 @@ global $MESSAGE;
                 </form>
   <?php if ($subscription->active == 0) { ?>
                 <form action="./activation.php" method="POST">
+      <?php auth_csrf_field(); ?>
                   <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
                   <input type="hidden" name="active" value="1" />
                   <input type="submit"
@@ -116,6 +123,7 @@ global $MESSAGE;
                 </form>
   <?php } else { ?>
                 <form action="./activation.php" method="POST">
+      <?php auth_csrf_field(); ?>
                   <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
                   <input type="hidden" name="active" value="0" />
                   <input type="submit"
@@ -125,6 +133,7 @@ global $MESSAGE;
                 </form>
   <?php } ?>
                 <form action="./log_attendance.php" method="POST">
+      <?php auth_csrf_field(); ?>
                   <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
                   <button type="submit"
                     class="btn btn-success"
@@ -133,6 +142,7 @@ global $MESSAGE;
 
                 </form>
                 <form action="./log_attendance_force.php" method="POST">
+      <?php auth_csrf_field(); ?>
                   <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
                   <button type="submit"
                     class="btn btn-warning"

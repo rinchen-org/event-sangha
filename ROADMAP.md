@@ -20,7 +20,44 @@ assets, hash navigation, and the legacy menu fallback are available. See
 
 The milestones below remain release gates: this first frontend increment does
 not claim completion of test isolation, PHP runtime alignment, mutation APIs,
-server-side access controls, production integration tests, or rollout.
+production integration tests, or rollout.
+
+## Implementation update — authentication
+
+Implemented: temporary shared admin login, server-side protection on business
+pages/API/QR images, CSRF-protected POST actions and logout, session rotation and
+expiry, per-IP login throttling, React session handling, authenticated Python
+reports, and isolated HTTP regression tests. QR check-in now requires staff login
+and confirmation. Apache/Nginx private-file rules and a safe local router are
+provided; actual hosting configuration must be verified before release.
+
+- [ ] Replace the shared account with individual accounts and roles.
+- [ ] Verify HTTPS, session storage, private-file rules, and protected QR/report
+  workflows on the actual server; confirm its PHP version before runtime changes.
+- [ ] Keep registration/check-in staff-operated: attendees present QR codes
+  but do not access the application or decide admission.
+
+## Implementation update — staff QR admission
+
+The app is staff-only; attendees present their QR at the door. QR scans now
+show missing previous attendance as warnings and let staff permit or deny
+participation. Denials persist for that session and can be explicitly revised.
+Allowing records attendance and an audit entry atomically; denying records no
+attendance. Review tokens prevent replay and stale/concurrent decisions.
+
+Deploy the additive migration using `makim dev.qr-migrate` after backing up
+the database; `makim dev.qr-tests` exercises disposable SQLite fixtures.
+This does not yet replace time-window or other legacy policy gates. QR uses
+the event selected by staff in web setup, falling back to event ID 1 until configured.
+
+## Implementation update — browser event setup
+
+Authenticated `scripts/setup.php` supports creating a database and creating or
+updating a November 12–15 event with six sessions. The year/hours are editable,
+repeat runs preserve session IDs, and existing databases are backed up before
+transactional changes. The endpoint can select the event used for QR admission;
+legacy manual/forced shortcuts still need event-selection migration.
+See README for deployment and `makim dev.setup-tests` for isolated tests.
 
 ## Current baseline
 

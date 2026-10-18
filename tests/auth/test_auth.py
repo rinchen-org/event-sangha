@@ -40,7 +40,7 @@ class AuthHTTPTest(unittest.TestCase):
             dest = cls.web / base
             for source in (ROOT / 'src').rglob('*'):
                 relative = source.relative_to(ROOT / 'src')
-                if source.is_file() and (source.suffix == '.php' or relative.as_posix() in ('.htaccess', 'static/auth.css')):
+                if source.is_file() and (source.suffix == '.php' or relative.as_posix() in ('.htaccess', 'static/auth.css', 'templates/test-email.html')):
                     target = dest / relative
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(source, target)
@@ -59,7 +59,16 @@ class AuthHTTPTest(unittest.TestCase):
             'php', '-d', f'session.save_path={cls.sessions}', '-d', 'display_errors=0',
             '-S', f'127.0.0.1:{port}', '-t', str(cls.web), str(ROOT / 'scripts/dev-router.php'),
         ]
+        if getattr(cls, 'fake_mail', False):
+            cls.mail_capture = cls.work / 'mail.txt'
+            cls.mail_failure = cls.work / 'mail-failure'
+            transport = cls.work / 'fake-sendmail'
+            transport.write_text(f'#!/bin/sh\ncat > "{cls.mail_capture}"\n[ ! -f "{cls.mail_failure}" ]\n')
+            transport.chmod(0o700)
+            command[1:1] = ['-d', f'sendmail_path={transport}']
         if os.environ.get('RINCHEN_TEST_SERVER') == 'apache':
+            if getattr(cls, 'fake_mail', False):
+                raise RuntimeError('Mail fake harness supports the PHP built-in server only.')
             modules = Path('/usr/lib/apache2/modules')
             php_modules = sorted(modules.glob('libphp*.so'))
             if not shutil.which('apache2') or not php_modules:

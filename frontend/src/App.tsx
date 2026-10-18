@@ -1,3 +1,4 @@
+import { TestEmailSender } from './components/TestEmailSender';
 import { useEffect, useRef, useState } from 'react';
 import { LogOut, ArrowDownToLine, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Flower2, LayoutDashboard, ListChecks, Menu, Plus, RefreshCw, Sprout, Upload, Users, X, ChartNoAxesCombined, ExternalLink } from 'lucide-react';
 import type { AppData, Editor as EditorType, Page, SubscriptionRecord } from './types';
@@ -103,6 +104,7 @@ export function App() {
         {preview && <div className="preview-banner"><Sprout size={16} /> Vista previa · Datos de ejemplo · No se guardan cambios</div>}
         {notice && <div className="notice" role="status"><p>{notice}</p><button className="icon-button" aria-label="Cerrar ayuda" onClick={() => setNotice('')}><X size={18} /></button></div>}
         <div className="page-heading"><div><span className="eyebrow">{page === 'inicio' ? 'NUESTRA COMUNIDAD' : navigation.find(n => n.id === page)?.label.toUpperCase()}</span><h1 ref={heading} tabIndex={-1}>{titles[page][0]}</h1><p>{titles[page][1]}</p></div><button className="button primary" disabled={!ready} onClick={() => open(page === 'sesiones' ? 'session' : page === 'asistencia' ? 'attendance' : page === 'participantes' ? 'subscription' : 'event')}><Plus size={17} />{page === 'sesiones' ? 'Nueva sesión' : page === 'asistencia' ? 'Registrar asistencia' : page === 'participantes' ? 'Nueva inscripción' : 'Crear evento'}</button></div>
+        {page === 'inicio' && <TestEmailSender />}
         {loading ? <div className="loading-state" role="status"><RefreshCw className="spin" size={23} /><span>Preparando tu espacio…</span></div> : error ? <div className="connection-state" role="alert"><CircleHelp size={34} strokeWidth={1.2} /><h2>{authRequired ? 'Inicia sesión para continuar' : 'Volvamos a conectar'}</h2><p>{error}</p>{authRequired ? <a className="button primary" href={loginUrl()}>Iniciar sesión</a> : <button className="button primary" onClick={() => setRevision(r => r + 1)}><RefreshCw size={16} /> Volver a intentar</button>}<a href={legacyUrl('index.php?legacy=1')}>Abrir el menú clásico</a></div> : <>
           {page === 'inicio' && <>
             <section className="stats" aria-label="Resumen de la comunidad">{[

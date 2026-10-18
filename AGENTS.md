@@ -307,3 +307,23 @@ Optional selection for QR writes `app_setting.qr_event_id`; review confirmation
 must still reject a stale QR session when the selected event changes. This does
 not change the older manual/forced-attendance shortcuts, which still hardcode
 event ID 1. Use `makim dev.setup-tests` for isolated HTTP/SQLite tests.
+
+## Staff email diagnostic
+
+The home-page “Test email sender” button posts to `templates/test-email.php`
+with session authentication and CSRF. It works independently of dashboard data
+loading and has a classic-menu form fallback. The endpoint uses
+`src/lib/test_email.php` and the existing `send_email()` mail transport.
+
+Use `TEST_EMAIL_TO` from `src/.env` for comma-separated, trimmed, deduplicated
+test recipients. Validate the whole list before sending; use `EMAIL_FROM` and
+`EMAIL_REPLY_TO` (fallback to sender), but never add production `EMAIL_CC`.
+`SEND_EMAIL=0` produces an explicit disabled error, not a successful mock.
+Report transport acceptance separately from delivery; never claim inbox arrival.
+Do not automatically retry ambiguous failures. Preview disables sending; the
+server allows one attempt per minute per session and never accepts arbitrary
+recipient/header values from the HTTP request.
+
+`makim dev.email-tests` uses disposable configuration and fake sendmail, with
+no real delivery. Keep the real-mail legacy `tests/EmailTest.php` excluded from
+routine testing. No diagnostic action should create participant/attendance data.

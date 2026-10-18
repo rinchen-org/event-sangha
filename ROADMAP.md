@@ -59,6 +59,14 @@ transactional changes. The endpoint can select the event used for QR admission;
 legacy manual/forced shortcuts still need event-selection migration.
 See README for deployment and `makim dev.setup-tests` for isolated tests.
 
+## Implementation update — email diagnostic
+
+The staff home page and classic menu provide “Test email sender”, using
+`TEST_EMAIL_TO` (comma-separated recipients), authenticated POST and CSRF, and
+the existing mail helper. Success reports transport acceptance, not delivery.
+Errors are shown on screen. Isolated HTTP tests use fake sendmail and never
+send real email; production-host delivery still requires manual verification.
+
 ## Current baseline
 
 - PHP templates mix markup, form submissions, session feedback, and library

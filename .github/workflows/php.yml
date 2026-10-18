@@ -49,6 +49,9 @@ jobs:
     - name: Authenticated event setup tests (isolated temporary SQLite)
       run: python tests/auth/test_event_setup.py
 
+    - name: Email sender endpoint tests (fake sendmail, no real email)
+      run: python tests/auth/test_email_sender.py
+
     - name: Validate composer.json and composer.lock
       run: composer validate --strict
 

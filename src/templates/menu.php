@@ -6,6 +6,14 @@ include __DIR__ . "/header.php";
 <h1>Evento Retiro con Su Santidad Sakya Trizin 42 y Venerable Lama Rinchen Gyaltsen</h1>
 
 <div class="container">
+  <form method="post" action="<?php echo auth_escape(auth_url('templates/test-email.php')); ?>">
+    <?php auth_csrf_field(); ?>
+    <p>Enviar una prueba a las direcciones configuradas en TEST_EMAIL_TO.</p>
+    <button class="btn btn-outline-primary" type="submit">Test email sender</button>
+  </form>
+</div>
+
+<div class="container">
   <strong>Menu Suscripciones</strong>
   <div class="list-group">
     <a class="list-group-item list-group-item-action"

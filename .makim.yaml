@@ -9,6 +9,10 @@ groups:
           sugar compose build
           sugar compose-ext restart
 
+      email-tests:
+        help: Run isolated test-email endpoint tests with fake sendmail (no real delivery)
+        run: python tests/auth/test_email_sender.py
+
       auth-tests:
         help: Run isolated login and route-protection HTTP tests
         run: python tests/auth/test_auth.py

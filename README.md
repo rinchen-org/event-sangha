@@ -115,6 +115,34 @@ for a password, or accept `RINCHEN_REPORT_PASSWORD`, with optional
 (default `http://localhost:8081`). Use HTTPS outside localhost; never commit
 passwords or store them in shell history.
 
+## Test the email sender
+
+The home page (React and classic menu) has a **Test email sender** button.
+Configure the existing `src/.env` settings using plain, unquoted values:
+
+```dotenv
+SEND_EMAIL=1
+TEST_EMAIL_TO=first@example.org,second@example.org
+EMAIL_FROM=sender@example.org
+EMAIL_REPLY_TO=reply@example.org
+```
+
+The addresses above are examples; replace them with your own. Use plain email
+addresses, not display names. Whitespace around recipients is trimmed and
+duplicate recipients are removed. Invalid or empty list items prevent the entire
+send. An empty `EMAIL_REPLY_TO` falls back to `EMAIL_FROM`.
+
+Tests send only to `TEST_EMAIL_TO`; production `EMAIL_CC` is deliberately not
+included. The endpoint uses the same PHP `mail()` helper as production messages,
+so the host's mail/sendmail service must be configured. Errors appear on screen.
+Success means the mail system accepted the message, **not** that it reached every
+inbox; check inbox/spam folders. There is no automatic retry, and requests are
+limited to one attempt per minute per staff session. Preview mode never sends.
+
+`makim dev.email-tests` tests this endpoint in a temporary copy using a fake
+sendmail program; it never delivers real email or modifies working configuration.
+The old `tests/EmailTest.php` still sends real mail and is not part of this task.
+
 ## Table of Contents
 
 - [Contributing](#contributing)

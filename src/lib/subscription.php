@@ -7,6 +7,7 @@ require_once __DIR__ . "/db.php";
 require_once __DIR__ . "/person.php";
 require_once __DIR__ . "/settings.php";
 require_once __DIR__ . "/datetime.php";
+require_once __DIR__ . "/subscription_csv_import.php";
 
 
 class Subscription {
@@ -58,7 +59,7 @@ class Subscription {
         } else {
             $subscription = new Subscription();
             $subscription->id = intval($row['id']);
-            $subscription->person = Person::get(["id" => $row['id']]);
+            $subscription->person = Person::get(["id" => $row['person_id']]);
             $subscription->qr = $row['qr'];
             $subscription->datetime = convert_from_utc0(new DateTime($row['datetime']));
             $subscription->active = intval($row['active']);
@@ -227,59 +228,18 @@ class Subscription {
         return $subscription_saved;
     }
 
-    public static function upload_csv(string $file): void {
-        // Process the uploaded CSV file
-        $handle = fopen($file, 'r');
-        $header = fgetcsv($handle); // Read the header row
-
-        // Map the CSV fields to database columns
-        $fieldMappings = [
-            'Nombre' => 'fullname',
-            'Apellidos' => 'fullname',
-            'Correo electrónico' => 'email',
-            'Número de celular' => 'phone',
-        ];
-
-        $count = 0;
-        $existingRows = [];
-        $error = "";
-
-        while (($row = fgetcsv($handle)) !== false) {
-            $data = array_combine($header, $row); // Combine header with row data
-
-            if ($data["valido"] != 1) {
-                $err = "Warning: Dato marcado como no valido (falta pago): " . $data['Correo electrónico'];
-                print("<p>$err</p>");
-                continue;
-            }
-
-            // Select the desired fields
-            $selectedData = [
-                'fullname' => $data['Nombre'] . ' ' . $data['Apellidos'],
-                'email' => $data['Correo electrónico'],
-                'phone' => $data['Número de celular'],
-            ];
-
-            try {
-                $subscription = Subscription::subscribe_person(
-                    $selectedData['fullname'],
-                    $selectedData['email'],
-                    $selectedData['phone'],
-                );
-                $count++;
-            } catch (Exception $e) {
-                $subscription = null;
-                $err = "\nWarning: " . $e->getMessage() . "\n";
-                print("<p>$err</p>");
-                $error = $error . $err;
-                continue;
-            }
+    /** @return array<string, mixed> */
+    public static function upload_csv(string $file, bool $confirmed = false, string $actor = '', string $notes = ''): array {
+        $review = SubscriptionCsv::read($file);
+        if ($review['warnings'] && !$confirmed) {
+            throw new DomainException('Revisa las advertencias y confirma la importación antes de continuar.');
         }
-
-        fclose($handle);
-
-        // note: it is not ideal to have this html here.
-        echo "<p>Successfully imported $count rows.</p>";
+        $db = new SQLite3(dirname(__DIR__) . '/db.sqlite', SQLITE3_OPEN_READWRITE);
+        try {
+            return (new SubscriptionCsvImport($db))->run($review, $confirmed, $actor, $notes);
+        } finally {
+            $db->close();
+        }
     }
 
     public static function send_email(Subscription $subscription): bool {

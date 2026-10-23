@@ -61,6 +61,15 @@ describe('React management views', () => {
   });
 });
 describe('compatibility forms', () => {
+  it('submits CSV uploads for review with both supported formats explained', () => {
+    render(<Editor editor={{ kind: 'upload' }} data={emptyData} close={() => {}} />);
+    expect(screen.getByText(/CSV histórico de Google Forms.*2026/)).toBeInTheDocument();
+    const form = screen.getByRole('button', { name: 'Revisar CSV' }).closest('form')!;
+    expect(form).toHaveAttribute('action', expect.stringContaining('subscription/upload.php'));
+    expect(form).toHaveAttribute('method', 'POST');
+    expect(form).toHaveAttribute('enctype', 'multipart/form-data');
+    expect(form.querySelector('input[name="csv_file"]')).toBeRequired();
+  });
   it('preserves event edit IDs and converts UTC timestamps for date inputs', () => {
     const data = { ...emptyData, events: [{ id: 10, name: 'Encuentro', description: '', start_date: '2026-09-27 02:00:00', end_date: '2026-09-28 02:00:00' }] };
     render(<Editor editor={{ kind: 'event', id: 10 }} data={data} close={() => {}} />);

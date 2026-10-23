@@ -52,6 +52,9 @@ jobs:
     - name: Email sender endpoint tests (fake sendmail, no real email)
       run: python tests/auth/test_email_sender.py
 
+    - name: CSV import tests (fake QR and sendmail, temporary SQLite)
+      run: makim dev.csv-tests
+
     - name: Validate composer.json and composer.lock
       run: composer validate --strict
 

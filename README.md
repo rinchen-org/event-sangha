@@ -143,6 +143,72 @@ limited to one attempt per minute per staff session. Preview mode never sends.
 sendmail program; it never delivers real email or modifies working configuration.
 The old `tests/EmailTest.php` still sends real mail and is not part of this task.
 
+## CSV participant imports
+
+Use **Importar CSV** in React or `templates/subscription/upload.php` in the
+classic interface. Uploading only reviews the file: no database writes, QR
+requests, or email. Confirm the reviewed rows to import, or cancel. The review
+expires after ten minutes and cannot be submitted twice.
+
+Versioned rules live in `src/lib/csv_rules/` and are detected from column names,
+not the filename or current date:
+
+| Profile | Required columns |
+| --- | --- |
+| Historical Google Forms (`legacy.php`) | `Nombre`, `Apellidos`, `Correo electrónico`, `Número de celular`, `valido` |
+| Participants 2026 (`2026.php`) | `No.`, `NOMBRE`, `APELLIDOS`, `CORREO ELECTRONICO`, `No. CELULAR`, `CIUDAD` |
+
+Column order, surrounding whitespace, case, and accents in headers are ignored.
+CSV must be comma-separated UTF-8 (optional BOM), at most 5 MB and within the
+host's PHP upload limits. Empty lines and comma-only/whitespace-only rows are
+ignored, including before the header. Extra unrelated columns are allowed;
+missing, duplicate named, or ambiguous headers are rejected. `No.` and `CIUDAD`
+identify the 2026 format but are not stored; names, email, and phone use the
+existing person/subscription schema. Registration timestamps remain the time
+of import, not the historical form timestamp.
+
+The 2026 adapter removes phone formatting such as spaces, parentheses, and
+hyphens; it does not guess a misplaced `+`, country code, or missing digits.
+Invalid rows are listed by physical CSV line number and omitted while valid
+rows can be confirmed. The supplied local roster has 73 importable rows and a
+phone requiring correction on line 70 (`591+…`). The roster itself is ignored
+by Git; do not commit participant details.
+
+Historical `valido` values other than 1 are now **warnings**, not automatic
+payment-based rejection. Staff see them before confirming **Continuar de todos
+modos e importar**, or may cancel. The 2026 roster has no payment marker; no
+payment eligibility is inferred. Each imported person/subscription and its
+`csv_import_audit` record are saved in one transaction. The audit stores the
+profile, source row, warnings, staff confirmation, UTC timestamp, account, and
+optional note; shared `admin` does not identify an individual. The additive audit
+table is created on a confirmed import, not on GET/review. Back up the database
+before deployment; no historical migrations are needed for this change.
+
+Existing exact name/email/phone subscriptions are skipped without another QR
+request or email. No fuzzy matching or automatic identity merging occurs.
+Multiple existing people with identical identifying data require data review;
+the importer does not choose one arbitrarily and issue an ambiguous QR.
+Confirmed imports **do attempt participant confirmation emails** through the
+existing transport and configured `EMAIL_CC`. QR/database failures do not save
+the row. Mail failure after saving is reported separately: the subscription
+remains, and no automatic retry occurs. `SEND_EMAIL=0` is reported as disabled/
+unsent, not successful delivery. Review before using the existing email resend
+action after any ambiguous transport failure.
+
+Subscription retrieval uses the stored `person_id` (not an assumption that the
+subscription/person IDs match); activation safely preserves quoted names.
+Newly generated QR attendance links URL-encode
+identity values, preserving `+` in international phone numbers and email tags,
+and `&` in names; the existing attendance path and query keys are unchanged.
+
+Run `makim dev.csv-tests` with the external PHP SQLite extension. It uses
+disposable code/databases/configuration, synthetic participants, fake QR
+generation, and fake sendmail: **no real emails or external QR requests**.
+When the supplied local roster exists, a read-only parsing check also runs with
+mail and cURL entry points disabled; CI uses synthetic equivalents and skips
+that optional private-file check. Do not run the legacy real-mail test as a
+substitute.
+
 ## Table of Contents
 
 - [Contributing](#contributing)

@@ -67,6 +67,18 @@ the existing mail helper. Success reports transport acceptance, not delivery.
 Errors are shown on screen. Isolated HTTP tests use fake sendmail and never
 send real email; production-host delivery still requires manual verification.
 
+## Implementation update — versioned CSV import
+
+Historical Google Forms and 2026 participant rosters now have separate PHP
+column rules, auto-detection, blank-row handling, phone formatting normalization,
+and structured row errors. Both upload interfaces review before confirming;
+legacy payment markers are advisory warnings with cancel/continue choices.
+Single-use server-held reviews, transactional row/audit writes, duplicate
+protection, and separate saved-but-mail-unconfirmed results are implemented.
+`makim dev.csv-tests` uses disposable SQLite/HTTP fixtures and fake QR/mail.
+JSON mutation APIs, broader identity reconciliation, and migration of the other
+legacy policy gates remain future work.
+
 ## Current baseline
 
 - PHP templates mix markup, form submissions, session feedback, and library

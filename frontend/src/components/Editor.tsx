@@ -31,7 +31,7 @@ export function Editor({ editor, data, close }: { editor: EditorType; data: AppD
     <div className="editor-inner">
       <div className="editor-top"><span className="eyebrow">UN ESPACIO PARA CONECTAR</span><button className="icon-button" aria-label="Cerrar formulario" onClick={close}><X size={20} /></button></div>
       <h2 id="editor-title">{title}</h2>
-      <p className="muted">{editor.kind === 'upload' ? 'Añade inscripciones con el formato CSV de Google Forms que utiliza el centro.' : 'Cada encuentro comienza con un pequeño paso.'}</p>
+      <p className="muted">{editor.kind === 'upload' ? 'Carga el CSV histórico de Google Forms o el listado de participantes 2026. Podrás revisarlo antes de importar.' : 'Cada encuentro comienza con un pequeño paso.'}</p>
       <form action={legacyUrl(action)} method="POST" encType={editor.kind === 'upload' ? 'multipart/form-data' : undefined} onSubmit={e => {
         if (preview) { e.preventDefault(); setMessage('Esta es una vista previa. No se han guardado datos.'); return; }
         if (busy) { e.preventDefault(); return; }
@@ -61,9 +61,9 @@ export function Editor({ editor, data, close }: { editor: EditorType; data: AppD
           <label className="checkbox-label"><input type="checkbox" checked={force} onChange={e => setForce(e.target.checked)} /> Registrar como excepción</label>
           <p className="form-note">{force ? 'La excepción omite las comprobaciones habituales de asistencia. Úsala solo si corresponde.' : 'Se comprobarán el horario y los requisitos de asistencia de la sesión.'}</p>
         </>}
-        {editor.kind === 'upload' && <label className="upload-zone"><Upload size={30} /><strong>Selecciona tu archivo CSV</strong><span>Utiliza las mismas columnas que en las importaciones anteriores.</span><input name="csv_file" type="file" accept=".csv,text/csv" required /></label>}
+        {editor.kind === 'upload' && <label className="upload-zone"><Upload size={30} /><strong>Selecciona tu archivo CSV</strong><span>El formato se detecta por sus columnas. Las filas vacías se omiten. UTF-8, máximo 5 MB.</span><input name="csv_file" type="file" accept=".csv,text/csv" required /></label>}
         {message && <p role="status" className="inline-message"><Check size={18} />{message}</p>}
-        <div className="form-actions"><button type="button" className="button secondary" onClick={close}>Cancelar</button><button className="button primary" disabled={busy}>{busy ? 'Enviando…' : editor.kind === 'upload' ? 'Importar archivo' : 'Guardar y continuar'}<ArrowRight size={17} /></button></div>
+        <div className="form-actions"><button type="button" className="button secondary" onClick={close}>Cancelar</button><button className="button primary" disabled={busy}>{busy ? 'Enviando…' : editor.kind === 'upload' ? 'Revisar CSV' : 'Guardar y continuar'}<ArrowRight size={17} /></button></div>
       </form>
     </div>
   </dialog>;

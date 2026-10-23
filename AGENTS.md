@@ -327,3 +327,33 @@ recipient/header values from the HTTP request.
 `makim dev.email-tests` uses disposable configuration and fake sendmail, with
 no real delivery. Keep the real-mail legacy `tests/EmailTest.php` excluded from
 routine testing. No diagnostic action should create participant/attendance data.
+
+## Versioned CSV imports
+
+`src/lib/csv_rules/legacy.php` retains the historical Google Forms mapping;
+`2026.php` maps the six-column participant roster. `SubscriptionCsv` detects the
+profile by normalized headers, skips empty records (including before headers),
+trims fields, and returns structured row errors and warnings without side effects.
+The 2026 phone adapter removes formatting but never guesses misplaced plus signs.
+Keep the local real-participant CSV ignored; commit only synthetic test inputs.
+
+Both React and the classic upload route first review the CSV. Confirmation uses
+an expiring single-use session token and re-parses the original server-held CSV;
+never trust client-submitted rows or warnings. Historical `valido != 1` is now an
+advisory payment warning with cancel/continue choices, not an automatic skip.
+The 2026 profile does not invent payment eligibility. Technical/data errors are
+not overridable; valid rows can be imported while invalid rows are reported.
+
+`SubscriptionCsvImport` uses prepared statements and per-row transactions for
+person, subscription, and the additive `csv_import_audit` table. Audits include
+profile, row, warnings, confirmation, UTC time, available account, and optional
+notes. Exact existing subscriptions are skipped without QR/email side effects;
+there is no automatic identity merging. Email is attempted only after commit;
+failure must report a saved subscription with unconfirmed mail, not a failed
+registration to retry. Production imports still email participants.
+
+`makim dev.csv-tests` runs disposable SQLite/HTTP tests with synthetic identities,
+fake QR generation, and fake sendmail, plus a read-only optional check of the
+local roster. It never delivers mail or calls the external QR service. The
+legacy PHPUnit CSV test now only parses its fixture. See README for CSV columns
+and limits; use external PHP with sqlite3, not the Conda PHP runtime.

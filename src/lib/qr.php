@@ -20,7 +20,7 @@ function generate_qr(string $fullname, string $email, string $phone): string {
   //       this works on apache but not on nginx
   //       as a workaround we needed to create a folder called attendance_log.php
   //       and we created a file called index.php
-  $page_url = "$endpoint/?fullname=$fullname&email=$email&phone=$phone";
+  $page_url = "$endpoint/?fullname=$fullname_clean&email=$email_clean&phone=$phone_clean";
 
   $qr_url_with_data = "$qr_url=" . urlencode($page_url);
 

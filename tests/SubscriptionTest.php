@@ -169,9 +169,14 @@ class SubscriptionTest extends TestCase
         }
     }
 
-    public function testUploadCsv(): void
+    public function testReadLegacyCsv(): void
     {
         $csv = __DIR__ . '/data/google_forms.csv';
-        Subscription::upload_csv($csv);
+        // Read-only: never send participant email or generate QR files from this fixture.
+        $review = SubscriptionCsv::read($csv);
+        $this->assertSame('legacy', $review['profile']);
+        $this->assertCount(6, $review['rows']);
+        $this->assertCount(5, $review['warnings']);
+        $this->assertSame([], $review['errors']);
     }
 }

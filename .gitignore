@@ -12,3 +12,6 @@ __pycache__/
 
 # Private database snapshots created by authenticated event setup
 src/.backups/
+
+# Local real-participant roster; regression tests use synthetic records instead.
+tests/data/2026/participantes.csv

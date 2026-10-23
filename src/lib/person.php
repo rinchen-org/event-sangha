@@ -165,18 +165,28 @@ class Person {
         }
 
         $db = get_db();
-        $insertQuery = "
-            UPDATE person
-            SET
-                fullname='$this->fullname',
-                email='$this->email',
-                phone='$this->phone',
-                active=$this->active
-            WHERE id=$this->id";
-        $db->exec($insertQuery);
-
-        // Close the database connection
-        $db->close();
+        $db->enableExceptions(true);
+        try {
+            // Imported names may contain apostrophes; activation must not break or alter their identity.
+            $statement = $db->prepare('UPDATE person SET fullname=:fullname, email=:email,
+                phone=:phone, active=:active WHERE id=:id');
+            if ($statement === false) {
+                throw new RuntimeException('No se pudo preparar la actualización de la persona.');
+            }
+            $statement->bindValue(':fullname', $this->fullname, SQLITE3_TEXT);
+            $statement->bindValue(':email', $this->email, SQLITE3_TEXT);
+            $statement->bindValue(':phone', $this->phone, SQLITE3_TEXT);
+            $statement->bindValue(':active', $this->active, SQLITE3_INTEGER);
+            $statement->bindValue(':id', $this->id, SQLITE3_INTEGER);
+            $result = $statement->execute();
+            if ($result === false) {
+                throw new RuntimeException('No se pudo actualizar la persona.');
+            }
+            $result->finalize();
+            $statement->close();
+        } finally {
+            $db->close();
+        }
 
         return $this;
     }

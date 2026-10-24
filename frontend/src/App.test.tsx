@@ -17,6 +17,20 @@ beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => new URL(url).pathname.endsWith('/session.php') ? { success: true, csrfToken: 'test-csrf-token' } : { success: true, data: endpointData[new URL(url).pathname] } })));
 });
 describe('React management views', () => {
+  it('hides the test menu unless the server explicitly enables it', async () => {
+    render(<App />);
+    await screen.findByRole('heading', { name: 'Nuestros encuentros' });
+    expect(screen.queryByRole('link', { name: 'Pruebas · Laboratorio QR' })).not.toBeInTheDocument();
+  });
+  it('shows the enabled test menu even when production dashboard data cannot load', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (String(url).includes('session.php')) return new Response(JSON.stringify({ success: true, csrfToken: 'test-token', testMode: true }), { status: 200 });
+      return new Response('', { status: 503 });
+    });
+    render(<App />);
+    expect(await screen.findByRole('link', { name: 'Pruebas · Laboratorio QR' })).toHaveAttribute('href', expect.stringContaining('/templates/testing/index.php'));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Volvamos a conectar');
+  });
   it('renders real endpoint counts and keeps legacy access', async () => {
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'Nuestros encuentros' })).toBeInTheDocument();

@@ -1,0 +1,6 @@
+.lab-card { width: min(100%, 850px); }
+.lab-card section { border-top: 1px solid #ded6cb; margin-top: 28px; padding-top: 12px; }
+.lab-person { border: 1px solid #ded6cb; border-radius: 12px; padding: 20px; margin-top: 20px; overflow-wrap: anywhere; }
+.lab-qr { display: block; max-width: 100%; height: auto; margin-top: 16px; }
+.lab-card button:disabled { opacity: .5; cursor: not-allowed; }
+.lab-card summary { cursor: pointer; margin-top: 20px; }

@@ -12,4 +12,5 @@ it('does not link preview mode to live event preparation', async () => {
   await screen.findByRole('heading', { name: 'Nuestros encuentros' });
   expect(screen.getByRole('button', { name: 'Preparar evento 2026' })).toBeDisabled();
   expect(screen.queryByRole('link', { name: 'Preparar evento 2026' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Pruebas · Laboratorio QR' })).not.toBeInTheDocument();
 });

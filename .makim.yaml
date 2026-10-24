@@ -36,6 +36,10 @@ groups:
         help: Run isolated staff QR admission tests (requires PHP sqlite3)
         run: php tests/qr/test_selection.php && python tests/auth/test_qr_admission.py
 
+      lab-tests:
+        help: Test the opt-in QR lab with synthetic SQLite, fake QR images, and fake mail
+        run: php tests/lab/test_lab.php && python tests/auth/test_lab.py
+
       qr-migrate:
         help: Add QR decision audit table only (back up the database first)
         run: php src/migrations/0006_qr_admission.php

@@ -13,5 +13,8 @@ __pycache__/
 # Private database snapshots created by authenticated event setup
 src/.backups/
 
+# Persistent synthetic QR laboratory: never commit databases, images, or mail state.
+src/.test-lab/
+
 # Local real-participant roster; regression tests use synthetic records instead.
 tests/data/2026/participantes.csv

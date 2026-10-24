@@ -45,6 +45,7 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [authRequired, setAuthRequired] = useState(false);
+  const [testMode, setTestMode] = useState(false);
   const [revision, setRevision] = useState(0);
   const [editor, setEditor] = useState<EditorType | null>(null);
   const [notice, setNotice] = useState('');
@@ -62,8 +63,8 @@ export function App() {
   useEffect(() => { document.title = `${navigation.find(n => n.id === page)?.label} · Rinchen`; heading.current?.focus(); }, [page]);
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true); setError(''); setAuthRequired(false);
-    loadData(controller.signal).then(result => { if (!controller.signal.aborted) setData(result); })
+    setLoading(true); setError(''); setAuthRequired(false); setTestMode(false);
+    loadData(controller.signal, setTestMode).then(result => { if (!controller.signal.aborted) setData(result); })
       .catch(err => { if (controller.signal.aborted) return; if (err instanceof AuthenticationError) { setAuthRequired(true); setData(emptyData); setError(err.message); return; } setError(err instanceof Error && err.message.startsWith('No pudimos') ? err.message : 'No pudimos conectar con el centro. Vuelve a intentarlo en un momento.'); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
@@ -94,6 +95,7 @@ export function App() {
       <a href="#inicio" className="brand" aria-label="Rinchen, inicio"><img src={logo} alt="" /><span>rinchen<span className="brand-subtitle">SAKYA RINCHEN LING</span></span></a>
       <div className="workspace"><span className="workspace-icon"><Flower2 size={19} /></span><div>Espacio de comunidad<small>Gestión de encuentros</small></div><span className="workspace-dot" /></div>
       <div className="nav-label">ORGANIZAR</div>
+      {!preview && testMode && !authRequired && <a className="nav-link" href={legacyUrl('testing/index.php')}><ListChecks size={19} /><span>Pruebas · Laboratorio QR</span></a>}
       <nav aria-label="Navegación principal">{navigation.map(({ id, label, icon: Icon }) => <a key={id} href={`#${id}`} onClick={() => setMobileOpen(false)} className={page === id ? 'nav-link selected' : 'nav-link'} aria-current={page === id ? 'page' : undefined}><Icon size={19} strokeWidth={1.65} /><span>{label}</span>{id === 'eventos' && ready && <span className="nav-count">{data.events.length}</span>}</a>)}</nav>
       <div className="sidebar-bottom"><div className="sidebar-note"><Sprout size={24} strokeWidth={1.4} /><p>Pequeños encuentros.<br /><strong>Grandes conexiones.</strong></p><span>Cultivemos comunidad, juntos.</span></div><a className="external-link" href={legacyUrl('index.php?legacy=1')}><ExternalLink size={16} /> Menú clásico <ArrowUpRight size={14} /></a><form action={legacyUrl('logout.php')} method="POST" className="logout-form"><input type="hidden" name="csrf_token" value={getCsrfToken()} /><button className="external-link" type="submit" disabled={preview || !ready}><LogOut size={16} /> Cerrar sesión</button></form><div className="center-signature"><span className="center-avatar">RL</span><div>Sakya Rinchen Ling<small>La Paz, Bolivia</small></div></div></div>
     </aside>

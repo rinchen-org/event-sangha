@@ -5,11 +5,12 @@ auth_block_direct(__FILE__);
 /**
  * @return array<string,string>
  */
-function load_env(): array {
+function load_env(bool $createIfMissing = true): array {
   $envFilePath = dirname(__DIR__) . '/.env';
 
   // Check if the .env file exists
   if (!file_exists($envFilePath)) {
+    if (!$createIfMissing) { return []; }
     // If the file doesn't exist, create it and write the default content
     file_put_contents($envFilePath, "");
     // $message = '.env file created successfully with default content.';
@@ -30,6 +31,7 @@ function load_env(): array {
 
   // Loop through each line in the .env file
   foreach ($envContent as $line) {
+      if (strpos($line, '=') === false) { continue; }
       // Split the line into key and value using the '=' character
       list($key, $value) = explode('=', $line, 2);
       // Store the key-value pair in the $envVariables array

@@ -57,6 +57,24 @@ and isolated HTTP tests. Browser-script tests run with the frontend suite.
 This does not yet replace policy gates in other legacy/manual routes. QR uses
 the event selected by staff in web setup, falling back to event ID 1 until configured.
 
+## Implementation update — opt-in QR laboratory
+
+Implemented: a staff-only **Pruebas · Laboratorio QR** menu gated server-side by
+`TEST_ENV=1` in `src/.env`. A separate private persistent SQLite database holds
+one test event, daily 50-minute sessions/10-minute breaks, UUID participants and
+subscriptions, test attendance and audits. Setup is additive/idempotent;
+production events, data, and reports are unchanged. Ready/missing-attendance
+profiles exercise the shared QR admission workflow, with scope-bound tokens
+separating test and live databases. QR image creation and configured-alias emails
+are explicit opt-in actions, not effects of generating records or opening a
+screen. The lab is unavailable when disabled, including previously issued links.
+
+`makim dev.lab-tests` provides isolated domain and HTTP tests with fake services;
+explicit CLI controller mode is available but does not replace HTTP deployment
+verification. Frontend menu visibility is covered by the frontend suite.
+This is a staff testing tool, not an automatic production-data seeder, a full
+application sandbox, a destructive reset facility, or a replacement for regression tests.
+
 ## Implementation update — browser event setup
 
 Authenticated `scripts/setup.php` supports creating a database and creating or

@@ -311,6 +311,62 @@ touch working data/configuration. `php tests/qr/test_selection.php` runs only
 the no-socket domain checks, not HTTP security coverage. `makim frontend.tests`
 also checks the auto-submit/selection script using a synthetic DOM.
 
+## Opt-in QR test laboratory
+
+`TEST_ENV=1` in `src/.env` enables the **Pruebas · Laboratorio QR** link in React
+and the classic menu. Missing/other values disable all lab routes server-side.
+`src/lib/test_mode.php` reads the flag without creating an absent `.env`;
+`load_env(false)` is the read-only configuration mode. The session JSON bootstrap
+adds boolean `testMode`, independent of dashboard DB availability; preview never
+links to the lab. Do not expose recipient addresses or other configuration there.
+
+`src/templates/testing/index.php` offers explicit, CSRF-protected, single-use
+POST actions for day setup, generation, QR images, and optional batch email.
+`src/lib/test_lab.php` owns the isolated persistent `src/.test-lab/lab.sqlite`
+(directory 0700, file 0600). Existing dotfile/database hosting rules must protect
+it. No path comes from HTTP; reject symlinks/hardlinks and unknown DB identities.
+Never substitute this DB for `get_db()` or adopt production data. Only explicit
+setup initializes the additive schema, never GET, a flag change, or a scan.
+
+One permanent test event has daily Bolivia schedules: 50-minute sessions plus
+10-minute breaks, configurable range, complete intervals only. Repeated ranges
+are idempotent; changed ranges add missing intervals and retain earlier sessions
+and history, potentially introducing advisory overlaps. New attendee batches
+contain 1–100 records (default 10), UUID-v4 names, synthetic phones, subscriptions,
+and `TEST_EMAIL_TO` aliases with the same UUID. Validate the entire configured
+recipient list, selected address, and final alias length. Do not accept arbitrary
+mail recipients or silently strip existing address tags. Generation is atomic,
+replay-protected, and has no QR-network or mail side effects.
+
+The `ready` profile seeds earlier attendance relative to the suggested session
+at generation time; `missing` does not. Audit seeded session IDs and the shared
+account. Neither bypasses actual QR policy, and future scans may need review.
+`testing/check-in.php` selects lab context only in server code and reuses
+`attendance/log.php`/`QrAdmission`; review tokens additionally bind `scope`
+(`live`/`lab`) and use separate session token buckets to prevent collisions
+between overlapping DB IDs or eviction of live reviews by test scans. Test GET links
+identify a lab UUID, not an arbitrary event/person ID; live links remain unchanged.
+
+`test_lab_qr.php` contacts the existing external QR service only on an explicit
+image-generation POST. The URL contains a UUID, not names/emails. Require an
+explicit valid `HOST_ADDRESS`, bound transport time/size, validate PNGs, and store
+them inside the private test DB. `testing/qr.php` serves them only with staff
+authentication and TEST_ENV=1. A changed base URL requires regeneration.
+
+Optional mail sends only configured UUID aliases, never production EMAIL_CC.
+It uses the existing mail transport and a protected test-card link, not an
+anonymous QR attachment. Check SEND_EMAIL and revalidate the whole batch against
+current TEST_EMAIL_TO before any attempt. Claim each attempt durably before mail,
+record outcome, never automatically retry an uncertain attempt, and report
+acceptance separately from delivery. Throttle sends per session. Disabling the
+lab blocks pending actions and QR links without deleting its audit/data.
+
+`makim dev.lab-tests` runs `tests/lab/test_lab.php` (in-memory domain tests) and
+`tests/auth/test_lab.py` (disposable HTTP tests with fake QR and sendmail). Explicit
+`RINCHEN_TEST_SERVER=cli` runs the latter through CLI controllers when sockets are
+unavailable; it does not cover actual HTTP headers/cookies. Never use the working
+`.env`, SQLite, mail transport, or external QR service for automated validation.
+
 ## Authenticated browser event setup
 
 The dashboard/classic-menu **Preparar evento 2026** shortcut opens

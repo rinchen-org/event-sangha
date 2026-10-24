@@ -47,6 +47,13 @@ actual host, test both root/subdirectory deployments as applicable:
 - Unauthenticated business pages redirect to login; JSON endpoints return 401.
 - The staff-only `scripts/setup.php` is protected; GET does not create a database.
 - Direct requests to `.backups/` and its files return 403/404, even after login.
+- Direct requests to `.test-lab/`, `lab.sqlite`, and SQLite journal/WAL files
+  return 403/404, even after login. The test directory is 0700 and files 0600.
+  These are covered by the existing dotfile/database rules, not PHP authentication
+  alone. Never export this directory with public static assets.
+- `TEST_ENV=0` (or missing) disables all `templates/testing/` routes, including
+  old QR links and pending POSTs. With `TEST_ENV=1`, staff login and CSRF still
+  apply. Test scans must never change live attendance or the selected live event.
 - Direct requests to `.env`, `db.sqlite`, libraries, migrations, backups and
   `static/app/index.html` return 403/404, even after login.
 - Existing `static/qr/<hash>.jpg` URLs require login and then serve the image.

@@ -84,6 +84,76 @@ script. Deploy `src/static/qr-checkin.js` with the PHP changes; these standalone
 QR-screen assets do not require rebuilding React. Other manual/forced attendance
 routes still retain their legacy policies.
 
+### Opt-in QR test laboratory
+
+Add these plain settings to **`src/.env`** (not shell exports), using your own
+test mailbox; leave the existing production settings intact:
+
+```dotenv
+TEST_ENV=1
+TEST_EMAIL_TO=staff@example.com
+```
+
+Rebuild the frontend with `makim frontend.build`, then open **Pruebas · Laboratorio
+QR** in the sidebar or classic menu. The protected page is
+`templates/testing/index.php`. `TEST_ENV=0`, a missing value, or any value other
+than exactly `1` hides the menu and disables all lab routes, including already
+issued QR links. Disabling does not erase test history. Login is always required.
+
+1. **Prepare today:** choose the start/end hours in Bolivia (default 09:00–18:00).
+   A single persistent test event receives 50-minute sessions with 10-minute
+   breaks, e.g. 09:00–09:50, 10:00–10:50. Only full intervals are created.
+   Repeating a range skips existing sessions. Changing the range adds missing
+   intervals without moving/deleting earlier ones; shifted ranges may overlap
+   and will exercise the normal overlap warnings.
+2. **Generate attendees:** choose 1–100 records, default **10**, and a mailbox
+   from `TEST_EMAIL_TO` (comma-separated lists are supported). Every attendee has
+   a UUID-v4 in both their name and `mailbox+<uuid>@domain` alias, a synthetic
+   phone, and a subscription. Your mailbox provider must support these aliases;
+   an address too long for the UUID tag is rejected before committing the batch.
+3. **Choose a scenario:** *Asistencias anteriores preparadas* seeds and audits
+   synthetic attendance before the currently suggested session, allowing a clear
+   in-period scan to auto-check-in. *Sin asistencias anteriores* exercises normal
+   warnings. Neither profile bypasses admission rules or records the suggested
+   session; subsequent sessions may introduce new warnings.
+4. **Test check-in:** use **Abrir check-in**, or **Generar / mostrar QR** and scan
+   the image. Both use the existing PHP attendance workflow against test data.
+   `HOST_ADDRESS` must explicitly identify this installation and be reachable
+   from the scanning device; `localhost` on a phone refers to that phone.
+   Image generation is a separate explicit action using the existing
+   [QR image service](https://goqr.me/api/doc/create-qr-code/). It sends only the
+   test check-in URL with an opaque UUID, not the person's name/email. PNGs are
+   validated, cached privately, and invalidated when `HOST_ADDRESS` changes.
+   Opening the menu or generating attendees never calls this service.
+5. **Optional email:** **Enviar correos de prueba de este lote** sends to the
+   generated aliases only, with a staff-authenticated link to their test card.
+   It respects `SEND_EMAIL=0`, uses `EMAIL_FROM`/`EMAIL_REPLY_TO`, and never uses
+   production `EMAIL_CC`. An accepted transport result is not confirmed delivery.
+   Attempts are recorded before sending and are not resent, even after uncertain
+   failures. Generating attendees never sends email. QR images remain protected
+   and are not embedded as anonymously accessible images in messages.
+
+The lab lives in **`src/.test-lab/lab.sqlite`**, not `src/db.sqlite`. Its records
+never enter production lists/reports or change the real QR event. The directory
+is private (0700), database 0600, and ignored by Git. Install the existing server
+dotfile/database protections described in [containers/README.md](containers/README.md).
+Only explicit POST setup initializes it; no migrations or seeding run on GET.
+There is no automatic cleanup or reset of historical data. Shared-admin audit
+entries identify the account, not an individual staff member.
+
+Safe regression checks (synthetic SQLite, fake QR and mail; no real delivery):
+
+```bash
+makim dev.lab-tests
+makim frontend.tests
+# Without local sockets: domain checks and CLI controller checks only.
+php tests/lab/test_lab.php
+RINCHEN_TEST_SERVER=cli python tests/auth/test_lab.py
+```
+
+CLI controller checks do not validate real HTTP headers/cookies or hosting rules;
+run the default HTTP suite on a socket-capable host before deployment.
+
 ### Set up the November event without console access
 
 The home page and classic menu now include **Preparar evento 2026**, opening

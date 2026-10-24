@@ -57,6 +57,14 @@ attendance and session selection/policy evaluation remain server-side.
 
 ## Migration boundary
 
+The session bootstrap exposes a server-computed `testMode` boolean. With
+`TEST_ENV=1` in `src/.env`, the sidebar links to **Pruebas · Laboratorio QR** at
+`templates/testing/index.php`, even if production list loading fails. Missing or
+false flags and explicit preview mode hide the link. PHP independently gates
+every test route; frontend visibility is not authorization. Rebuild assets after
+deploying this menu change. The test laboratory is a protected PHP screen with
+its own persistent database, not a replacement for the main application's data.
+
 React provides the overview, event/session views, participant search and state
 filtering, attendance filtering, CSV exports, and create/edit/import forms.
 Forms submit their existing field names and IDs to the PHP handlers and navigate

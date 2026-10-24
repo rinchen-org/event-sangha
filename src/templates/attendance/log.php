@@ -11,18 +11,27 @@ $db = null;
 $autoSubmit = false;
 $notes = '';
 $isPost = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
+$isLab = defined('RINCHEN_QR_LAB');
+if ($isLab) {
+    require_once dirname(__DIR__, 2) . '/lib/test_lab.php';
+    test_mode_require();
+}
+$scope = $isLab ? 'lab' : 'live';
+$reviewBucket = $isLab ? 'lab_qr_reviews' : 'qr_reviews';
+$actionPath = $isLab ? 'templates/testing/check-in.php' : 'templates/attendance/log.php';
 try {
     // Scans cannot write, even on the automatic path. Only the later protected
     // POST can write to the existing DB; neither request creates/migrates it.
-    $db = new SQLite3(dirname(__DIR__, 2) . '/db.sqlite', $isPost ? SQLITE3_OPEN_READWRITE : SQLITE3_OPEN_READONLY);
+    $db = $isLab ? test_lab_db($isPost) : new SQLite3(dirname(__DIR__, 2) . '/db.sqlite', $isPost ? SQLITE3_OPEN_READWRITE : SQLITE3_OPEN_READONLY);
     $admission = new QrAdmission($db);
     if ($isPost) {
         $submitted = $_POST['review_token'] ?? '';
-        $pending = is_string($submitted) ? ($_SESSION['qr_reviews'][$submitted] ?? null) : null;
+        $pending = is_string($submitted) ? ($_SESSION[$reviewBucket][$submitted] ?? null) : null;
         if (!$pending || $pending['expires'] < time()) {
             throw new DomainException('La revisión caducó. Vuelve a escanear el QR.');
         }
-        unset($_SESSION['qr_reviews'][$submitted]);
+        unset($_SESSION[$reviewBucket][$submitted]);
+        if (($pending['scope'] ?? 'live') !== $scope) { throw new DomainException('Esta revisión pertenece a otro entorno. Vuelve a abrir el QR correcto.'); }
         $personId = $pending['person'];
         $sessionId = $pending['session'];
         if (($pending['event'] ?? null) !== $admission->eventId()) {
@@ -61,6 +70,11 @@ try {
             http_response_code(409);
             $error = $exception->getMessage();
         }
+    } elseif ($isLab) {
+        $uuid = $_GET['uuid'] ?? '';
+        if (!is_string($uuid)) { throw new DomainException('Identificador de prueba no válido.'); }
+        $personId = (int) (new TestLab($db))->attendee($uuid)['person_id'];
+        $sessionId = $admission->selection()['recommended_id'];
     } else {
         foreach (['fullname', 'email', 'phone'] as $field) {
             if (!isset($_GET[$field]) || !is_string($_GET[$field]) || $_GET[$field] === '') {
@@ -74,11 +88,12 @@ try {
     $autoSubmit = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && $review['automatic_allowed'];
     // Selection gets its own fresh review, including when a previous session's
     // attendance already exists. POST responses never auto-submit or retry.
-    $_SESSION['qr_reviews'] = array_filter($_SESSION['qr_reviews'] ?? [],
+    $_SESSION[$reviewBucket] = array_filter($_SESSION[$reviewBucket] ?? [],
         function ($item) { return $item['expires'] >= time(); });
-    $_SESSION['qr_reviews'] = array_slice($_SESSION['qr_reviews'], -19, null, true);
+    $_SESSION[$reviewBucket] = array_slice($_SESSION[$reviewBucket], -19, null, true);
     $token = bin2hex(random_bytes(24));
-    $_SESSION['qr_reviews'][$token] = ['person' => $personId, 'session' => $sessionId,
+    $_SESSION[$reviewBucket][$token] = ['person' => $personId, 'session' => $sessionId,
+        'scope' => $scope,
         'event' => (int) $review['session']['event_id'], 'automatic' => $autoSubmit,
         'fingerprint' => QrAdmission::fingerprint($review), 'expires' => time() + 600];
 } catch (DomainException $exception) {
@@ -115,6 +130,7 @@ $sessionLabel = static function (array $session): string {
 </head>
 <body>
 <main class="auth-card">
+  <?php if ($isLab): ?><p class="auth-warning">SOLO PRUEBAS · Esta asistencia se guarda en el laboratorio, nunca en el evento real.</p><?php endif; ?>
   <p class="eyebrow">SOLO PERSONAL · CONTROL DE ACCESO</p>
   <h1>Decisión de admisión</h1>
   <?php if ($error !== ''): ?><p class="auth-error" role="alert"><?php echo auth_escape($error); ?></p><?php endif; ?>
@@ -123,7 +139,7 @@ $sessionLabel = static function (array $session): string {
     <h2><?php echo auth_escape($review['person']['fullname']); ?></h2>
     <p>Sesión: <strong><?php echo auth_escape($sessionLabel($review['session'])); ?></strong></p>
     <p>Hora de Bolivia. Los horarios son orientativos, no una restricción de ingreso.</p>
-    <form id="qr-checkin-form" method="post" action="<?php echo auth_escape(auth_url('templates/attendance/log.php')); ?>" <?php echo $autoSubmit ? 'data-auto-checkin="1"' : ''; ?>>
+    <form id="qr-checkin-form" method="post" action="<?php echo auth_escape(auth_url($actionPath)); ?>" <?php echo $autoSubmit ? 'data-auto-checkin="1"' : ''; ?>>
       <?php auth_csrf_field(); ?>
       <input type="hidden" name="review_token" value="<?php echo auth_escape($token); ?>">
       <label for="qr-session">Sesión para registrar la asistencia</label>
@@ -166,7 +182,7 @@ $sessionLabel = static function (array $session): string {
     <?php endif; ?>
     </form>
   <?php endif; ?>
-  <a href="<?php echo auth_escape(auth_url('templates/index.php')); ?>">Volver sin otra decisión</a>
+  <a href="<?php echo auth_escape(auth_url($isLab ? 'templates/testing/index.php' : 'templates/index.php')); ?>">Volver sin otra decisión</a>
   <footer class="auth-footnote">Desarrollado por <a href="https://scistitch.com/" target="_blank" rel="noopener noreferrer">SciStitch</a></footer>
 </main>
 </body>

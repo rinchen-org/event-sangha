@@ -14,7 +14,7 @@ export class AuthenticationError extends Error {
   constructor() { super('Tu sesión ha caducado. Inicia sesión para continuar.'); }
 }
 
-export async function loadData(signal: AbortSignal): Promise<AppData> {
+export async function loadData(signal: AbortSignal, onTestMode?: (enabled: boolean) => void): Promise<AppData> {
   if (preview) return (await import('./preview')).previewData;
   csrfToken = '';
   const session = await fetch(legacyUrl('session.php'), { signal, credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } });
@@ -23,6 +23,7 @@ export async function loadData(signal: AbortSignal): Promise<AppData> {
   const identity = await session.json();
   if (!identity.success || typeof identity.csrfToken !== 'string') throw new Error('La sesión del servidor no es válida.');
   csrfToken = identity.csrfToken;
+  if (!signal.aborted) onTestMode?.(identity.testMode === true);
   const endpoints = {
     events: 'event/list.php', sessions: 'event-session/list.php',
     subscriptions: 'subscription/list.php', attendance: 'attendance/list.php',

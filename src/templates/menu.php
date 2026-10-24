@@ -1,9 +1,13 @@
 <?php
 require_once dirname(__DIR__) . '/lib/auth.php';
 auth_require();
+require_once dirname(__DIR__) . '/lib/test_mode.php';
 include __DIR__ . "/header.php";
 ?>
 <h1>Evento Retiro con Su Santidad Sakya Trizin 42 y Venerable Lama Rinchen Gyaltsen</h1>
+<?php if (test_mode_enabled()): ?>
+<div class="container"><a class="btn btn-outline-primary" href="<?php echo auth_escape(auth_url('templates/testing/index.php')); ?>">Pruebas · Laboratorio QR</a></div>
+<?php endif; ?>
 
 <div class="container">
   <p>Revisar la base y completar solo los pasos pendientes del evento de noviembre de 2026.</p>

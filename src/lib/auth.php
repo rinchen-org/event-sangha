@@ -3,8 +3,8 @@
 // Temporary single-account authentication. Never expose this hash in client code.
 const AUTH_ADMIN_USER = 'admin';
 const AUTH_ADMIN_HASH = '$2y$12$2eJhY25bZZ7mFxkeRk5sL.JMG2pmX0kbIXrYGN8qlJNmqTIe5qTOy';
-const AUTH_IDLE_SECONDS = 1800;
-const AUTH_MAX_SECONDS = 43200;
+const AUTH_IDLE_SECONDS = 28800; // 8 hours without an authenticated request.
+const AUTH_MAX_SECONDS = 86400; // 24 hours from login, even while active.
 
 function auth_block_direct(string $file): void {
     if (PHP_SAPI !== 'cli' && realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === realpath($file)) {
@@ -35,8 +35,57 @@ function auth_escape(string $text): string {
     return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+/** Session and throttle files must never live in a served or shared directory. */
+function auth_private_directory(string $directory): string {
+    $directory = rtrim($directory, '/');
+    if (!is_dir($directory) && !@mkdir($directory, 0700, true) && !is_dir($directory)) {
+        throw new RuntimeException('Authentication state directory is unavailable.');
+    }
+    $resolved = realpath($directory);
+    $permissions = fileperms($directory);
+    if ($resolved === false || is_link($directory) || $permissions === false
+        || ($permissions & 0077) !== 0 || !is_writable($directory)) {
+        throw new RuntimeException('Authentication state directory must be private and writable.');
+    }
+    foreach ([dirname(__DIR__), $_SERVER['DOCUMENT_ROOT'] ?? ''] as $root) {
+        $root = $root !== '' ? realpath($root) : false;
+        if ($root !== false && ($resolved === $root || strpos($resolved, rtrim($root, '/') . '/') === 0)) {
+            throw new RuntimeException('Authentication state directory must be outside the document root.');
+        }
+    }
+    return $resolved;
+}
+
+function auth_state_directory(): string {
+    return auth_private_directory(getenv('RINCHEN_AUTH_STATE_DIR')
+        ?: sys_get_temp_dir() . '/rinchen-auth-' . substr(hash('sha256', __DIR__), 0, 16));
+}
+
 function auth_start(): void {
+    header('Cache-Control: private, no-store, max-age=0');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: no-referrer');
+    header('X-Frame-Options: SAMEORIGIN');
     if (session_status() !== PHP_SESSION_ACTIVE) {
+        try {
+            // Isolate files from PHP's shared save_path and its potentially shorter
+            // system cleanup policy. Application expiry checks remain authoritative.
+            $directory = auth_private_directory(auth_state_directory() . '/sessions');
+            foreach ([
+                'session.save_handler' => 'files',
+                'session.save_path' => $directory,
+                'session.gc_maxlifetime' => (string) AUTH_MAX_SECONDS,
+                'session.gc_probability' => '1',
+                'session.gc_divisor' => '100',
+            ] as $setting => $value) {
+                if (ini_set($setting, $value) === false) {
+                    throw new RuntimeException('Authentication session storage configuration is unavailable.');
+                }
+            }
+        } catch (Throwable $exception) {
+            error_log('Rinchen session: ' . $exception->getMessage());
+            auth_fail(503, 'No pudimos iniciar la sesión. Inténtalo más tarde.');
+        }
         ini_set('session.use_strict_mode', '1');
         ini_set('session.use_only_cookies', '1');
         // Do not trust client-supplied forwarded headers. A TLS proxy should set
@@ -48,12 +97,11 @@ function auth_start(): void {
             'lifetime' => 0, 'path' => auth_base_path() . '/',
             'secure' => $secure, 'httponly' => true, 'samesite' => 'Lax',
         ]);
-        session_start();
+        if (!@session_start()) {
+            error_log('Rinchen session: session_start failed.');
+            auth_fail(503, 'No pudimos iniciar la sesión. Inténtalo más tarde.');
+        }
     }
-    header('Cache-Control: private, no-store, max-age=0');
-    header('X-Content-Type-Options: nosniff');
-    header('Referrer-Policy: no-referrer');
-    header('X-Frame-Options: SAMEORIGIN');
 }
 
 function auth_logged_in(): bool {
@@ -185,11 +233,7 @@ function auth_confirm_action(string $title): void {
 
 /** Shared, file-locked per-IP throttle survives new cookies. State is outside src/. */
 function auth_attempt_login(string $username, string $password): bool {
-    $directory = getenv('RINCHEN_AUTH_STATE_DIR') ?: sys_get_temp_dir() . '/rinchen-auth-' . substr(hash('sha256', __DIR__), 0, 16);
-    if ((!is_dir($directory) && !mkdir($directory, 0700, true)) || is_link($directory)
-        || ((fileperms($directory) & 0077) !== 0)) {
-        throw new RuntimeException('Authentication state directory must be private and writable.');
-    }
+    $directory = auth_state_directory();
     $path = $directory . '/' . hash('sha256', $_SERVER['REMOTE_ADDR'] ?? 'local') . '.json';
     $handle = fopen($path, 'c+');
     if ($handle === false) {

@@ -12,6 +12,8 @@ Use Apache 2.4 with mod_rewrite and allow the directives in `src/.htaccess`
 libraries/migrations, databases/backups and standalone HTML, disables directory
 listing, and routes generated QR images through authenticated `media.php`.
 Public CSS/JS/fonts and branding remain accessible for the login screen.
+In particular, `static/qr-checkin.js` is public: QR-media denial rules must match
+the `static/qr/` directory boundary, not block everything starting with `qr`.
 
 ## Nginx / Sugar container
 
@@ -27,14 +29,29 @@ Validate the effective configuration and the checks below on staging.
 
 ## Session and rate-limit storage
 
-Configure PHP session storage outside the document root, writable only by the
-runtime user. Login throttling defaults to a private application-specific
-directory under the system temporary directory. For durable deployment storage,
-set `RINCHEN_AUTH_STATE_DIR` to an existing private directory (mode 0700)
-outside the document root, writable by PHP. Unavailable throttle storage fails
-closed. Multi-instance hosting needs shared session/throttle storage.
+Sessions expire after **8 hours idle / 24 hours from login**. The app now selects
+its own PHP file-session directory: `RINCHEN_AUTH_STATE_DIR/sessions`. This avoids
+the shared PHP `session.save_path` and its potentially shorter system cleanup.
+PHP garbage collection is enabled with a 1-in-100 request probability and a
+24-hour file lifetime; server-side idle/absolute checks still enforce expiry on
+every authenticated request, even when files have not yet been collected.
 
-Cookies are HttpOnly and SameSite=Lax, scoped to the application directory.
+Session and throttle storage defaults to a private application-specific directory
+under the system temporary directory. For durable deployment storage, set
+`RINCHEN_AUTH_STATE_DIR` to a dedicated private directory (mode 0700) outside all
+served roots, writable by the PHP runtime user. The app creates the `sessions/`
+child with mode 0700; PHP creates session files with mode 0600. Do not point this
+at a shared PHP session directory, symlink, or publicly served path. Storage
+failures fail closed. Ensure host cleanup jobs do not remove these files sooner
+than 24 hours. Multi-instance hosting needs shared file storage with working
+locks for both sessions and throttling; use a distinct state directory per app.
+
+Deploying this storage change requires a one-time login again: old session files
+are not imported. Logout still invalidates the server session. Form/review tokens
+retain their shorter expiry and may require a fresh review without logging out.
+
+Cookies remain browser-session-only (not persistent “remember me”), HttpOnly and
+SameSite=Lax, scoped to the application directory. Log out on shared devices.
 For TLS termination at a proxy, securely set server `HTTPS` or PHP process
 environment `RINCHEN_HTTPS=1` so cookies are Secure. These are not `src/.env`
 settings. Client-provided forwarded headers are deliberately not trusted.
@@ -61,6 +78,9 @@ actual host, test both root/subdirectory deployments as applicable:
   and explicit outside-period/warning confirmations work. GET scans never write.
   `static/qr-checkin.js` is deployed; failures are not auto-retried and existing
   attendance is not duplicated. Issued QR query strings survive the login redirect.
+- Clear in-period scans show progress and then only the saved/already-recorded
+  result, not the session selector or permit/deny controls. Outside-period and
+  warning screens still allow explicit review. Check both live and lab routes.
 - Cookies have Secure on HTTPS, and sessions/throttle files are private.
 - Authenticated Python reports can fetch API data and QR images.
 
@@ -72,5 +92,8 @@ by unauthenticated email clients under this access policy.
 
 `makim dev.serve-local` uses `scripts/dev-router.php` for equivalent local file
 protection. Never expose the PHP development server publicly.
-`makim dev.auth-tests` runs disposable HTTP tests without touching live data.
+`makim dev.auth-tests` runs disposable session-storage and HTTP tests without
+touching live data. Without sockets, `python tests/auth/test_auth.py AuthSessionTest`
+checks session expiry, private storage/GC, cookie configuration, and logout/CSRF
+using CLI PHP; this does not replace real HTTP cookie/header coverage.
 Optional Apache tests use `RINCHEN_TEST_SERVER=apache python tests/auth/test_auth.py`.

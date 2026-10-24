@@ -25,7 +25,7 @@ groups:
         run: python tests/auth/test_csv_import.py
 
       auth-tests:
-        help: Run isolated login and route-protection HTTP tests
+        help: Run isolated session-storage, login, and route-protection tests
         run: python tests/auth/test_auth.py
 
       setup-tests:

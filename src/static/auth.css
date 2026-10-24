@@ -16,6 +16,9 @@ button:hover { background: #62283b; }
 .auth-password-toggle:hover { background: transparent; color: #62283b; text-decoration: underline; }
 .auth-password-toggle[hidden] { display: none; }
 .qr-auto-submit[hidden] { display: none; }
+.qr-result { padding: 16px; background: #eef5ee; color: #35583c; border: 1px solid #c8dbc9; border-radius: 8px; }
+.qr-secondary { margin-top: 24px; font-size: 13px; }
+.qr-secondary summary { color: #79364b; cursor: pointer; }
 .auth-notes { width: 100%; padding: 12px; border: 1px solid #ded6cb; border-radius: 8px; font: inherit; resize: vertical; }
 a { color: #79364b; display: inline-block; margin-top: 16px; }
 :focus-visible { outline: 3px solid #ab8057; outline-offset: 3px; }

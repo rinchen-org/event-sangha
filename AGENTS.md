@@ -245,16 +245,26 @@ browser POST, never a GET write. Other cases require staff confirmation. Librari
 reject direct HTTP access; migrations are CLI-only. Preserve these boundaries.
 
 Use `makim dev.serve-local`, not a bare PHP server: its router also protects
-private static files. `makim dev.auth-tests` runs isolated HTTP tests using
+private static files. Match `/static/qr` at directory boundaries, not as a raw
+prefix: public `static/qr-checkin.js` must load for automatic check-in to run.
+`makim dev.auth-tests` runs isolated session-storage and HTTP tests using
 temporary code copies and synthetic files; unlike the legacy PHPUnit suite it
 does not touch working data. Optional Apache coverage:
 `RINCHEN_TEST_SERVER=apache python tests/auth/test_auth.py` (Debian-style Apache
-module paths and mod_php required).
+module paths and mod_php required). `python tests/auth/test_auth.py AuthSessionTest`
+runs only the no-socket session/storage checks, not HTTP cookie/header coverage.
 
 Deployment must install the Apache/Nginx protections documented in
 [containers/README.md](containers/README.md). Rebuild the frontend and container.
-Sessions expire after 30 idle minutes / 12 hours total, and failed login attempts
-are limited per IP. Keep session and throttle storage outside the document root;
+Sessions expire after 8 idle hours / 24 hours total, and failed login attempts
+are limited per IP. Activity refreshes only idle time. Browser-session cookies,
+logout/CSRF, and short-lived action/review token expiry remain unchanged.
+PHP file sessions use the private `sessions/` child of `auth_state_directory()`
+(0700 directories, 0600 files), not the shared `session.save_path`; application
+GC uses 24 hours with a 1-in-100 request probability even if host PHP disables GC.
+Server-side expiry checks remain authoritative regardless of cleanup. Moving
+storage requires a one-time login again; do not copy old session files blindly.
+Keep session and throttle storage outside the document root;
 `RINCHEN_AUTH_STATE_DIR` and `RINCHEN_HTTPS` are PHP process environment
 settings, not settings read from `src/.env`. Reports authenticate using their
 own session; protected QR images no longer load in anonymous email clients.
@@ -268,6 +278,18 @@ prior denial, or existing attendance, the initial QR GET renders an eligible
 automatic form. The visible browser submits it once by authenticated POST with
 CSRF and a server-issued single-use token; PHP rechecks eligibility under the
 transaction lock. No staff confirmation click is needed in this clear case.
+
+The clear automatic screen contains only progress and a protected form with
+hidden session/automatic controls, not the session selector or permit/deny UI.
+Saved and already-recorded attendance render result-only screens (person,
+session, status); do not display both “saved” and “already recorded” for one new
+write. An outside-period/overlap result can expose an optional collapsed
+“Otra sesión” action: its protected review POST opens the selector without writing
+attendance. The collapsed “¿El registro no continúa?” manual fallback remains
+usable without JavaScript and opens if requestSubmit is unsupported/fails or
+reload/history navigation suppresses automation. An exception is not a success
+and must not trigger an automatic retry. These presentation branches are shared
+by live and lab check-in; do not duplicate PHP policy evaluation in JavaScript.
 
 Outside all periods, the dropdown preselects the nearest interval (distance to
 start/end, preferring the upcoming session on a tie, then start time/ID). Any

@@ -44,10 +44,9 @@ class LabTest(unittest.TestCase):
             cls.temp = tempfile.TemporaryDirectory(prefix='rinchen-lab-cli-')
             cls.work = Path(cls.temp.name)
             cls.web = cls.work / 'web'
-            cls.sessions = cls.work / 'sessions'
             cls.throttle = cls.work / 'throttle'
-            cls.sessions.mkdir(mode=0o700)
             cls.throttle.mkdir(mode=0o700)
+            cls.sessions = cls.throttle / 'sessions'
             cls.origin = 'http://localhost'
             for base in ('', 'event-retiro'):
                 for source in (test_auth.ROOT / 'src').rglob('*'):
@@ -114,7 +113,7 @@ require ''' + json.dumps(str(test_auth.ROOT / 'scripts/dev-router.php')) + ';\n'
                    'accept': (headers or {}).get('Accept', ''), 'sid': cookies[0].value if cookies else '',
                    'get': {key: values[-1] for key, values in urllib.parse.parse_qs(parsed.query).items()},
                    'post': {key: str(value) for key, value in (data or {}).items()}}
-        result = subprocess.run(['php', '-d', f'session.save_path={self.sessions}', '-d', f'sendmail_path={self.transport}',
+        result = subprocess.run(['php', '-d', f'sendmail_path={self.transport}',
                                  str(self.runner)], input=json.dumps(payload), capture_output=True, text=True,
                                 env={**os.environ, 'RINCHEN_AUTH_STATE_DIR': str(self.throttle), 'RINCHEN_HTTPS': '0'}, check=True)
         response = json.loads(result.stdout)
@@ -192,6 +191,22 @@ require ''' + json.dumps(str(test_auth.ROOT / 'scripts/dev-router.php')) + ';\n'
             self.assertEqual(self.request(route)[0], 303)
         self.assert_live_untouched()
 
+    def test_public_automatic_script_is_not_blocked_with_private_qr_media(self):
+        self.jar.clear()
+        for base in ('', '/event-retiro'):
+            private = self.web / base.lstrip('/') / 'static/qr'
+            private.mkdir(parents=True, exist_ok=True)
+            (private / ('a' * 64 + '.jpg')).write_bytes(b'PRIVATE QR SENTINEL')
+            status, _, body = self.request(base + '/static/qr-checkin.js?version=regression')
+            self.assertEqual(status, 200)
+            if not self.cli:  # the CLI runner cannot emulate PHP's native static-file response
+                self.assertIn('form.requestSubmit', body)
+            for suffix in ('/static/qr', '/static/qr/', '/static/qr/unknown.jpg'):
+                self.assertIn(self.request(base + suffix)[0], (403, 404))
+            status, _, body = self.request(base + '/static/qr/' + 'a' * 64 + '.jpg')
+            self.assertEqual(status, 303)
+            self.assertNotIn('PRIVATE QR SENTINEL', body)
+
     def test_generation_default_uuid_aliases_limits_and_no_side_effect_delivery(self):
         self.prepare()
         self.assertIn('name="count" type="number" min="1" max="100" step="1" value="10"', self.request(LAB)[2])
@@ -226,21 +241,38 @@ require ''' + json.dumps(str(test_auth.ROOT / 'scripts/dev-router.php')) + ';\n'
             self.assertEqual(self.request(route + '?uuid=' + uuid)[0], 404)
         self.assert_live_untouched()
 
-    def test_scan_reuses_automatic_and_warning_flow_without_live_writes(self):
+    def active_attendee(self):
         self.prepare()
         self.query("UPDATE event_session SET start_date=datetime('now','-2 days'),end_date=datetime('now','-1 day') WHERE id!=1")
         self.query("UPDATE event_session SET start_date=datetime('now','-1 hour'),end_date=datetime('now','+1 hour') WHERE id=1")
         self.generate(count='1')
-        uuid = self.query('SELECT uuid FROM test_lab_attendee')[0][0]
+        return self.query('SELECT uuid FROM test_lab_attendee')[0][0]
+
+    def test_scan_reuses_automatic_and_warning_flow_without_live_writes(self):
+        uuid = self.active_attendee()
         route = CHECKIN + '?uuid=' + uuid
         status, _, body = self.request(route)
         self.assertEqual(status, 200, body)
         self.assertIn('data-auto-checkin="1"', body)
         self.assertIn('SOLO PRUEBAS', body)
+        self.assertNotIn('<select', body)
+        self.assertNotIn('Permitir participación', body)
+        self.assertNotIn('Denegar participación', body)
+        self.assertRegex(body, r'<details class="qr-secondary" id="qr-auto-fallback">')
         self.assertEqual(self.query('SELECT id FROM attendance WHERE event_session_id=1'), [])
         token = re.search(r'name="review_token" value="([a-f0-9]+)"', body)[1]
         data = {'csrf_token':self.csrf(),'review_token':token,'decision':'automatic'}
-        self.assertEqual(self.request(CHECKIN, data)[0], 200)
+        status, _, body = self.request(CHECKIN, data)
+        self.assertEqual(status, 200, body)
+        self.assertIn('Asistencia registrada automáticamente', body)
+        self.assertIn('id="qr-result"', body)
+        self.assertNotIn('Asistencia ya registrada', body)
+        self.assertNotIn('<form', body)
+        self.assertNotIn('<select', body)
+        status, _, body = self.request(route)
+        self.assertEqual(status, 200, body)
+        self.assertIn('Asistencia ya registrada', body)
+        self.assertNotIn('<form', body)
         self.assertEqual(self.request(CHECKIN, data)[0], 409)
         self.assertEqual(len(self.query('SELECT id FROM attendance WHERE event_session_id=1')), 1)
         self.generate(count='1', profile='missing')
@@ -248,8 +280,73 @@ require ''' + json.dumps(str(test_auth.ROOT / 'scripts/dev-router.php')) + ';\n'
         status, _, body = self.request(CHECKIN + '?uuid=' + uuid)
         self.assertNotIn('data-auto-checkin="1"', body)
         self.assertIn('Faltan asistencias anteriores', body)
+        self.assertIn('<select', body)
         token = re.search(r'name="review_token" value="([a-f0-9]+)"', body)[1]
         self.assertEqual(self.request(CHECKIN, {'csrf_token':self.csrf(),'review_token':token,'decision':'allow'})[0], 200)
+        self.assert_live_untouched()
+
+    def test_outside_result_allows_explicit_other_session_review_without_writes(self):
+        self.prepare()
+        self.query('DELETE FROM event_session WHERE id>2')
+        self.query("UPDATE event_session SET start_date=datetime('now','-1 hour'),end_date=datetime('now','-10 minutes') WHERE id=1")
+        self.query("UPDATE event_session SET start_date=datetime('now','+1 hour'),end_date=datetime('now','+2 hours') WHERE id=2")
+        self.generate(count='1', profile='missing')
+        uuid = self.query('SELECT uuid FROM test_lab_attendee')[0][0]
+        body = self.request(CHECKIN + '?uuid=' + uuid)[2]
+        self.assertIn('fuera del horario orientativo', body)
+        self.assertIn('<select', body)
+        self.assertNotIn('data-auto-checkin="1"', body)
+
+        def decide(body, decision, **extra):
+            token = re.search(r'name="review_token" value="([a-f0-9]+)"', body)[1]
+            response = self.request(CHECKIN, {'csrf_token':self.csrf(),'review_token':token,'decision':decision,**extra})
+            self.assertEqual(response[0], 200, response[2])
+            return response[2]
+
+        body = decide(body, 'allow')
+        self.assertIn('id="qr-result"', body)
+        self.assertNotIn('<select', body)
+        self.assertRegex(body, r'<details class="qr-secondary" id="qr-other-session">')
+        body = decide(body, 'review')
+        self.assertIn('<select', body)
+        self.assertNotIn('value="allow"', body)  # cannot write a second attendance for this session
+        body = decide(body, 'review', selected_session_id='2')
+        self.assertIn('fuera del horario orientativo', body)
+        self.assertNotIn('data-auto-checkin="1"', body)
+        self.assertEqual(self.query('SELECT event_session_id FROM attendance'), [(1,)])
+        self.assertEqual(len(self.query('SELECT * FROM qr_admission_decision')), 1)
+        body = decide(body, 'allow', selected_session_id='2')
+        self.assertIn('id="qr-result"', body)
+        self.assertNotIn('<select', body)
+        self.assertEqual(self.query('SELECT event_session_id FROM attendance ORDER BY id'), [(1,), (2,)])
+        self.assert_live_untouched()
+
+    def test_failed_automatic_post_shows_only_an_error_never_false_success(self):
+        uuid = self.active_attendee()
+        body = self.request(CHECKIN + '?uuid=' + uuid)[2]
+        token = re.search(r'name="review_token" value="([a-f0-9]+)"', body)[1]
+        self.query("CREATE TRIGGER fail_qr_audit BEFORE INSERT ON qr_admission_decision BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END")
+        status, _, body = self.request(CHECKIN, {'csrf_token':self.csrf(),'review_token':token,'decision':'automatic'})
+        self.assertEqual(status, 503, body)
+        self.assertIn('No se pudo verificar o guardar', body)
+        self.assertNotIn('id="qr-result"', body)
+        self.assertNotIn('data-auto-checkin="1"', body)
+        self.assertNotIn('<form', body)
+        self.assertEqual(self.query('SELECT * FROM attendance WHERE event_session_id=1'), [])
+        self.assert_live_untouched()
+
+    def test_stale_automatic_post_reveals_warning_review_without_auto_retry(self):
+        uuid = self.active_attendee()
+        body = self.request(CHECKIN + '?uuid=' + uuid)[2]
+        token = re.search(r'name="review_token" value="([a-f0-9]+)"', body)[1]
+        self.query("UPDATE event_session SET end_date=datetime('now','-1 second') WHERE id=1")
+        status, _, body = self.request(CHECKIN, {'csrf_token':self.csrf(),'review_token':token,'decision':'automatic'})
+        self.assertEqual(status, 409, body)
+        self.assertIn('fuera del horario orientativo', body)
+        self.assertIn('<select', body)
+        self.assertNotIn('id="qr-result"', body)
+        self.assertNotIn('data-auto-checkin="1"', body)
+        self.assertEqual(self.query('SELECT * FROM attendance WHERE event_session_id=1'), [])
         self.assert_live_untouched()
 
     def test_lab_and_live_review_tokens_cannot_cross_contexts(self):

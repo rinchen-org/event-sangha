@@ -16,7 +16,8 @@ if (preg_match('~^(.*)/static/qr/([a-f0-9]{64}\.jpg)$~D', $uriPath, $match)) {
     require $root . $controller;
     return true;
 }
-if (strpos($uriPath, '/static/qr') !== false) {
+// Protect the QR media directory, not public scripts such as qr-checkin.js.
+if (preg_match('~/static/qr(?:/|$)~', $uriPath)) {
     http_response_code(404);
     return true;
 }

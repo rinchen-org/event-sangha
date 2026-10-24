@@ -31,6 +31,12 @@ reports, and isolated HTTP regression tests. QR check-in requires staff login
 and a protected POST (automatic only for clear in-period scans). Apache/Nginx private-file rules and a safe local router are
 provided; actual hosting configuration must be verified before release.
 
+Login now lasts 8 idle hours / 24 hours total. Private application-owned file
+sessions and aligned garbage collection avoid the shared PHP storage's shorter
+cleanup defaults. Logout, browser-session cookies, CSRF, and short-lived action
+tokens are unchanged. Isolated no-socket session/storage tests complement the
+HTTP suite; changing storage requires one login again on deployment.
+
 - [ ] Replace the shared account with individual accounts and roles.
 - [ ] Verify HTTPS, session storage, private-file rules, and protected QR/report
   workflows on the actual server; confirm its PHP version before runtime changes.
@@ -50,6 +56,12 @@ another session of the configured event. Existing attendance is not duplicated.
 Attendance and audit commit together, and server-held reviews prevent replay and
 stale/concurrent decisions. Version-2 audit JSON distinguishes automation from
 staff confirmation without rewriting old snapshots or changing the schema.
+
+The clear automatic path now shows progress followed by a saved/already-recorded
+result, without the normal session selector or confirmation controls. Manual
+review remains for warnings/outside periods; a collapsed fallback handles
+unavailable automation without pretending that attendance was saved. Live and
+test-lab QR screens share these presentation states and security checks.
 
 Deploy the additive migration using `makim dev.qr-migrate` after backing up
 the database; `makim dev.qr-tests` runs deterministic in-memory SQLite checks

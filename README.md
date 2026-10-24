@@ -27,12 +27,23 @@ Use the temporary shared `admin` account and the password supplied for this
 deployment. Only its hash is stored in PHP; credentials are not in the React
 bundle. Replace this shared account with individual accounts before broader use.
 
-Sessions expire after 30 minutes of inactivity or 12 hours total. Forms and
+Sessions expire after **8 hours of inactivity or 24 hours total**. Activity renews
+the idle window, not the total limit. Cookies remain browser-session cookies (no
+“remember me”); log out explicitly on shared devices. Short-lived form/review
+tokens keep their existing expiry, independently of login. Forms and
 logout use CSRF protection; login is limited to five failed attempts per IP per
 15 minutes. Issued QR links still work, but staff must log in. Clear in-period
 check-ins can run automatically; other cases require review as described below.
 QR images in emails cannot load anonymously; do not distribute the
 admin credentials to participants.
+
+PHP stores sessions privately under `RINCHEN_AUTH_STATE_DIR/sessions`, with
+24-hour garbage collection rather than the shared PHP directory's shorter default.
+The default parent is application-specific under the system temporary directory;
+configure durable private storage for production as described in
+[hosting instructions](containers/README.md#session-and-rate-limit-storage).
+This storage change requires a one-time login again after deployment; it does
+not migrate existing session files or change application data.
 
 ### Staff QR admission
 
@@ -52,10 +63,20 @@ are illustrative and never restrict admission through this QR flow.**
   rejection rules. A prior denial is changed only by an explicit staff decision.
 - **Already checked in:** the existing record is shown; no duplicate is created.
 
+Clear in-period scans show **Registrando asistencia automáticamente…**, then
+only the saved/already-registered result with the person and session—not the
+session selector or permit/deny controls. A successful new check-in is not also
+labeled “already registered.” Technical failures display an error, never success.
+When an existing attendance is encountered outside a period or during overlapping
+periods, the collapsed **Otra sesión** option can explicitly open the selector
+without writing or changing the existing attendance.
+
 Changing the dropdown refreshes the warnings without recording attendance.
 Without JavaScript, select the period and click **Revisar sesión seleccionada**;
-the **Permitir participación** button also provides a manual fallback when
-automatic submission is unavailable. **Denegar participación** records only a
+on the automatic screen, the collapsed **¿El registro no continúa?** option
+provides **Registrar asistencia** as a manual fallback if JavaScript is disabled,
+unavailable, or automatic submission is suppressed. It is not a required step for
+normal automatic scans. **Denegar participación** on review screens records only a
 session-specific denial. Staff can cancel without writing, and notes are optional.
 Times are shown in Bolivia; attendance records the actual UTC time of check-in,
 not the illustrative session time. Reloading/returning through browser history

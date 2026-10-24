@@ -1,4 +1,4 @@
-"""Isolated HTTP authentication tests. No Composer, SQLite extension, or app data needed."""
+"""Isolated session-storage and HTTP auth tests; no Composer, SQLite, or app data."""
 import http.cookiejar
 import json
 import os
@@ -22,6 +22,186 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+class AuthSessionTest(unittest.TestCase):
+    """Real PHP file sessions in disposable copies, without sockets or real cookies."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='rinchen-session-test-')
+        self.addCleanup(self.temp.cleanup)
+        self.work = Path(self.temp.name)
+        self.web = self.work / 'web'
+        for relative in ('lib/auth.php', 'templates/logout.php'):
+            target = self.web / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / 'src' / relative, target)
+        self.state = self.work / 'auth-state'
+        self.shared = self.work / 'shared-php-sessions'
+        self.shared.mkdir()
+
+    def request(self, *, state=None, https='0', **payload):
+        code = r'''
+$input = json_decode(stream_get_contents(STDIN), true, 512, JSON_THROW_ON_ERROR);
+$web = getenv('AUTH_TEST_WEB');
+$_SERVER['DOCUMENT_ROOT'] = $web;
+$_SERVER['SCRIPT_FILENAME'] = $web . '/templates/logout.php';
+$_SERVER['SCRIPT_NAME'] = ($input['base'] ?? '') . '/templates/logout.php';
+$_SERVER['REQUEST_METHOD'] = $input['method'] ?? 'POST';
+$_SERVER['HTTP_ACCEPT'] = 'application/json';
+$_POST = $input['post'] ?? [];
+ob_start();
+register_shutdown_function(static function (): void {
+    $body = ob_get_clean();
+    $sid = session_id();
+    if (session_status() === PHP_SESSION_ACTIVE) { session_write_close(); }
+    echo json_encode(['status' => http_response_code() ?: 200, 'body' => $body, 'sid' => $sid], JSON_THROW_ON_ERROR);
+});
+if (isset($input['sid'])) { session_id($input['sid']); }
+require $web . '/lib/auth.php';
+if (($input['action'] ?? '') === 'logout') { require $web . '/templates/logout.php'; }
+auth_start();
+if (isset($input['seed'])) {
+    $_SESSION = ['auth_user' => AUTH_ADMIN_USER, 'auth_created' => time() - $input['seed']['created'],
+        'auth_seen' => time() - $input['seed']['seen']];
+    auth_csrf_token();
+}
+if (($input['action'] ?? '') === 'collect') { session_gc(); }
+$loggedIn = auth_logged_in();
+echo json_encode(['logged_in' => $loggedIn, 'session' => $_SESSION, 'cookie' => session_get_cookie_params(),
+    'save_path' => session_save_path(), 'handler' => ini_get('session.save_handler'),
+    'gc_lifetime' => (int) ini_get('session.gc_maxlifetime'), 'gc_probability' => (int) ini_get('session.gc_probability'),
+    'strict' => (int) ini_get('session.use_strict_mode'), 'only_cookies' => (int) ini_get('session.use_only_cookies')], JSON_THROW_ON_ERROR);
+'''
+        result = subprocess.run([
+            'php', '-d', 'display_errors=0', '-d', f'sys_temp_dir={self.work}',
+            '-d', f'session.save_path={self.shared}', '-d', 'session.gc_maxlifetime=1440',
+            '-d', 'session.gc_probability=0', '-r', code,
+        ], input=json.dumps(payload), text=True, capture_output=True, check=True, env={
+            **os.environ, 'AUTH_TEST_WEB': str(self.web), 'RINCHEN_HTTPS': https,
+            'RINCHEN_AUTH_STATE_DIR': str(self.state if state is None else state),
+        })
+        response = json.loads(result.stdout)
+        response['body'] = json.loads(response['body']) if response['body'] else None
+        return response
+
+    def test_private_storage_and_browser_session_cookie_policy(self):
+        for base in ('', '/event-retiro'):
+            for https in ('0', '1'):
+                with self.subTest(base=base, https=https):
+                    response = self.request(base=base, https=https)
+                    self.assertEqual(response['status'], 200)
+                    config = response['body']
+                    directory = self.state / 'sessions'
+                    self.assertEqual(config['save_path'], str(directory))
+                    self.assertEqual(config['handler'], 'files')
+                    self.assertEqual(config['gc_lifetime'], 86400)
+                    self.assertGreater(config['gc_probability'], 0)
+                    self.assertEqual(config['strict'], 1)
+                    self.assertEqual(config['only_cookies'], 1)
+                    self.assertEqual(config['cookie']['lifetime'], 0)
+                    self.assertEqual(config['cookie']['path'], base + '/')
+                    self.assertEqual(config['cookie']['secure'], https == '1')
+                    self.assertTrue(config['cookie']['httponly'])
+                    self.assertEqual(config['cookie']['samesite'], 'Lax')
+                    self.assertEqual(self.state.stat().st_mode & 0o777, 0o700)
+                    self.assertEqual(directory.stat().st_mode & 0o777, 0o700)
+                    self.assertEqual((directory / ('sess_' + response['sid'])).stat().st_mode & 0o777, 0o600)
+        self.assertEqual(list(self.shared.iterdir()), [])
+
+    def test_default_state_directory_is_application_specific_and_private(self):
+        response = self.request(state='')
+        directory = Path(response['body']['save_path'])
+        self.assertEqual(directory.parent.parent, self.work)
+        self.assertTrue(directory.parent.name.startswith('rinchen-auth-'))
+        self.assertEqual(directory.name, 'sessions')
+        self.assertEqual(directory.stat().st_mode & 0o777, 0o700)
+
+    def test_idle_limit_is_eight_hours_and_absolute_limit_is_twenty_four(self):
+        for created, seen, expected in (
+            (3600, 3600, True), (28740, 28740, True), (28800, 28800, False),
+            (28801, 28801, False), (50000, 60, True), (86340, 60, True),
+            (86400, 0, False), (86401, 0, False),
+        ):
+            with self.subTest(created=created, seen=seen):
+                response = self.request(seed={'created': created, 'seen': seen})
+                self.assertEqual(response['body']['logged_in'], expected)
+                if not expected:
+                    self.assertEqual(response['body']['session'], [])
+
+    def test_activity_refreshes_idle_time_but_never_login_time_or_csrf(self):
+        before = int(time.time())
+        first = self.request(seed={'created': 80000, 'seen': 28000})
+        first_state = first['body']['session']
+        self.assertGreaterEqual(first_state['auth_seen'], before)
+        second = self.request(sid=first['sid'])
+        self.assertTrue(second['body']['logged_in'])
+        self.assertEqual(second['body']['session']['auth_created'], first_state['auth_created'])
+        self.assertEqual(second['body']['session']['csrf_token'], first_state['csrf_token'])
+
+    def test_garbage_collection_keeps_long_sessions_and_removes_old_files(self):
+        response = self.request(seed={'created': 7200, 'seen': 7200})
+        directory = Path(response['body']['save_path'])
+        current = directory / ('sess_' + response['sid'])
+        expired = directory / 'sess_expired'
+        expired.write_bytes(current.read_bytes())
+        now = time.time()
+        os.utime(current, (now - 7200, now - 7200))
+        os.utime(expired, (now - 86520, now - 86520))
+        sentinel = self.shared / 'sess_shared'
+        sentinel.write_text('UNRELATED APPLICATION SESSION')
+        response = self.request(action='collect')
+        self.assertEqual(response['status'], 200)
+        self.assertTrue(current.exists())
+        self.assertFalse(expired.exists())
+        self.assertTrue(self.request(sid=current.name[5:])['body']['logged_in'])
+        self.assertEqual(sentinel.read_text(), 'UNRELATED APPLICATION SESSION')
+
+    def test_unsafe_or_unavailable_state_storage_fails_closed(self):
+        public = self.web / 'auth-state'
+        insecure = self.work / 'insecure'
+        insecure.mkdir(mode=0o700)
+        insecure.chmod(0o755)
+        not_directory = self.work / 'file'
+        not_directory.write_text('NOT A DIRECTORY')
+        target = self.work / 'symlink-target'
+        target.mkdir(mode=0o700)
+        link = self.work / 'link'
+        link.symlink_to(target, target_is_directory=True)
+        for directory in (public, insecure, not_directory, link):
+            with self.subTest(directory=directory.name):
+                response = self.request(state=directory)
+                self.assertEqual(response['status'], 503)
+                self.assertFalse(response['body']['success'])
+                self.assertNotIn(str(self.work), response['body']['message'])
+        self.assertEqual(list(self.shared.iterdir()), [])
+        self.assertEqual(list(self.web.rglob('sess_*')), [])
+
+    def test_session_subdirectory_cannot_be_a_symlink_or_world_readable(self):
+        self.state.mkdir(mode=0o700)
+        directory = self.state / 'sessions'
+        directory.symlink_to(self.shared, target_is_directory=True)
+        self.assertEqual(self.request()['status'], 503)
+        directory.unlink()
+        directory.mkdir(mode=0o700)
+        directory.chmod(0o755)
+        self.assertEqual(self.request()['status'], 503)
+
+    def test_unknown_session_id_is_not_adopted(self):
+        response = self.request(sid='unknown-session-id')
+        self.assertNotEqual(response['sid'], 'unknown-session-id')
+        self.assertFalse(response['body']['logged_in'])
+
+    def test_logout_still_requires_csrf_and_removes_the_session(self):
+        for base in ('', '/event-retiro'):
+            response = self.request(base=base, seed={'created': 50000, 'seen': 3600})
+            sid = response['sid']
+            csrf = response['body']['session']['csrf_token']
+            self.assertEqual(self.request(base=base, sid=sid, action='logout')['status'], 403)
+            self.assertTrue(self.request(base=base, sid=sid)['body']['logged_in'])
+            self.assertEqual(self.request(base=base, sid=sid, action='logout', post={'csrf_token': csrf})['status'], 303)
+            self.assertFalse((self.state / 'sessions' / ('sess_' + sid)).exists())
+            self.assertFalse(self.request(base=base, sid=sid)['body']['logged_in'])
+
+
 class AuthHTTPTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -31,10 +211,9 @@ class AuthHTTPTest(unittest.TestCase):
         cls.work = Path(cls.temp.name)
         cls.web = cls.work / 'web'
         cls.web.mkdir()
-        cls.sessions = cls.work / 'sessions'
-        cls.sessions.mkdir(mode=0o700)
         cls.throttle = cls.work / 'throttle'
         cls.throttle.mkdir(mode=0o700)
+        cls.sessions = cls.throttle / 'sessions'
         # Copy code only, never real configuration, databases, or participant QR files.
         for base in ('', 'event-retiro'):
             dest = cls.web / base
@@ -56,7 +235,7 @@ class AuthHTTPTest(unittest.TestCase):
         cls.origin = f'http://127.0.0.1:{port}'
         cls.log = (cls.work / 'server.log').open('w+')
         command = [
-            'php', '-d', f'session.save_path={cls.sessions}', '-d', 'display_errors=0',
+            'php', '-d', 'display_errors=0',
             '-S', f'127.0.0.1:{port}', '-t', str(cls.web), str(ROOT / 'scripts/dev-router.php'),
         ]
         if getattr(cls, 'fake_mail', False):
@@ -97,7 +276,6 @@ DirectoryIndex index.php
 <FilesMatch "\\.php$">
   SetHandler application/x-httpd-php
 </FilesMatch>
-php_value session.save_path "{cls.sessions}"
 php_flag display_errors Off
 """)
             command = ['apache2', '-f', str(config), '-DFOREGROUND']
@@ -172,6 +350,18 @@ php_flag display_errors Off
                     self.assertEqual(status, 303)
                     self.assertTrue(headers['Location'].startswith('/templates/login.php'))
                 self.assertEqual((self.web / 'db.sqlite').read_bytes(), before)
+
+    def test_automatic_checkin_script_is_public_but_qr_directory_stays_private(self):
+        for base in ('', '/event-retiro'):
+            with self.subTest(base=base):
+                status, _, body = self.request(base + '/static/qr-checkin.js?version=regression')
+                self.assertEqual(status, 200)
+                self.assertIn('form.requestSubmit', body)
+                for suffix in ('/static/qr', '/static/qr/', '/static/qr/unknown.jpg'):
+                    self.assertIn(self.request(base + suffix)[0], (403, 404))
+                status, _, body = self.request(base + '/static/qr/' + 'a' * 64 + '.jpg')
+                self.assertEqual(status, 303)
+                self.assertNotIn('PRIVATE QR SENTINEL', body)
 
     def test_json_and_posts_do_not_redirect_or_mutate_before_auth(self):
         for route in ('event', 'event-session', 'subscription', 'attendance'):
@@ -252,19 +442,25 @@ php_flag display_errors Off
                 self.assertIn(self.request(path)[0], (403, 404), path)
 
     def test_idle_and_absolute_expiration(self):
-        for key, age in (('auth_seen', 1801), ('auth_created', 43201)):
-            self.jar.clear()
-            self.login()
-            sid = next(c for c in self.jar if c.name == 'rinchen_session').value
-            file = self.sessions / ('sess_' + sid)
-            state = file.read_text()
-            file.write_text(re.sub(rf'{key}\|i:\d+;', f'{key}|i:{int(time.time()) - age};', state))
-            self.assertEqual(self.request('/templates/session.php')[0], 401)
+        for base in ('', '/event-retiro'):
+            for key, age, expected in (
+                ('auth_seen', 3600, 200), ('auth_seen', 28740, 200), ('auth_seen', 28801, 401),
+                ('auth_created', 50000, 200), ('auth_created', 86340, 200), ('auth_created', 86401, 401),
+            ):
+                with self.subTest(base=base, key=key, age=age):
+                    self.jar.clear()
+                    self.login(base)
+                    sid = next(c for c in self.jar if c.name == 'rinchen_session').value
+                    file = self.sessions / ('sess_' + sid)
+                    state = file.read_text()
+                    file.write_text(re.sub(rf'{key}\|i:\d+;', f'{key}|i:{int(time.time()) - age};', state))
+                    self.assertEqual(self.request(base + '/templates/session.php')[0], expected)
 
     def test_https_cookie_policy(self):
         code = "require 'src/lib/auth.php'; auth_start(); echo json_encode(session_get_cookie_params());"
-        result = subprocess.run(['php', '-d', f'session.save_path={self.sessions}', '-r', code],
-                                cwd=ROOT, env={**os.environ, 'RINCHEN_HTTPS': '1'},
+        result = subprocess.run(['php', '-r', code],
+                                cwd=ROOT, env={**os.environ, 'RINCHEN_HTTPS': '1',
+                                               'RINCHEN_AUTH_STATE_DIR': str(self.throttle)},
                                 text=True, capture_output=True, check=True)
         policy = json.loads(result.stdout)
         self.assertTrue(policy['secure'])

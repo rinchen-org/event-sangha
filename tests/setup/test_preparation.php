@@ -22,7 +22,7 @@ function preparation_apply(SQLite3 $db, string $selection = ''): array {
 $tests = [
     'fresh setup, UTC schedule, repeat no-op and no side-effect data' => static function (SQLite3 $db, string $path): void {
         $initial = EventSetup::preparationStatus($db);
-        preparation_check(count($initial['schema']) === 10, 'Missing initial schema steps.');
+        preparation_check(count($initial['schema']) === 12, 'Missing initial schema steps.');
         preparation_check((int) $db->querySingle('SELECT count(*) FROM sqlite_master') === 0, 'Review initialized the real schema.');
         preparation_check(preparation_apply($db)['changed'], 'Initial preparation did not run.');
         preparation_check((int) $db->querySingle('SELECT count(*) FROM event_session') === 6, 'Expected six sessions.');

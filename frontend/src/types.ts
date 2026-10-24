@@ -21,6 +21,7 @@ export interface SubscriptionRecord {
   phone: string;
   active: number;
   datetime: string;
+  registered_at?: string;
 }
 export interface AttendanceRecord {
   id: number;
@@ -37,6 +38,12 @@ export interface AppData {
   subscriptions: SubscriptionRecord[];
   attendance: AttendanceRecord[];
 }
+export interface EventDetailData {
+  event: EventRecord;
+  sessions: SessionRecord[];
+  subscriptions: SubscriptionRecord[];
+  attendance: AttendanceRecord[];
+}
 export type Page = 'inicio' | 'eventos' | 'sesiones' | 'participantes' | 'asistencia' | 'informes';
 export type FormKind = 'event' | 'session' | 'subscription' | 'attendance' | 'upload';
-export interface Editor { kind: FormKind; id?: number }
+export interface Editor { kind: FormKind; id?: number; eventId?: number }

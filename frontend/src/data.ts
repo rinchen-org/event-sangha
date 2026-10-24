@@ -1,4 +1,4 @@
-import type { AppData } from './types';
+import type { AppData, EventDetailData } from './types';
 
 export const emptyData: AppData = { events: [], sessions: [], subscriptions: [], attendance: [] };
 export const preview = import.meta.env.DEV && new URLSearchParams(location.search).get('preview') === '1';
@@ -14,8 +14,7 @@ export class AuthenticationError extends Error {
   constructor() { super('Tu sesión ha caducado. Inicia sesión para continuar.'); }
 }
 
-export async function loadData(signal: AbortSignal, onTestMode?: (enabled: boolean) => void): Promise<AppData> {
-  if (preview) return (await import('./preview')).previewData;
+async function loadSession(signal: AbortSignal, onTestMode?: (enabled: boolean) => void) {
   csrfToken = '';
   const session = await fetch(legacyUrl('session.php'), { signal, credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } });
   if (session.status === 401) throw new AuthenticationError();
@@ -24,6 +23,27 @@ export async function loadData(signal: AbortSignal, onTestMode?: (enabled: boole
   if (!identity.success || typeof identity.csrfToken !== 'string') throw new Error('La sesión del servidor no es válida.');
   csrfToken = identity.csrfToken;
   if (!signal.aborted) onTestMode?.(identity.testMode === true);
+}
+
+export async function loadEventData(eventId: number, signal: AbortSignal): Promise<EventDetailData> {
+  if (preview) return (await import('./preview')).previewEventData(eventId);
+  await loadSession(signal);
+  const response = await fetch(legacyUrl(`event/detail.php?format=json&event_id=${eventId}`), {
+    signal, credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' },
+  });
+  if (response.status === 401) throw new AuthenticationError();
+  if (response.status === 404) throw new Error('El evento no existe. Vuelve a la lista de eventos.');
+  if (!response.ok) throw new Error('No pudimos cargar este evento. Vuelve a intentarlo.');
+  const body = await response.json();
+  if (!body.success || body.data?.event?.id !== eventId || !['subscriptions', 'sessions', 'attendance'].every(key => Array.isArray(body.data[key]))) {
+    throw new Error('La respuesta del evento no es válida.');
+  }
+  return body.data;
+}
+
+export async function loadData(signal: AbortSignal, onTestMode?: (enabled: boolean) => void): Promise<AppData> {
+  if (preview) return (await import('./preview')).previewData;
+  await loadSession(signal, onTestMode);
   const endpoints = {
     events: 'event/list.php', sessions: 'event-session/list.php',
     subscriptions: 'subscription/list.php', attendance: 'attendance/list.php',

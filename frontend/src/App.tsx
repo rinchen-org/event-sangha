@@ -1,8 +1,8 @@
 import { TestEmailSender } from './components/TestEmailSender';
 import { useEffect, useRef, useState } from 'react';
 import { LogOut, ArrowDownToLine, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Flower2, LayoutDashboard, ListChecks, Menu, Plus, RefreshCw, Sprout, Upload, Users, X, ChartNoAxesCombined } from 'lucide-react';
-import type { AppData, Editor as EditorType, Page, SubscriptionRecord } from './types';
-import { AuthenticationError, getCsrfToken, loginUrl, dateValue, downloadCsv, emptyData, eventStatus, formatDate, initials, legacyUrl, loadData, matchesSearch, preview } from './data';
+import type { AppData, EventDetailData, Editor as EditorType, Page, SubscriptionRecord } from './types';
+import { AuthenticationError, getCsrfToken, loginUrl, dateValue, downloadCsv, emptyData, eventStatus, formatDate, initials, legacyUrl, loadData, loadEventData, matchesSearch, preview } from './data';
 import { Editor } from './components/Editor';
 import { Empty, EventCard, SearchInput, SectionTitle } from './components/Shared';
 import logo from '../../src/static/images/logo-head-square.png';
@@ -24,12 +24,14 @@ const titles: Record<Page, [string, string]> = {
   informes: ['Una mirada a lo compartido.', 'Consulta la participación y prepara tus informes.'],
 };
 function currentPage(): Page {
-  const id = location.hash.slice(1);
+  const id = location.hash.slice(1).split('/')[0];
   return navigation.some(n => n.id === id) ? id as Page : 'inicio';
 }
 
 export function App() {
   const [page, setPage] = useState<Page>(currentPage);
+  const [route, setRoute] = useState(location.hash);
+  const eventRoute = page === 'eventos' && route.startsWith('#eventos/') ? route.slice(9) : null;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [smallScreen, setSmallScreen] = useState(() => window.matchMedia?.('(max-width: 760px)').matches ?? false);
   const sidebar = useRef<HTMLElement>(null);
@@ -56,7 +58,7 @@ export function App() {
     return () => window.removeEventListener('pageshow', restore);
   }, []);
   useEffect(() => {
-    const change = () => { setPage(currentPage()); setMobileOpen(false); };
+    const change = () => { setPage(currentPage()); setRoute(location.hash); setMobileOpen(false); };
     window.addEventListener('hashchange', change);
     return () => window.removeEventListener('hashchange', change);
   }, []);
@@ -85,11 +87,10 @@ export function App() {
     document.addEventListener('keydown', escape);
     return () => document.removeEventListener('keydown', escape);
   }, [mobileOpen]);
-  const active = data.subscriptions.filter(s => s.active === 1).length;
   const open = (kind: EditorType['kind'], id?: number) => setEditor({ kind, id });
   const ready = !loading && !error;
   return <div className="app-shell">
-    <a className="skip-link" href="#main-content" onClick={e => { e.preventDefault(); heading.current?.focus(); }}>Saltar al contenido</a>
+    <a className="skip-link" href="#main-content" onClick={e => { e.preventDefault(); (heading.current || document.querySelector<HTMLHeadingElement>('.event-detail h1'))?.focus(); }}>Saltar al contenido</a>
     <aside ref={sidebar} className={`sidebar ${mobileOpen ? 'is-open' : ''}`} inert={smallScreen && !mobileOpen}>
       <button className="icon-button sidebar-close" aria-label="Cerrar navegación" onClick={() => { setMobileOpen(false); menuButton.current?.focus(); }}><X size={20} /></button>
       <a href="#inicio" className="brand" aria-label="Rinchen, inicio"><img src={logo} alt="" /><span>rinchen<span className="brand-subtitle">SAKYA RINCHEN LING</span></span></a>
@@ -105,23 +106,20 @@ export function App() {
       <main id="main-content">
         {preview && <div className="preview-banner"><Sprout size={16} /> Vista previa · Datos de ejemplo · No se guardan cambios</div>}
         {notice && <div className="notice" role="status"><p>{notice}</p><button className="icon-button" aria-label="Cerrar ayuda" onClick={() => setNotice('')}><X size={18} /></button></div>}
-        <div className="page-heading"><div><span className="eyebrow">{page === 'inicio' ? 'NUESTRA COMUNIDAD' : navigation.find(n => n.id === page)?.label.toUpperCase()}</span><h1 ref={heading} tabIndex={-1}>{titles[page][0]}</h1><p>{titles[page][1]}</p></div><button className="button primary" disabled={!ready} onClick={() => open(page === 'sesiones' ? 'session' : page === 'asistencia' ? 'attendance' : page === 'participantes' ? 'subscription' : 'event')}><Plus size={17} />{page === 'sesiones' ? 'Nueva sesión' : page === 'asistencia' ? 'Registrar asistencia' : page === 'participantes' ? 'Nueva inscripción' : 'Crear evento'}</button></div>
+        {eventRoute === null && <div className="page-heading"><div><span className="eyebrow">{page === 'inicio' ? 'NUESTRA COMUNIDAD' : navigation.find(n => n.id === page)?.label.toUpperCase()}</span><h1 ref={heading} tabIndex={-1}>{titles[page][0]}</h1><p>{titles[page][1]}</p></div><button className="button primary" disabled={!ready} onClick={() => open(page === 'sesiones' ? 'session' : page === 'asistencia' ? 'attendance' : page === 'participantes' ? 'subscription' : 'event')}><Plus size={17} />{page === 'sesiones' ? 'Nueva sesión' : page === 'asistencia' ? 'Registrar asistencia' : page === 'participantes' ? 'Nueva inscripción' : 'Crear evento'}</button></div>}
         {page === 'inicio' && <TestEmailSender />}
         {page === 'inicio' && <section className="panel setup-event-panel"><div><h2>Evento de noviembre de 2026</h2><p>Comprueba la base y las sesiones; completa solo los pasos pendientes.</p></div>{preview ? <button className="button secondary" disabled>Preparar evento 2026</button> : <a className="button secondary" href={legacyUrl('../scripts/setup.php?mode=prepare2026')}><CalendarDays size={17} /> Preparar evento 2026</a>}</section>}
-        {loading ? <div className="loading-state" role="status"><RefreshCw className="spin" size={23} /><span>Preparando tu espacio…</span></div> : error ? <div className="connection-state" role="alert"><CircleHelp size={34} strokeWidth={1.2} /><h2>{authRequired ? 'Inicia sesión para continuar' : 'Volvamos a conectar'}</h2><p>{error}</p>{authRequired ? <a className="button primary" href={loginUrl()}>Iniciar sesión</a> : <button className="button primary" onClick={() => setRevision(r => r + 1)}><RefreshCw size={16} /> Volver a intentar</button>}</div> : <>
+        {eventRoute !== null ? <EventDetail key={eventRoute.split('/')[0]} route={eventRoute} /> : loading ? <div className="loading-state" role="status"><RefreshCw className="spin" size={23} /><span>Preparando tu espacio…</span></div> : error ? <div className="connection-state" role="alert"><CircleHelp size={34} strokeWidth={1.2} /><h2>{authRequired ? 'Inicia sesión para continuar' : 'Volvamos a conectar'}</h2><p>{error}</p>{authRequired ? <a className="button primary" href={loginUrl()}>Iniciar sesión</a> : <button className="button primary" onClick={() => setRevision(r => r + 1)}><RefreshCw size={16} /> Volver a intentar</button>}</div> : <>
           {page === 'inicio' && <>
-            <section className="stats" aria-label="Resumen de la comunidad">{[
+            <section className="stats event-overview-stats" aria-label="Resumen de los eventos">{[
               { title: 'Eventos', value: data.events.length, note: `${data.events.filter(e => eventStatus(e.start_date, e.end_date).className !== 'neutral').length} próximos o en curso`, icon: CalendarDays, color: 'rose' },
-              { title: 'Participantes', value: data.subscriptions.length, note: 'Inscripciones de la comunidad', icon: Users, color: 'sand' },
-              { title: 'Inscripciones activas', value: active, note: 'Listas para el encuentro', icon: Check, color: 'sage' },
-              { title: 'Asistencias', value: data.attendance.length, note: 'Encuentros compartidos', icon: ListChecks, color: 'lilac' },
+              { title: 'Sesiones', value: data.sessions.length, note: 'Agenda de los encuentros', icon: Clock3, color: 'sage' },
             ].map(({ title, value, note, icon: Icon, color }) => <div className="stat" key={title}><div className="stat-top"><span>{title}</span><span className={`stat-icon ${color}`}><Icon size={19} strokeWidth={1.6} /></span></div><strong>{value.toLocaleString('es-BO')}</strong><small>{note}</small></div>)}</section>
             <section className="welcome-banner"><div><span className="eyebrow">VOLVER A LO ESENCIAL</span><h2>Hacer espacio para<br /><em>lo que nos une.</em></h2><p>Cada enseñanza, cada práctica, cada encuentro.<br />Todo empieza con nuestra comunidad.</p><a href="#eventos" className="banner-link">Explorar los eventos <ArrowRight size={17} /></a></div><div className="zen-art" aria-hidden="true"><span className="zen-orbit" /><span className="zen-orbit orbit-two" /><span className="zen-sun" /><span className="zen-stone stone-one" /><span className="zen-stone stone-two" /><span className="zen-stone stone-three" /><span className="zen-base" /><Flower2 className="zen-flower" size={100} strokeWidth={0.6} /></div><span className="banner-caption">PRESENCIA · SABIDURÍA · COMPASIÓN</span></section>
-            <div className="dashboard-grid"><section><SectionTitle title="Nuestros encuentros" subtitle="Espacios para aprender y compartir."><a className="text-link" href="#eventos">Ver todos <ArrowRight size={16} /></a></SectionTitle><div className="event-grid compact">{[...data.events].sort((a, b) => dateValue(b.start_date).getTime() - dateValue(a.start_date).getTime()).slice(0, 2).map((event, i) => <EventCard key={event.id} event={event} index={i} sessions={data.sessions.filter(s => s.event_id === event.id).length} onSelect={() => open('event', event.id)} />)}</div>{!data.events.length && <Empty title="El próximo encuentro empieza aquí">Crea tu primer evento para reunir a la comunidad.</Empty>}</section>
+            <div className="dashboard-grid"><section><SectionTitle title="Nuestros encuentros" subtitle="Espacios para aprender y compartir."><a className="text-link" href="#eventos">Ver todos <ArrowRight size={16} /></a></SectionTitle><div className="event-grid compact">{[...data.events].sort((a, b) => dateValue(b.start_date).getTime() - dateValue(a.start_date).getTime()).slice(0, 2).map((event, i) => <EventCard key={event.id} event={event} index={i} sessions={data.sessions.filter(s => s.event_id === event.id).length} />)}</div>{!data.events.length && <Empty title="El próximo encuentro empieza aquí">Crea tu primer evento para reunir a la comunidad.</Empty>}</section>
               <section className="agenda-panel"><SectionTitle title="En la agenda"><a className="icon-button" href="#sesiones" aria-label="Ver todas las sesiones"><ArrowUpRight size={18} /></a></SectionTitle><Agenda data={data} open={id => open('session', id)} /><div className="agenda-footer"><Clock3 size={14} /> Hora de Bolivia (GMT−4)</div></section></div>
-            <section className="panel recent-panel"><SectionTitle title="La comunidad crece" subtitle="Últimas inscripciones"><a href="#participantes" className="text-link">Ver participantes <ArrowRight size={16} /></a></SectionTitle><ParticipantTable rows={[...data.subscriptions].sort((a, b) => dateValue(b.datetime).getTime() - dateValue(a.datetime).getTime()).slice(0, 4)} compact /></section>
           </>}
-          {page === 'eventos' && <Events data={data} open={id => open('event', id)} />}
+          {page === 'eventos' && <Events data={data} />}
           {page === 'sesiones' && <Sessions data={data} open={id => open('session', id)} />}
           {page === 'participantes' && <Participants data={data} upload={() => open('upload')} />}
           {page === 'asistencia' && <Attendance data={data} />}
@@ -133,30 +131,69 @@ export function App() {
     {editor && <Editor editor={editor} data={data} close={() => setEditor(null)} />}
   </div>;
 }
+function EventDetail({ route }: { route: string }) {
+  const [rawId, rawTab] = route.split('/');
+  const eventId = /^[1-9][0-9]*$/.test(rawId) && Number.isSafeInteger(Number(rawId)) ? Number(rawId) : 0;
+  const tab = ['participantes', 'sesiones', 'asistencia'].includes(rawTab) ? rawTab : 'participantes';
+  const [detail, setDetail] = useState<EventDetailData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [authRequired, setAuthRequired] = useState(false);
+  const [revision, setRevision] = useState(0);
+  const [editor, setEditor] = useState<EditorType | null>(null);
+  const title = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    setDetail(null); setError(''); setAuthRequired(false); setLoading(true);
+    if (!eventId) { setError('El evento no existe. Vuelve a la lista de eventos.'); setLoading(false); return; }
+    loadEventData(eventId, controller.signal).then(result => { if (!controller.signal.aborted) setDetail(result); })
+      .catch(failure => { if (!controller.signal.aborted) { setAuthRequired(failure instanceof AuthenticationError); setError(failure instanceof Error ? failure.message : 'No pudimos cargar este evento.'); } })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [eventId, revision]);
+  useEffect(() => {
+    if (detail) { document.title = `${detail.event.name} · Rinchen`; title.current?.focus(); }
+  }, [detail, tab]);
+  if (loading) return <div className="loading-state" role="status"><RefreshCw className="spin" size={23} /> Cargando evento…</div>;
+  if (error || !detail) return <section className="connection-state" role="alert"><h1>{authRequired ? 'Inicia sesión para continuar' : 'No se pudo abrir el evento'}</h1><p>{error}</p>{authRequired ? <a className="button primary" href={loginUrl()}>Iniciar sesión</a> : <button className="button primary" onClick={() => setRevision(value => value + 1)}>Volver a intentar</button>}<a href="#eventos">Volver a eventos</a></section>;
+  const data: AppData = { events: [detail.event], sessions: detail.sessions, subscriptions: detail.subscriptions, attendance: detail.attendance };
+  return <section className="event-detail" aria-label="Detalle del evento">
+    <a className="text-link" href="#eventos"><ChevronLeft size={16} /> Todos los eventos</a>
+    <div className="page-heading"><div><span className="eyebrow">ENCUENTRO</span><h1 ref={title} tabIndex={-1}>{detail.event.name}</h1><p>{detail.event.description}</p><p>{formatDate(detail.event.start_date)} – {formatDate(detail.event.end_date)} · Bolivia</p></div><button className="button secondary" onClick={() => setEditor({ kind: 'event', id: eventId, eventId })}>Editar evento</button></div>
+    <div className="toolbar event-detail-tools"><div className="toolbar-actions"><button className="button primary" onClick={() => setEditor({ kind: 'upload', eventId })}><Upload size={17} /> Importar CSV al evento</button>{preview ? <button className="button secondary" disabled>Vincular inscripción existente</button> : <a className="button secondary" href={legacyUrl(`event/register.php?event_id=${eventId}`)}>Vincular inscripción existente</a>}</div><button className="icon-button" aria-label="Actualizar evento" onClick={() => setRevision(value => value + 1)}><RefreshCw size={17} /></button></div>
+    <nav className="tabs event-tabs" aria-label="Secciones del evento">{[
+      ['participantes', 'Participantes', detail.subscriptions.length], ['sesiones', 'Sesiones', detail.sessions.length], ['asistencia', 'Asistencia', detail.attendance.length],
+    ].map(([id, label, count]) => <a key={id} className={tab === id ? 'active' : ''} aria-current={tab === id ? 'page' : undefined} href={`#eventos/${eventId}/${id}`}>{label} <span>{count}</span></a>)}</nav>
+    {tab === 'participantes' && <><p className="event-context-note">Solo se muestran las inscripciones vinculadas a este evento. Las inscripciones anteriores no se asignan automáticamente: puedes vincularlas explícitamente o importar su CSV. El estado mostrado es general; vincular no lo modifica.</p><Participants key={eventId} data={data} eventScoped upload={() => setEditor({ kind: 'upload', eventId })} /></>}
+    {tab === 'sesiones' && <><div className="toolbar"><h2>Sesiones de este evento</h2><button className="button secondary" onClick={() => setEditor({ kind: 'session', eventId })}><Plus size={17} /> Nueva sesión</button></div><Sessions data={data} open={id => setEditor({ kind: 'session', id, eventId })} /></>}
+    {tab === 'asistencia' && <><p className="event-context-note">Asistencias registradas en las sesiones de este evento, incluidas las históricas aunque la persona aún no esté vinculada. Los QR existentes siguen usando el evento configurado para admisión; abrir esta página no cambia esa selección.</p><Attendance data={data} /></>}
+    {editor && <Editor editor={editor} data={data} close={() => setEditor(null)} />}
+  </section>;
+}
 function Agenda({ data, open }: { data: AppData; open: (id: number) => void }) {
   const sessions = [...data.sessions].filter(s => dateValue(s.end_date).getTime() >= Date.now()).sort((a, b) => dateValue(a.start_date).getTime() - dateValue(b.start_date).getTime()).slice(0, 3);
   return sessions.length ? <div className="agenda-list">{sessions.map(s => <button className="agenda-item" key={s.id} onClick={() => open(s.id)}><span className="date-tile"><strong>{formatDate(s.start_date, { day: '2-digit' })}</strong><small>{formatDate(s.start_date, { month: 'short' }).replace('.', '')}</small></span><span><strong>{s.name}</strong><small>{formatDate(s.start_date, { hour: '2-digit', minute: '2-digit' })} · {s.event_name}</small></span></button>)}</div> : <Empty title="Tiempo para un nuevo encuentro">Las próximas sesiones aparecerán aquí.</Empty>;
 }
-function Events({ data, open }: { data: AppData; open: (id: number) => void }) {
+function Events({ data }: { data: AppData }) {
   const [search, setSearch] = useState(''); const [filter, setFilter] = useState('all');
   const rows = data.events.filter(e => matchesSearch([e.name, e.description], search) && (filter === 'all' || (filter === 'upcoming' ? eventStatus(e.start_date, e.end_date).className !== 'neutral' : eventStatus(e.start_date, e.end_date).className === 'neutral')));
-  return <><div className="toolbar"><div className="tabs" aria-label="Filtrar eventos">{[['all', 'Todos'], ['upcoming', 'Próximos y en curso'], ['past', 'Finalizados']].map(([key, label]) => <button key={key} className={filter === key ? 'active' : ''} aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}</button>)}</div><SearchInput value={search} onChange={setSearch} placeholder="Buscar eventos…" /></div><div className="event-grid">{rows.map((e, i) => <EventCard key={e.id} event={e} index={i} sessions={data.sessions.filter(s => s.event_id === e.id).length} onSelect={() => open(e.id)} />)}</div>{!rows.length && <Empty title={search ? 'No encontramos ese encuentro' : 'Aún no hay eventos en esta vista'}>Prueba otro filtro o crea un nuevo evento.</Empty>}</>;
+  return <><div className="toolbar"><div className="tabs" aria-label="Filtrar eventos">{[['all', 'Todos'], ['upcoming', 'Próximos y en curso'], ['past', 'Finalizados']].map(([key, label]) => <button key={key} className={filter === key ? 'active' : ''} aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}</button>)}</div><SearchInput value={search} onChange={setSearch} placeholder="Buscar eventos…" /></div><div className="event-grid">{rows.map((e, i) => <EventCard key={e.id} event={e} index={i} sessions={data.sessions.filter(s => s.event_id === e.id).length} />)}</div>{!rows.length && <Empty title={search ? 'No encontramos ese encuentro' : 'Aún no hay eventos en esta vista'}>Prueba otro filtro o crea un nuevo evento.</Empty>}</>;
 }
 function Sessions({ data, open }: { data: AppData; open: (id: number) => void }) {
   const [filter, setFilter] = useState('all');
   const rows = [...data.sessions].filter(s => filter === 'all' || String(s.event_id) === filter).sort((a, b) => dateValue(a.start_date).getTime() - dateValue(b.start_date).getTime());
   return <section className="panel"><div className="toolbar panel-toolbar"><h2>Agenda de sesiones</h2><select aria-label="Filtrar por evento" value={filter} onChange={e => setFilter(e.target.value)}><option value="all">Todos los eventos</option>{data.events.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select></div>{rows.length ? <div className="session-list">{rows.map(s => <button className="session-row" key={s.id} onClick={() => open(s.id)}><span className="date-tile"><strong>{formatDate(s.start_date, { day: '2-digit' })}</strong><small>{formatDate(s.start_date, { month: 'short' })}</small></span><span className="session-name"><strong>{s.name}</strong><small>{s.event_name}</small></span><span className="session-time"><Clock3 size={15} />{formatDate(s.start_date, { hour: '2-digit', minute: '2-digit' })} – {formatDate(s.end_date, { hour: '2-digit', minute: '2-digit' })}<small>{formatDate(s.start_date)}</small></span><ArrowUpRight size={19} /></button>)}</div> : <Empty title="Tu agenda tiene espacio">Crea una sesión para comenzar.</Empty>}<div className="table-footer">{rows.length} sesiones · Hora de Bolivia</div></section>;
 }
-function Participants({ data, upload }: { data: AppData; upload: () => void }) {
+function Participants({ data, upload, eventScoped = false }: { data: AppData; upload: () => void; eventScoped?: boolean }) {
   const [search, setSearch] = useState(''); const [filter, setFilter] = useState('all'); const [page, setPage] = useState(0);
   const rows = data.subscriptions.filter(s => matchesSearch([s.fullname, s.email, s.phone], search) && (filter === 'all' || String(s.active) === filter));
   const pages = Math.max(1, Math.ceil(rows.length / 10));
-  return <section className="panel"><div className="toolbar panel-toolbar"><SearchInput value={search} onChange={s => { setSearch(s); setPage(0); }} placeholder="Buscar nombre, correo o teléfono…" /><div className="toolbar-actions"><select aria-label="Estado de inscripción" value={filter} onChange={e => { setFilter(e.target.value); setPage(0); }}><option value="all">Todos los estados</option><option value="1">Activas</option><option value="0">Inactivas</option></select><button className="button secondary" onClick={upload}><Upload size={16} /> Importar CSV</button></div></div><ParticipantTable rows={rows.slice(page * 10, page * 10 + 10)} /><div className="table-footer"><span>{rows.length} participantes</span><div className="pagination"><button className="icon-button" aria-label="Página anterior" disabled={page === 0} onClick={() => setPage(p => p - 1)}><ChevronLeft size={18} /></button><span>{page + 1} de {pages}</span><button className="icon-button" aria-label="Página siguiente" disabled={page + 1 >= pages} onClick={() => setPage(p => p + 1)}><ChevronRight size={18} /></button></div></div></section>;
+  return <section className="panel"><div className="toolbar panel-toolbar"><SearchInput value={search} onChange={s => { setSearch(s); setPage(0); }} placeholder="Buscar nombre, correo o teléfono…" /><div className="toolbar-actions"><select aria-label="Estado de inscripción" value={filter} onChange={e => { setFilter(e.target.value); setPage(0); }}><option value="all">Todos los estados</option><option value="1">Activas</option><option value="0">Inactivas</option></select><button className="button secondary" onClick={upload}><Upload size={16} /> Importar CSV</button></div></div><ParticipantTable rows={rows.slice(page * 10, page * 10 + 10)} eventScoped={eventScoped} /><div className="table-footer"><span>{rows.length} participantes</span><div className="pagination"><button className="icon-button" aria-label="Página anterior" disabled={page === 0} onClick={() => setPage(p => p - 1)}><ChevronLeft size={18} /></button><span>{page + 1} de {pages}</span><button className="icon-button" aria-label="Página siguiente" disabled={page + 1 >= pages} onClick={() => setPage(p => p + 1)}><ChevronRight size={18} /></button></div></div></section>;
 }
-function ParticipantTable({ rows, compact = false }: { rows: SubscriptionRecord[]; compact?: boolean }) {
+function ParticipantTable({ rows, eventScoped = false }: { rows: SubscriptionRecord[]; eventScoped?: boolean }) {
   const [selected, setSelected] = useState<number | null>(null);
   if (!rows.length) return <Empty title="No hay participantes en esta vista">Las nuevas inscripciones aparecerán aquí. Si estás buscando, prueba otro nombre.</Empty>;
-  return <div className="table-scroll" tabIndex={0} role="region" aria-label="Lista de participantes"><table><thead><tr><th>Participante</th><th>Contacto</th><th>Inscripción</th><th>Estado</th>{!compact && <th><span className="sr-only">Acciones</span></th>}</tr></thead><tbody>{rows.map(s => <tr key={s.id}><td><div className="person"><span className={`person-avatar avatar-${s.id % 4}`}>{initials(s.fullname)}</span><span><strong>{s.fullname}</strong><small>#{String(s.id).padStart(4, '0')}</small></span></div></td><td><span className="cell-email">{s.email}</span><small>{s.phone}</small></td><td>{formatDate(s.datetime)}</td><td><span className={`badge ${s.active === 1 ? 'active' : 'neutral'}`}><span className="badge-dot" />{s.active === 1 ? 'Activa' : 'Inactiva'}</span></td>{!compact && <td><button className="icon-button" aria-label={`Acciones de ${s.fullname}`} aria-expanded={selected === s.id} onClick={() => setSelected(selected === s.id ? null : s.id)}><ArrowUpRight size={18} /></button>{selected === s.id && <div className="row-actions"><LegacyAction path="subscription/activation.php" label={s.active === 1 ? 'Desactivar' : 'Activar'} fields={{ id: s.id, active: s.active === 1 ? 0 : 1 }} /><LegacyAction path="subscription/resend_email.php" label="Reenviar correo" fields={{ id: s.id }} /><LegacyAction path="subscription/log_attendance.php" label="Registrar asistencia" fields={{ id: s.id }} /><LegacyAction path="subscription/log_attendance_force.php" label="Forzar asistencia" fields={{ id: s.id }} /></div>}</td>}</tr>)}</tbody></table></div>;
+  return <div className="table-scroll" tabIndex={0} role="region" aria-label="Lista de participantes"><table><thead><tr><th>Participante</th><th>Contacto</th><th>{eventScoped ? 'Vínculo al evento' : 'Inscripción'}</th><th>{eventScoped ? 'Estado general' : 'Estado'}</th>{!eventScoped && <th><span className="sr-only">Acciones</span></th>}</tr></thead><tbody>{rows.map(s => <tr key={s.id}><td><div className="person"><span className={`person-avatar avatar-${s.id % 4}`}>{initials(s.fullname)}</span><span><strong>{s.fullname}</strong><small>#{String(s.id).padStart(4, '0')}</small></span></div></td><td><span className="cell-email">{s.email}</span><small>{s.phone}</small></td><td>{formatDate(eventScoped ? s.registered_at || s.datetime : s.datetime)}</td><td><span className={`badge ${s.active === 1 ? 'active' : 'neutral'}`}><span className="badge-dot" />{s.active === 1 ? 'Activa' : 'Inactiva'}</span></td>{!eventScoped && <td><button className="icon-button" aria-label={`Acciones de ${s.fullname}`} aria-expanded={selected === s.id} onClick={() => setSelected(selected === s.id ? null : s.id)}><ArrowUpRight size={18} /></button>{selected === s.id && <div className="row-actions"><LegacyAction path="subscription/activation.php" label={s.active === 1 ? 'Desactivar' : 'Activar'} fields={{ id: s.id, active: s.active === 1 ? 0 : 1 }} /><LegacyAction path="subscription/resend_email.php" label="Reenviar correo" fields={{ id: s.id }} /><LegacyAction path="subscription/log_attendance.php" label="Registrar asistencia" fields={{ id: s.id }} /><LegacyAction path="subscription/log_attendance_force.php" label="Forzar asistencia" fields={{ id: s.id }} /></div>}</td>}</tr>)}</tbody></table></div>;
 }
 function LegacyAction({ path, fields, label }: { path: string; fields: Record<string, number>; label: string }) {
   return <form action={legacyUrl(path)} method="POST" onSubmit={e => { if (preview) e.preventDefault(); }}>

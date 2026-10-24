@@ -43,6 +43,9 @@ jobs:
     - name: Authentication HTTP tests (isolated temporary files)
       run: python tests/auth/test_auth.py
 
+    - name: Event registrations and scoped CSV imports (isolated, fake QR and mail)
+      run: makim dev.event-tests
+
     - name: Staff QR admission tests (isolated temporary SQLite)
       run: makim dev.qr-tests
 

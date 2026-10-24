@@ -11,7 +11,7 @@ export function Editor({ editor, data, close }: { editor: EditorType; data: AppD
   const [message, setMessage] = useState('');
   const event = data.events.find(e => e.id === editor.id);
   const session = data.sessions.find(e => e.id === editor.id);
-  const [eventId, setEventId] = useState(String(session?.event_id || data.events[0]?.id || ''));
+  const [eventId, setEventId] = useState(String(editor.eventId || session?.event_id || (editor.kind === 'upload' ? '' : data.events[0]?.id) || ''));
   const [startDate, setStartDate] = useState(editor.kind === 'event' && event ? inputDate(event.start_date) : editor.kind === 'session' && session ? inputDate(session.start_date, true) : '');
   const [force, setForce] = useState(false);
   useEffect(() => {
@@ -61,7 +61,12 @@ export function Editor({ editor, data, close }: { editor: EditorType; data: AppD
           <label className="checkbox-label"><input type="checkbox" checked={force} onChange={e => setForce(e.target.checked)} /> Registrar como excepción</label>
           <p className="form-note">{force ? 'La excepción omite las comprobaciones habituales de asistencia. Úsala solo si corresponde.' : 'Se comprobarán el horario y los requisitos de asistencia de la sesión.'}</p>
         </>}
-        {editor.kind === 'upload' && <label className="upload-zone"><Upload size={30} /><strong>Selecciona tu archivo CSV</strong><span>El formato se detecta por sus columnas. Las filas vacías se omiten. UTF-8, máximo 5 MB.</span><input name="csv_file" type="file" accept=".csv,text/csv" required /></label>}
+        {editor.kind === 'upload' && <>
+          {editor.eventId ? <><p className="form-note">Evento: <strong>{data.events.find(item => item.id === editor.eventId)?.name}</strong></p><input type="hidden" name="event_id" value={editor.eventId} /></>
+            : <label>Evento de destino<select name="event_id" required value={eventId} onChange={e => setEventId(e.target.value)}><option value="" disabled>Selecciona un evento</option>{data.events.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
+          <label className="upload-zone"><Upload size={30} /><strong>Selecciona tu archivo CSV</strong><span>El formato se detecta por sus columnas. Las filas vacías se omiten. UTF-8, máximo 5 MB.</span><input name="csv_file" type="file" accept=".csv,text/csv" required /></label>
+          <p className="form-note">La revisión mostrará el evento y las advertencias antes de guardar. Las inscripciones existentes se vinculan sin duplicar personas ni reenviar su QR.</p>
+        </>}
         {message && <p role="status" className="inline-message"><Check size={18} />{message}</p>}
         <div className="form-actions"><button type="button" className="button secondary" onClick={close}>Cancelar</button><button className="button primary" disabled={busy}>{busy ? 'Enviando…' : editor.kind === 'upload' ? 'Revisar CSV' : 'Guardar y continuar'}<ArrowRight size={17} /></button></div>
       </form>

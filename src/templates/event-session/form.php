@@ -42,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($eventSession) {
 ?>
     <div><strong>Success!</strong></div>
+    <a class="btn btn-primary" href="<?php echo auth_escape(auth_url('templates/index.php#eventos/' . (int) $eventSession->event->id . '/sesiones')); ?>">Volver al evento</a>
     <div>
         <a href="./list.php" class="btn btn-warning my-3">Back to the list</a>
     </div>

@@ -2052,3 +2052,13 @@ h1[tabindex]:focus-visible {
 .setup-event-panel { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; padding:20px; margin-bottom:24px; }
 .setup-event-panel h2 { margin:0 0 6px; font-size:16px; }
 .setup-event-panel p { margin:0; font-size:13px; line-height:1.6; }
+
+.event-card { text-decoration:none; color:inherit; }
+.event-overview-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.event-detail > .page-heading { margin-top:20px; }
+.event-detail-tools .toolbar-actions { flex-wrap:wrap; }
+.event-tabs { margin:24px 0 12px; flex-wrap:wrap; }
+.event-tabs a { text-decoration:none; color:var(--muted); padding:10px 14px; border-radius:9px; font-size:13px; font-weight:600; }
+.event-tabs a.active { background:var(--wine); color:white; }
+.event-tabs a span { margin-left:6px; opacity:.8; }
+.event-context-note { font-size:13px; line-height:1.7; color:var(--muted); margin-bottom:20px; }

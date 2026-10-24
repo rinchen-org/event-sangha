@@ -480,6 +480,57 @@ recipient/header values from the HTTP request.
 no real delivery. Keep the real-mail legacy `tests/EmailTest.php` excluded from
 routine testing. No diagnostic action should create participant/attendance data.
 
+## Event-centered registration
+
+React event cards open `#eventos/<id>/participantes` (also `sesiones`, `asistencia`),
+not the edit dialog; **Editar evento** is separate. Home no longer shows recent
+global subscriptions. `templates/event/detail.php?format=json&event_id=<id>` is
+authenticated read-only GET returning event/subscriptions/sessions/attendance,
+filtered in PHP by ID. Missing registration schema yields an empty roster without
+creating tables or assigning history; invalid events are 404, technical failures
+503. Keep the existing global list/report/API contracts intact.
+
+`src/lib/event_registration.php` owns membership, scope review and structured
+inactive-state warnings. `event_registration` has primary key (event_id, person_id),
+unique (event_id, subscription_id), and FKs to event/person plus a composite
+(subscription_id, person_id) FK backed by `subscription_id_person_unique`.
+Never assume subscription ID equals person ID. Membership audits retain UTC time,
+shared account, source/profile/row, structured warnings, staff confirmation and
+optional notes. Membership is not an admission gate or per-event activation state.
+Do not infer historical links from attendance, dates, IDs or selected QR event.
+
+`templates/event/register.php` explicitly links existing subscriptions after
+CSRF-protected review and single-use 10-minute confirmation. Event/identity/status
+changes require review again, rechecked under BEGIN IMMEDIATE. Cancel is read-only;
+replays fail. Inactive records can be linked after visible warning/confirmation
+without changing activation. Linking creates no QR/email. Technical/FK failures
+are not overridable warnings. One person can belong to several events.
+
+Scoped CSV review binds event ID and server-evaluated row state to the existing
+token. Confirmation reparses the server-held CSV and re-evaluates warnings; rows
+are rechecked under the write lock. Exact existing subscriptions are linked
+without new QR/email; already-linked rows are skipped. Ambiguous identities or
+multiple subscriptions require explicit staff selection, not automatic merging.
+New person/subscription, membership and CSV audit commit atomically per row;
+mail failure after commit still means saved, not safe-to-retry. Global import
+without event_id remains compatible and explicitly unassigned. React imports
+require a destination event. Event rows omit global/hardcoded-event shortcuts.
+
+The additive schema is shared by setup, confirmed scoped writes and the CLI-only
+`0007_event_registration.php`. Back up before deployment; optionally run
+`makim dev.event-registration-migrate`, never historical migrations. No migration
+runs on GET/review and no backfill is automatic. Existing QR links still follow
+`qr_event_id`; opening an event page never changes it. Session/attendance times
+retain Bolivia/UTC semantics; historical attendance is visible even if unlinked.
+
+`makim dev.event-tests` uses temporary code/SQLite and fake QR/mail. Explicit
+`RINCHEN_TEST_SERVER=cli python tests/auth/test_event_registration.py` runs domain
+and controller checks without sockets; CSV confirmation uses a PHP-generated
+server review fixture, not a multipart upload. It is not real HTTP/cookie/upload
+coverage. New scoped API/mutation behavior needs regression tests, including
+multiple events, warnings/cancel/continue, duplicates, stale/replayed/retargeted
+tokens, and retained auth/CSRF/identity/FK failures. Rebuild the frontend.
+
 ## Versioned CSV imports
 
 `src/lib/csv_rules/legacy.php` retains the historical Google Forms mapping;
@@ -499,10 +550,11 @@ not overridable; valid rows can be imported while invalid rows are reported.
 `SubscriptionCsvImport` uses prepared statements and per-row transactions for
 person, subscription, and the additive `csv_import_audit` table. Audits include
 profile, row, warnings, confirmation, UTC time, available account, and optional
-notes. Exact existing subscriptions are skipped without QR/email side effects;
+notes. General imports skip exact existing subscriptions without QR/email side effects;
 there is no automatic identity merging. Email is attempted only after commit;
 failure must report a saved subscription with unconfirmed mail, not a failed
-registration to retry. Production imports still email participants.
+registration to retry. Production imports still email newly created subscriptions;
+linking an existing registration does not resend its email.
 
 `makim dev.csv-tests` runs disposable SQLite/HTTP tests with synthetic identities,
 fake QR generation, and fake sendmail, plus a read-only optional check of the

@@ -1,9 +1,17 @@
-import type { AppData } from './types';
+import type { AppData, EventDetailData } from './types';
 // Explicit development-only preview. Never substituted for a failed live request.
 const day = (offset: number, hour = 14) => {
   const date = new Date(); date.setUTCDate(date.getUTCDate() + offset); date.setUTCHours(hour, 0, 0, 0);
   return date.toISOString().slice(0, 19).replace('T', ' ');
 };
+
+export function previewEventData(id: number): EventDetailData {
+  const event = previewData.events.find(item => item.id === id);
+  if (!event) throw new Error('El evento no existe.');
+  const sessions = previewData.sessions.filter(item => item.event_id === id);
+  return { event, sessions, subscriptions: id === 1 ? previewData.subscriptions.slice(0, 4) : [],
+    attendance: previewData.attendance.filter(item => sessions.some(session => session.id === item.event_session_id)) };
+}
 export const previewData: AppData = {
   events: [
     { id: 1, name: 'Un encuentro con la calma', description: 'Tres días de enseñanzas, meditación y práctica compartida. Un espacio para volver a lo esencial.', start_date: day(3), end_date: day(5, 22) },

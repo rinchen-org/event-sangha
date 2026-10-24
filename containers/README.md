@@ -91,6 +91,15 @@ actual host, test both root/subdirectory deployments as applicable:
   warning screens still allow explicit review. Check both live and lab routes.
 - Cookies have Secure on HTTPS, and sessions/throttle files are private.
 - Authenticated Python reports can fetch API data and QR images.
+- Event cards open event detail pages, not edit dialogs. Check scoped CSV
+  review/confirmation, explicit historical links, sessions and attendance in two
+  different events; no global roster should masquerade as an event's roster.
+  Existing QR event selection must remain unchanged by these actions. Back up
+  before deployment; optionally use `makim dev.event-registration-migrate` for
+  the additive membership table/index (never the historical migration bundle).
+  Setup/confirmed scoped writes also add missing membership schema; GET/review
+  must not. Run `makim dev.event-tests` on a socket-capable host, including actual
+  multipart upload, authentication, CSRF, cancellation and stale-token checks.
 
 Do not deploy until these checks pass. The shared admin account is temporary:
 rotate/replace it before broader production use. QR images cannot be displayed

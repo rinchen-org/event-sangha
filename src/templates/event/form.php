@@ -52,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo '<div class="alert alert-success" role="alert">';
         echo $isNewEvent ? 'Event created successfully!' : 'Event updated successfully!';
         echo '</div>';
+        echo '<a class="btn btn-primary" href="' . auth_escape(auth_url('templates/index.php#eventos/' . (int) $event->id . '/participantes')) . '">Volver al evento</a> ';
         echo '<a href="' . $BASE_URL . 'event/list.php" class="btn btn-primary">Back to Event List</a>';
     }
 }

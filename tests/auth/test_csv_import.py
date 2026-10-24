@@ -193,13 +193,15 @@ class CsvImportHTTPTest(unittest.TestCase):
             db.commit()
             return result
 
-    def upload(self, contents=None, base='', csrf=True):
+    def upload(self, contents=None, base='', csrf=True, event_id=None):
         contents = csv_text() if contents is None else contents
         contents = contents.encode() if isinstance(contents, str) else contents
         boundary = uuid.uuid4().hex
         payload = b''
         if csrf:
             payload += f'--{boundary}\r\nContent-Disposition: form-data; name="csrf_token"\r\n\r\n{self.csrf(base)}\r\n'.encode()
+        if event_id is not None:
+            payload += f'--{boundary}\r\nContent-Disposition: form-data; name="event_id"\r\n\r\n{event_id}\r\n'.encode()
         payload += f'--{boundary}\r\nContent-Disposition: form-data; name="csv_file"; filename="participantes.csv"\r\nContent-Type: text/csv\r\n\r\n'.encode()
         payload += contents + f'\r\n--{boundary}--\r\n'.encode()
         req = urllib.request.Request(self.origin + base + '/templates/subscription/upload.php', data=payload,

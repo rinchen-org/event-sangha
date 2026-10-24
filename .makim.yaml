@@ -32,6 +32,14 @@ groups:
         help: Run isolated authenticated event setup tests (requires PHP sqlite3)
         run: php tests/setup/test_preparation.php && python tests/auth/test_event_setup.py
 
+      event-tests:
+        help: Test event-specific registrations, CSV imports, and detail routes with disposable data
+        run: python tests/auth/test_event_registration.py
+
+      event-registration-migrate:
+        help: Add event registration links only (back up the database first; does not assign old records)
+        run: php src/migrations/0007_event_registration.php
+
       qr-tests:
         help: Run isolated staff QR admission tests (requires PHP sqlite3)
         run: php tests/qr/test_selection.php && python tests/auth/test_qr_admission.py

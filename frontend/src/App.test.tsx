@@ -40,7 +40,9 @@ describe('React management views', () => {
     expect(credit).toHaveAttribute('href', 'https://scistitch.com/');
     expect(credit).toHaveAttribute('rel', 'noopener noreferrer');
     expect(fetch).toHaveBeenCalledTimes(5);
-    expect(screen.getByRole('region', { name: 'Resumen de la comunidad' })).toHaveTextContent('8');
+    expect(screen.getByRole('region', { name: 'Resumen de los eventos' })).toHaveTextContent('3');
+    expect(screen.queryByText('Últimas inscripciones')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ana Flores')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Ayuda' }));
     expect(screen.getByRole('status')).toHaveTextContent('Usa la navegación');
     expect(screen.queryByText(/menú clásico/i)).not.toBeInTheDocument();

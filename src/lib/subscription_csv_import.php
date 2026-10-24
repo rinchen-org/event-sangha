@@ -2,6 +2,7 @@
 require_once __DIR__ . '/auth.php';
 auth_block_direct(__FILE__);
 require_once __DIR__ . '/subscription_csv.php';
+require_once __DIR__ . '/event_registration.php';
 
 /** CSV-only persistence; keep legacy registration and attendance workflows intact. */
 class SubscriptionCsvImport {
@@ -41,16 +42,43 @@ class SubscriptionCsvImport {
      * @param array<string, mixed> $review
      * @return array<string, mixed>
      */
-    public function run(array $review, bool $confirmed, string $actor = '', string $notes = ''): array {
+    public function run(array $review, bool $confirmed, string $actor = '', string $notes = '', ?int $eventId = null): array {
         if ($review['warnings'] && !$confirmed) {
             throw new DomainException('Revisa las advertencias y confirma la importación antes de continuar.');
         }
-        $report = ['imported' => 0, 'duplicates' => 0, 'errors' => $review['errors'], 'mail_errors' => []];
+        if ($eventId !== null && !$confirmed) { throw new DomainException('Confirma la inscripción en el evento antes de continuar.'); }
+        $registrations = $eventId === null ? null : new EventRegistration($this->db);
+        $report = ['imported' => 0, 'linked' => 0, 'duplicates' => 0, 'errors' => $review['errors'], 'mail_errors' => []];
         foreach ($review['rows'] as $row) {
             $inTransaction = false;
             try {
                 $this->db->exec('BEGIN IMMEDIATE');
                 $inTransaction = true;
+                if ($registrations !== null) {
+                    $current = $registrations->reviewIdentity($eventId, $row);
+                    $existing = $current['person'] === null ? null
+                        : $registrations->registeredSubscription($eventId, (int) $current['person']['id']);
+                    if ($existing !== null) {
+                        if ($current['subscription'] === null || (int) $current['subscription']['id'] !== $existing) {
+                            throw new DomainException('La persona ya tiene otro vínculo en este evento. Revisa sus inscripciones.');
+                        }
+                        $this->db->exec('ROLLBACK');
+                        $inTransaction = false;
+                        $report['duplicates']++;
+                        continue;
+                    }
+                    if (($row['registration_review'] ?? null) !== $current) {
+                        throw new DomainException('Los datos o las advertencias cambiaron. Revisa nuevamente el CSV antes de importar esta fila.');
+                    }
+                    if ($current['subscription'] !== null) {
+                        $registrations->insert($eventId, (int) $current['subscription']['id'], (int) $current['person']['id'],
+                            $actor, 'csv:' . $review['profile'], $row['warnings'], $notes, (int) $row['row']);
+                        $this->db->exec('COMMIT');
+                        $inTransaction = false;
+                        $report['linked']++;
+                        continue; // Existing QR/activation are preserved; no mail or QR regeneration.
+                    }
+                }
                 $identity = ['fullname' => $row['fullname'], 'email' => $row['email'], 'phone' => $row['phone']];
                 $matches = $this->query('SELECT count(*) AS total FROM person WHERE fullname=:fullname AND email=:email AND phone=:phone', $identity);
                 if ($matches === false) {
@@ -80,6 +108,10 @@ class SubscriptionCsvImport {
                     'person' => (int) $person['id'], 'datetime' => $now->format('Y-m-d H:i:s'), 'qr' => $qr,
                 ]);
                 $subscriptionId = $this->db->lastInsertRowID();
+                if ($registrations !== null) {
+                    $registrations->insert($eventId, $subscriptionId, (int) $person['id'], $actor,
+                        'csv:' . $review['profile'], $row['warnings'], $notes, (int) $row['row']);
+                }
                 // Additive, only on an explicit import POST/CLI action, never on preview/GET.
                 $this->db->exec('CREATE TABLE IF NOT EXISTS csv_import_audit (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -105,7 +137,8 @@ class SubscriptionCsvImport {
                     $this->db->exec('ROLLBACK');
                 }
                 error_log('CSV import row ' . $row['row'] . ': ' . $exception->getMessage());
-                $report['errors'][] = ['row' => $row['row'], 'message' => 'No se guardó la inscripción por un fallo técnico de base de datos o generación del QR. Contacta al administrador.'];
+                $report['errors'][] = ['row' => $row['row'], 'message' => $exception instanceof DomainException
+                    ? $exception->getMessage() : 'No se guardó la inscripción por un fallo técnico de base de datos o generación del QR. Contacta al administrador.'];
                 continue;
             }
             // A mail failure after COMMIT is not an import failure or an invitation to retry the row.

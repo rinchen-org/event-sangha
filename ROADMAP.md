@@ -25,6 +25,31 @@ The milestones below remain release gates: this first frontend increment does
 not claim completion of test isolation, PHP runtime alignment, mutation APIs,
 production integration tests, or rollout.
 
+## Implementation update — event-centered registration
+
+Event cards now open a detail page with event participants, CSV import, sessions,
+and attendance; editing is separate. Home focuses on events/agenda, not latest
+global subscribers. PHP provides protected read-only event detail JSON, filtered
+by event ID. Event detail loading is independent of global list failures.
+
+An additive `event_registration` relationship links existing global subscriptions
+without rewriting or assigning historical data. Staff can link an existing
+registration after review or import a CSV into a named event. Duplicate memberships
+are prevented; exact existing identities retain their QR/status and are not emailed
+again. New registrations keep the existing QR/mail pipeline. Inactive-state/payment
+warnings are advisory, reviewed server-side and audited on confirmed continuation.
+Event-bound review tokens prevent stale/retargeted confirmation; FK/unique
+constraints preserve identity and event integrity. General subscription state,
+QR event selection and legacy report/API contracts are unchanged.
+
+`makim dev.event-registration-migrate` is an optional additive deployment step;
+setup and first confirmed scoped writes also add the schema if needed. No schema
+writes occur on GET or review. `makim dev.event-tests` covers disposable domain
+and HTTP fixtures; explicit CLI mode does not replace multipart/HTTP coverage.
+Per-event QR routing, per-event activation, JSON mutation/result screens, and
+replacement of remaining hardcoded legacy attendance shortcuts are not implemented
+by this increment.
+
 ## Implementation update — authentication
 
 Implemented: temporary shared admin login, server-side protection on business

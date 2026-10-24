@@ -17,6 +17,22 @@ function create_qr_admission_schema(SQLite3 $db): void {
         ON qr_admission_decision (person_id, event_session_id, id)');
 }
 
+/** Add event membership without assigning or rewriting historical subscriptions. */
+function create_event_registration_schema(SQLite3 $db): void {
+    // A composite FK also prevents a registration from pointing at another person's subscription.
+    $db->exec('CREATE UNIQUE INDEX IF NOT EXISTS subscription_id_person_unique ON subscription(id, person_id)');
+    $db->exec('CREATE TABLE IF NOT EXISTS event_registration (
+        event_id INTEGER NOT NULL REFERENCES event(id),
+        person_id INTEGER NOT NULL REFERENCES person(id),
+        subscription_id INTEGER NOT NULL,
+        registered_at TEXT NOT NULL, actor TEXT NOT NULL, source TEXT NOT NULL,
+        source_row INTEGER, warnings_json TEXT NOT NULL, staff_confirmed INTEGER NOT NULL CHECK (staff_confirmed=1),
+        notes TEXT NOT NULL,
+        PRIMARY KEY (event_id, person_id), UNIQUE (event_id, subscription_id),
+        FOREIGN KEY (subscription_id, person_id) REFERENCES subscription(id, person_id)
+    )');
+}
+
 /** Initialize current schema without running destructive historical migrations. */
 function create_setup_schema(SQLite3 $db): void {
     $tables = [
@@ -49,6 +65,7 @@ function create_setup_schema(SQLite3 $db): void {
         }
     }
     create_qr_admission_schema($db);
+    create_event_registration_schema($db);
     $db->exec('CREATE TABLE IF NOT EXISTS app_setting (name TEXT PRIMARY KEY, value TEXT NOT NULL)');
     $db->exec('CREATE TABLE IF NOT EXISTS setup_event (setup_key TEXT PRIMARY KEY, event_id INTEGER NOT NULL)');
     $db->exec('CREATE TABLE IF NOT EXISTS setup_session (

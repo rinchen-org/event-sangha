@@ -62,6 +62,35 @@ attendance and session selection/policy evaluation remain server-side.
 
 ## Migration boundary
 
+Event cards navigate to `#eventos/<id>/participantes` rather than editing directly.
+Event pages have separate editing, CSV import, explicit existing-registration
+linking, sessions and attendance. Tabs use hash URLs (`participantes`, `sesiones`,
+`asistencia`) for refresh/back navigation. The home no longer lists latest global
+subscriptions. The global participant directory remains available.
+
+`templates/event/detail.php?format=json&event_id=<id>` is a protected, read-only
+GET returning `{success:true,data:{event,subscriptions,sessions,attendance}}`.
+PHP filters by event ID, not names or frontend assumptions. Missing membership
+schema yields an empty roster without writes or inferred assignments; invalid
+events return 404, technical failures 503, and authentication failures 401 for
+JSON requests. Event loading is independent of unrelated global list failures.
+No sample/global roster is substituted for an unavailable event response.
+
+CSV forms send a destination `event_id` to the existing PHP review handler. The
+event and reviewed backend state are bound to its expiring single-use token;
+POST confirmation rechecks them and cannot move a pending import to another event.
+The global upload dialog requires event selection. Existing-registration linking
+uses `templates/event/register.php` with PHP-evaluated warnings, review and CSRF
+POST confirmation. React does not evaluate inactive/payment eligibility. Preview
+uses explicit synthetic event memberships, intercepts forms and disables linking.
+New session forms preselect the current event. Historical attendance remains
+visible even without a membership; membership does not retarget QR admission.
+
+General activation remains global, so event participant rows show it as
+**Estado general** and omit the older global/hardcoded-event row actions. Detailed
+reports and the global subscription API are unchanged. See README for the
+additive schema, explicit historical linking, and deployment/test commands.
+
 The session bootstrap exposes a server-computed `testMode` boolean. With
 `TEST_ENV=1` in `src/.env`, the sidebar links to **Pruebas · Laboratorio QR** at
 `templates/testing/index.php`, even if production list loading fails. Missing or
@@ -105,12 +134,14 @@ so stale forms do not fail CSRF checks. Logout is a CSRF-protected POST.
 
 ```bash
 makim dev.auth-tests
+makim dev.event-tests
 makim frontend.check
 makim frontend.tests
 makim frontend.build
 ```
 
-Tests cover data loading/retry, accessible dialogs, participant filters, form
+Tests cover event navigation/scoping, missing/error/empty event states, bound CSV
+forms, session defaults, data loading/retry, accessible dialogs, participant filters, form
 field compatibility, person IDs, Bolivia date conversion, and CSV formula escaping.
 They use synthetic fixtures and never touch the PHP database or `.env`.
 

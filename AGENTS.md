@@ -76,8 +76,11 @@ migration. The README's Laravel/Django ideas are historical suggestions.
 | `.github/workflows/` | Conda + external PHP CI, Composer validation, tests, and pre-commit |
 
 The main interface is now React + TypeScript in `frontend/`, built by Vite into
-`src/static/app/`. `src/templates/index.php` reads its build manifest and falls
-back to `menu.php` when assets are absent or `?legacy=1` is requested. Existing
+`src/static/app/`. `src/templates/index.php` reads its build manifest. React is
+the only management menu: `menu.php` is an authenticated compatibility redirect,
+as is `index.php?legacy=1`. Missing/invalid manifests or missing entry JS/CSS
+return an explicit HTTP 503 with build instructions, never a legacy menu or
+synthetic-data fallback. The main interface requires JavaScript. Existing
 PHP action/result pages retain Bootstrap, jQuery, and DataTables. React forms
 submit to those handlers; JSON mutation/result migration remains future work.
 
@@ -252,7 +255,9 @@ temporary code copies and synthetic files; unlike the legacy PHPUnit suite it
 does not touch working data. Optional Apache coverage:
 `RINCHEN_TEST_SERVER=apache python tests/auth/test_auth.py` (Debian-style Apache
 module paths and mod_php required). `python tests/auth/test_auth.py AuthSessionTest`
-runs only the no-socket session/storage checks, not HTTP cookie/header coverage.
+runs the no-socket session/storage and frontend-entry checks, not HTTP
+cookie/header coverage. Entry tests use synthetic manifests/assets in disposable
+copies, including missing builds and authenticated old-menu redirects.
 
 Deployment must install the Apache/Nginx protections documented in
 [containers/README.md](containers/README.md). Rebuild the frontend and container.
@@ -335,8 +340,8 @@ also checks the auto-submit/selection script using a synthetic DOM.
 
 ## Opt-in QR test laboratory
 
-`TEST_ENV=1` in `src/.env` enables the **Pruebas · Laboratorio QR** link in React
-and the classic menu. Missing/other values disable all lab routes server-side.
+`TEST_ENV=1` in `src/.env` enables the **Pruebas · Laboratorio QR** link in React.
+Missing/other values disable all lab routes server-side.
 `src/lib/test_mode.php` reads the flag without creating an absent `.env`;
 `load_env(false)` is the read-only configuration mode. The session JSON bootstrap
 adds boolean `testMode`, independent of dashboard DB availability; preview never
@@ -391,7 +396,7 @@ unavailable; it does not cover actual HTTP headers/cookies. Never use the workin
 
 ## Authenticated browser event setup
 
-The dashboard/classic-menu **Preparar evento 2026** shortcut opens
+The React dashboard **Preparar evento 2026** shortcut opens
 `scripts/setup.php?mode=prepare2026`; its protected view/controller is
 `src/templates/event/prepare-2026.php`. It remains available when dashboard data
 fails to load and is disabled in frontend preview. GET inspects schema and
@@ -459,7 +464,7 @@ event ID 1. Use `makim dev.setup-tests` for isolated HTTP/SQLite tests.
 
 The home-page “Test email sender” button posts to `templates/test-email.php`
 with session authentication and CSRF. It works independently of dashboard data
-loading and has a classic-menu form fallback. The endpoint uses
+loading. The endpoint uses
 `src/lib/test_email.php` and the existing `send_email()` mail transport.
 
 Use `TEST_EMAIL_TO` from `src/.env` for comma-separated, trimmed, deduplicated

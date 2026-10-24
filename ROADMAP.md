@@ -5,8 +5,8 @@
 Create a modern, minimalist, polished event-management experience that works
 equally well for participants registering on phones and staff managing sessions
 and attendance on larger screens. Retain the PHP/SQLite backend and Conda-based
-developer workflow. Migrate in small, verifiable steps with a usable legacy UI
-throughout the transition.
+developer workflow. Migrate in small, verifiable steps while retaining the PHP
+handlers and reports still used by the React interface.
 
 ## Implementation update — React interface
 
@@ -15,7 +15,10 @@ event/session views and forms, participant search/status filters, attendance
 views, CSV exports, and Makim install/dev/check/test/build tasks. Existing list
 routes now provide read-only JSON; writes still submit to the existing PHP
 handlers. A development-only preview, frontend regression tests, relative build
-assets, hash navigation, and the legacy menu fallback are available. See
+assets, and hash navigation are available. The legacy management menu has been
+retired: old menu URLs redirect to React after authentication, and missing or
+invalid builds return an explicit 503 with deployment instructions. Required PHP
+forms/results, detailed reports, and QR routes remain intact. See
 [frontend/README.md](frontend/README.md).
 
 The milestones below remain release gates: this first frontend increment does
@@ -96,7 +99,7 @@ transactional changes. The endpoint can select the event used for QR admission;
 legacy manual/forced shortcuts still need event-selection migration.
 See README for deployment and `makim dev.setup-tests` for isolated tests.
 
-The dashboard and classic menu now offer **Preparar evento 2026**, a read-only
+The React dashboard offers **Preparar evento 2026**, a read-only
 readiness review followed by authenticated, CSRF-protected confirmation at the
 existing setup endpoint. It validates the real schema and event/session links,
 skips completed work without writes or backups, and applies only missing steps
@@ -108,7 +111,7 @@ now run before the HTTP setup suite; frontend preview disables this shortcut.
 
 ## Implementation update — email diagnostic
 
-The staff home page and classic menu provide “Test email sender”, using
+The React staff home page provides “Test email sender”, using
 `TEST_EMAIL_TO` (comma-separated recipients), authenticated POST and CSRF, and
 the existing mail helper. Success reports transport acceptance, not delivery.
 Errors are shown on screen. Isolated HTTP tests use fake sendmail and never
@@ -236,8 +239,9 @@ run alongside the PHP application, and work under the deployed subdirectory.
 
 ## 5. Migrate workflows incrementally
 
-For each group, retain legacy access until behavior, visual review, and tests
-pass. Remove duplicated jQuery/Bootstrap/DataTables dependencies from migrated
+For each group, retain necessary PHP workflow routes until behavior, visual
+review, and tests pass; this does not restore the retired legacy menu.
+Remove duplicated jQuery/Bootstrap/DataTables dependencies from migrated
 pages as equivalent React behavior becomes available.
 
 | Order | Screens/actions | Acceptance focus |

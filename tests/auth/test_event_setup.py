@@ -219,9 +219,9 @@ class EventSetupTest(unittest.TestCase):
         self.assertIn('Pasos pendientes', body)
         self.assertIn('12/11/2026 09:00', body)
         self.assertIn('Cancelar y volver', body)
-        status, _, menu = self.request('/templates/index.php?legacy=1')
+        status, _, home = self.request('/templates/index.php')
         self.assertEqual(status, 200)
-        self.assertIn('scripts/setup.php?mode=prepare2026', menu)
+        self.assertIn('<div id="root"></div>', home)
         self.assertFalse((self.web / 'db.sqlite').exists())
         self.assertFalse((self.web / '.backups').exists())
 

@@ -17,6 +17,18 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def write_frontend_fixture(web):
+    """Synthetic build in a disposable web root, never copy generated app assets."""
+    build = web / 'static/app'
+    (build / '.vite').mkdir(parents=True, exist_ok=True)
+    (build / 'assets').mkdir(exist_ok=True)
+    (build / 'assets/test-entry.js').write_text('// SYNTHETIC FRONTEND FIXTURE\n')
+    (build / 'assets/test-entry.css').write_text('/* SYNTHETIC FRONTEND FIXTURE */\n')
+    (build / '.vite/manifest.json').write_text(json.dumps({
+        'index.html': {'file': 'assets/test-entry.js', 'css': ['assets/test-entry.css']},
+    }))
+
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
@@ -30,7 +42,7 @@ class AuthSessionTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.work = Path(self.temp.name)
         self.web = self.work / 'web'
-        for relative in ('lib/auth.php', 'templates/logout.php'):
+        for relative in ('lib/auth.php', 'templates/logout.php', 'templates/index.php', 'templates/menu.php'):
             target = self.web / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / 'src' / relative, target)
@@ -43,10 +55,11 @@ class AuthSessionTest(unittest.TestCase):
 $input = json_decode(stream_get_contents(STDIN), true, 512, JSON_THROW_ON_ERROR);
 $web = getenv('AUTH_TEST_WEB');
 $_SERVER['DOCUMENT_ROOT'] = $web;
-$_SERVER['SCRIPT_FILENAME'] = $web . '/templates/logout.php';
-$_SERVER['SCRIPT_NAME'] = ($input['base'] ?? '') . '/templates/logout.php';
-$_SERVER['REQUEST_METHOD'] = $input['method'] ?? 'POST';
-$_SERVER['HTTP_ACCEPT'] = 'application/json';
+$_SERVER['SCRIPT_FILENAME'] = $web . '/' . ($input['route'] ?? 'templates/logout.php');
+$_SERVER['SCRIPT_NAME'] = ($input['base'] ?? '') . '/' . ($input['route'] ?? 'templates/logout.php');
+$_SERVER['REQUEST_METHOD'] = $input['method'] ?? (isset($input['route']) ? 'GET' : 'POST');
+$_SERVER['HTTP_ACCEPT'] = $input['accept'] ?? 'application/json';
+$_GET = $input['get'] ?? [];
 $_POST = $input['post'] ?? [];
 ob_start();
 register_shutdown_function(static function (): void {
@@ -64,6 +77,7 @@ if (isset($input['seed'])) {
         'auth_seen' => time() - $input['seed']['seen']];
     auth_csrf_token();
 }
+if (isset($input['route'])) { require $web . '/' . $input['route']; exit; }
 if (($input['action'] ?? '') === 'collect') { session_gc(); }
 $loggedIn = auth_logged_in();
 echo json_encode(['logged_in' => $loggedIn, 'session' => $_SESSION, 'cookie' => session_get_cookie_params(),
@@ -80,8 +94,70 @@ echo json_encode(['logged_in' => $loggedIn, 'session' => $_SESSION, 'cookie' => 
             'RINCHEN_AUTH_STATE_DIR': str(self.state if state is None else state),
         })
         response = json.loads(result.stdout)
-        response['body'] = json.loads(response['body']) if response['body'] else None
+        try:
+            response['body'] = json.loads(response['body']) if response['body'] else None
+        except json.JSONDecodeError:
+            pass  # HTML entrypoint responses are intentionally not JSON.
         return response
+
+    def test_frontend_and_old_menu_routes_keep_authentication_and_csrf(self):
+        for base in ('', '/event-retiro'):
+            for route, query in (('templates/index.php', {}), ('templates/index.php', {'legacy': '1'}),
+                                 ('templates/menu.php', {})):
+                with self.subTest(base=base, route=route, query=query):
+                    self.assertEqual(self.request(base=base, route=route, get=query)['status'], 401)
+                    self.assertEqual(self.request(base=base, route=route, get=query, method='POST',
+                                                  seed={'created': 0, 'seen': 0})['status'], 403)
+
+    def test_old_menu_routes_only_redirect_even_without_a_build(self):
+        for base in ('', '/event-retiro'):
+            for route, query in (('templates/menu.php', {}), ('templates/index.php', {'legacy': '1'})):
+                response = self.request(base=base, route=route, get=query, seed={'created': 0, 'seen': 0})
+                self.assertEqual(response['status'], 303)
+                self.assertIsNone(response['body'])
+        # The HTTP suite checks the actual Location headers, unavailable in CLI.
+
+    def test_frontend_build_errors_are_explicit_and_never_show_a_legacy_menu(self):
+        for base in ('', '/event-retiro'):
+            write_frontend_fixture(self.web)
+            manifest = self.web / 'static/app/.vite/manifest.json'
+            for content in (None, '{broken json', 'null', '[]', '{"index.html":false}',
+                            '{"index.html":{"file":[]}}', '{"index.html":{"file":"missing.js"}}',
+                            '{"index.html":{"file":"assets/test-entry.js","css":"invalid"}}',
+                            '{"index.html":{"file":"assets/test-entry.js","css":[[]]}}',
+                            '{"index.html":{"file":"assets/test-entry.js","css":["missing.css"]}}',
+                            '{"index.html":{"file":"../../templates/index.php"}}'):
+                with self.subTest(base=base, manifest=content):
+                    if content is None:
+                        manifest.unlink()
+                    else:
+                        manifest.write_text(content)
+                    response = self.request(base=base, route='templates/index.php', accept='text/html',
+                                            seed={'created': 0, 'seen': 0})
+                    self.assertEqual(response['status'], 503)
+                    self.assertIn('makim frontend.build', response['body'])
+                    self.assertIn('.vite/manifest.json', response['body'])
+                    self.assertNotIn('<div id="root">', response['body'])
+                    self.assertNotIn('Menu Suscripciones', response['body'])
+                    self.assertNotIn('legacy=1', response['body'])
+                    self.assertNotIn(str(self.work), response['body'])
+        self.assertFalse((self.web / 'db.sqlite').exists())
+        self.assertFalse((self.web / '.env').exists())
+
+    def test_frontend_build_renders_react_and_javascript_guidance(self):
+        write_frontend_fixture(self.web)
+        for base in ('', '/event-retiro'):
+            response = self.request(base=base, route='templates/index.php', accept='text/html',
+                                    seed={'created': 0, 'seen': 0})
+            self.assertEqual(response['status'], 200)
+            self.assertIn('<div id="root"></div>', response['body'])
+            self.assertIn('../static/app/assets/test-entry.js', response['body'])
+            self.assertIn('../static/app/assets/test-entry.css', response['body'])
+            self.assertIn('<noscript>Activa JavaScript', response['body'])
+            self.assertNotIn('legacy=1', response['body'])
+            self.assertNotIn('menú clásico', response['body'])
+        self.assertFalse((self.web / 'db.sqlite').exists())
+        self.assertFalse((self.web / '.env').exists())
 
     def test_private_storage_and_browser_session_cookie_policy(self):
         for base in ('', '/event-retiro'):
@@ -229,6 +305,7 @@ class AuthHTTPTest(unittest.TestCase):
             (dest / 'static/qr' / ('a' * 64 + '.jpg')).write_bytes(b'PRIVATE QR SENTINEL')
             (dest / 'static/app').mkdir(parents=True, exist_ok=True)
             (dest / 'static/app/index.html').write_text('PRIVATE HTML SENTINEL')
+            write_frontend_fixture(dest)
         with socket.socket() as sock:
             sock.bind(('127.0.0.1', 0))
             port = sock.getsockname()[1]
@@ -467,16 +544,53 @@ php_flag display_errors Off
         self.assertTrue(policy['httponly'])
         self.assertEqual(policy['samesite'], 'Lax')
 
-    def test_authenticated_menu_has_logout_and_no_session_header_warnings(self):
+    def test_authenticated_home_loads_react_without_session_header_warnings(self):
         self.login()
-        status, headers, body = self.request('/templates/index.php?legacy=1')
+        status, headers, body = self.request('/templates/index.php')
         self.assertEqual(status, 200)
-        self.assertIn('Cerrar sesión', body)
+        self.assertIn('<div id="root"></div>', body)
+        self.assertIn('../static/app/assets/test-entry.js', body)
+        self.assertNotIn('legacy=1', body)
         self.assertIn('no-store', headers['Cache-Control'])
         self.log.flush()
         log = (self.work / 'server.log').read_text()
         self.assertNotIn('headers already sent', log)
         self.assertNotIn('session is already active', log)
+
+    def test_old_menu_bookmarks_redirect_to_the_authenticated_react_home(self):
+        for base in ('', '/event-retiro'):
+            self.jar.clear()
+            for route in ('/templates/menu.php', '/templates/index.php?legacy=1'):
+                self.assertTrue(self.request(base + route)[1]['Location'].startswith(base + '/templates/login.php'))
+            self.login(base)
+            for route in ('/templates/menu.php', '/templates/index.php?legacy=1'):
+                for method in ('GET', 'HEAD'):
+                    status, headers, body = self.request(base + route, method=method)
+                    self.assertEqual(status, 303)
+                    self.assertEqual(headers['Location'], base + '/templates/index.php')
+                    self.assertEqual(body, '')
+                    self.assertIn('no-store', headers['Cache-Control'])
+                self.assertEqual(self.request(base + route, {})[0], 403)
+            self.assertEqual(self.request(base + '/templates/index.php')[0], 200)
+
+    def test_missing_frontend_build_returns_503_after_auth_not_a_menu(self):
+        for base in ('', '/event-retiro'):
+            dest = self.web / base.lstrip('/')
+            manifest = dest / 'static/app/.vite/manifest.json'
+            original = manifest.read_bytes()
+            manifest.unlink()
+            try:
+                self.jar.clear()
+                self.assertEqual(self.request(base + '/templates/index.php')[0], 303)
+                self.login(base)
+                status, headers, body = self.request(base + '/templates/index.php')
+                self.assertEqual(status, 503)
+                self.assertIn('makim frontend.build', body)
+                self.assertNotIn('Menu Suscripciones', body)
+                self.assertIn('no-store', headers['Cache-Control'])
+                self.assertEqual((dest / 'db.sqlite').read_bytes(), b'PRIVATE DATABASE SENTINEL')
+            finally:
+                manifest.write_bytes(original)
 
 
 if __name__ == '__main__':

@@ -11,8 +11,12 @@ makim frontend.build
 
 Run the existing PHP application to open the built interface. For frontend
 work, use `makim frontend.dev`; see [frontend/README.md](frontend/README.md) for
-PHP proxy setup, the sample-data preview, deployment, and checks. The classic
-menu remains available at `templates/index.php?legacy=1`.
+PHP proxy setup, the sample-data preview, deployment, and checks. React is the
+only management menu; the old `templates/menu.php` and
+`templates/index.php?legacy=1` bookmarks redirect to `templates/index.php` after
+login. A missing/invalid build returns an explicit HTTP 503 with build instructions,
+not a legacy menu. JavaScript is required for the main interface; existing PHP
+forms, action/result pages, reports, and QR links remain supported.
 
 See [AGENTS.md](AGENTS.md) for repository guidance and [ROADMAP.md](ROADMAP.md)
 for the remaining migration milestones.
@@ -116,7 +120,7 @@ TEST_EMAIL_TO=staff@example.com
 ```
 
 Rebuild the frontend with `makim frontend.build`, then open **Pruebas · Laboratorio
-QR** in the sidebar or classic menu. The protected page is
+QR** in the sidebar. The protected page is
 `templates/testing/index.php`. `TEST_ENV=0`, a missing value, or any value other
 than exactly `1` hides the menu and disables all lab routes, including already
 issued QR links. Disabling does not erase test history. Login is always required.
@@ -177,7 +181,7 @@ run the default HTTP suite on a socket-capable host before deployment.
 
 ### Set up the November event without console access
 
-The home page and classic menu now include **Preparar evento 2026**, opening
+The React home page includes **Preparar evento 2026**, opening
 `scripts/setup.php?mode=prepare2026`. It remains available if dashboard data
 cannot load because the database is not initialized; development preview disables
 the action. Opening it only inspects the actual schema and the
@@ -273,7 +277,7 @@ passwords or store them in shell history.
 
 ## Test the email sender
 
-The home page (React and classic menu) has a **Test email sender** button.
+The React home page has a **Test email sender** button.
 Configure the existing `src/.env` settings using plain, unquoted values:
 
 ```dotenv
@@ -301,8 +305,8 @@ The old `tests/EmailTest.php` still sends real mail and is not part of this task
 
 ## CSV participant imports
 
-Use **Importar CSV** in React or `templates/subscription/upload.php` in the
-classic interface. Uploading only reviews the file: no database writes, QR
+Use **Importar CSV** in React or the retained PHP page
+`templates/subscription/upload.php`. Uploading only reviews the file: no database writes, QR
 requests, or email. Confirm the reviewed rows to import, or cancel. The review
 expires after ten minutes and cannot be submitted twice.
 

@@ -58,10 +58,18 @@ settings. Client-provided forwarded headers are deliberately not trusted.
 
 ## Release checks
 
-Build `makim frontend.build` so all forms include current CSRF tokens. On the
+Build `makim frontend.build` and deploy the complete `src/static/app/`, including
+`.vite/manifest.json`, so the React interface and current CSRF forms are available.
+The legacy menu is removed; missing/invalid builds return a Spanish HTTP 503
+with build instructions instead of falling back to it. On the
 actual host, test both root/subdirectory deployments as applicable:
 
 - Unauthenticated business pages redirect to login; JSON endpoints return 401.
+- Old `templates/menu.php` and `templates/index.php?legacy=1` bookmarks require
+  login and redirect to the React home page, respecting `/event-retiro` hosting.
+  With JavaScript disabled, the home page asks staff to enable it, not use a
+  classic menu. PHP action/result pages, reports, and QR routes remain protected
+  and functional independently of this menu removal.
 - The staff-only `scripts/setup.php` is protected; GET does not create a database.
 - Direct requests to `.backups/` and its files return 403/404, even after login.
 - Direct requests to `.test-lab/`, `lab.sqlite`, and SQLite journal/WAL files

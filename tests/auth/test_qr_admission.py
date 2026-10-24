@@ -77,7 +77,7 @@ class QrAdmissionTest(unittest.TestCase):
             self.assertIn(text, body)
         self.assertNotIn('Otro evento', body)
         self.assertNotIn('data-auto-checkin="1"', body)
-        self.request('/templates/index.php?legacy=1')
+        self.assertEqual(self.request('/templates/index.php')[0], 200)
         self.assertEqual(self.query('SELECT * FROM attendance'), [])
         self.assertEqual(self.query('SELECT * FROM qr_admission_decision'), [])
 

@@ -57,6 +57,7 @@ class LabTest(unittest.TestCase):
                         target = cls.web / base / relative
                         target.parent.mkdir(parents=True, exist_ok=True)
                         shutil.copyfile(source, target)
+                test_auth.write_frontend_fixture(cls.web / base)
             cls.mail_capture = cls.work / 'mail.txt'
             cls.mail_failure = cls.work / 'mail-failure'
             cls.transport = cls.work / 'fake-sendmail'
@@ -164,11 +165,9 @@ require ''' + json.dumps(str(test_auth.ROOT / 'scripts/dev-router.php')) + ';\n'
             for route in (LAB, IMAGE, CHECKIN):
                 self.assertEqual(self.request(route)[0], 404)
                 self.assertEqual(self.request(route, {'csrf_token': self.csrf()})[0], 404)
-            self.assertNotIn('Pruebas · Laboratorio QR', self.request('/templates/menu.php')[2])
         self.configure()
         self.assertTrue(json.loads(self.request('/templates/session.php')[2])['testMode'])
         self.assertEqual(self.request(LAB)[0], 200)
-        self.assertIn('Pruebas · Laboratorio QR', self.request('/templates/menu.php')[2])
         self.assertFalse((self.web / '.test-lab').exists())
         self.assert_live_untouched()
         # Absent configuration stays absent when checking availability/session metadata.
@@ -179,7 +178,7 @@ require ''' + json.dumps(str(test_auth.ROOT / 'scripts/dev-router.php')) + ';\n'
 
     def test_auth_csrf_cancel_and_replay_protection(self):
         _, _, body = self.request(LAB)
-        self.request('/templates/index.php?legacy=1')  # cancellation
+        self.assertEqual(self.request('/templates/index.php')[0], 200)  # cancellation
         self.assertFalse((self.web / '.test-lab').exists())
         self.assertEqual(self.request(LAB, {'action':'prepare'})[0], 403)
         response, data = self.action('prepare', body, start='00:00', end='23:59')

@@ -47,9 +47,14 @@ No Node server is needed in production. The existing `src/index.php` redirect
 opens this page automatically. Relative assets and hash navigation support both
 root hosting and `/event-retiro` with the authentication file-protection rules described in [containers/README.md](../containers/README.md).
 
-Before a build exists, the original menu remains available. After building, use
-`templates/index.php?legacy=1` for the same fallback. PHP result pages include a
-link back to the React interface. Issued QR URLs and the Python report API remain compatible, but now require
+React is the only management menu. Authenticated requests to the old
+`templates/menu.php` and `templates/index.php?legacy=1` URLs redirect to
+`templates/index.php`; there is no classic-menu or missing-build fallback.
+A missing/malformed manifest or missing entry JS/CSS returns HTTP 503 with
+Spanish instructions to run `makim frontend.build` and deploy the complete build.
+Without JavaScript, the entry page asks staff to enable it. PHP result pages
+still link back to React, and the PHP handlers/reports used by React are retained.
+Issued QR URLs and the Python report API remain compatible, but now require
 an authenticated session. QR attendance always uses a protected POST: automatic
 for a single clear in-period session, otherwise explicitly confirmed by staff.
 The standalone PHP QR screen uses `src/static/qr-checkin.js`; GET never records
@@ -76,8 +81,8 @@ Excel/PDF/print features.
 **Preparar evento 2026** links to `scripts/setup.php?mode=prepare2026`, independent
 of dashboard loading. PHP checks schema and event/session mappings and confirms
 only pending work; React does not evaluate migration status. Already-prepared
-records and staff edits are preserved. Preview disables the link. The classic
-menu offers the same action, and the original editable setup remains available.
+records and staff edits are preserved. Preview disables the link. The original
+editable PHP setup remains available.
 
 Each existing list route accepts `?format=json` through `src/lib/frontend.php`:
 

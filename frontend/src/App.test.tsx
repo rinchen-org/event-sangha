@@ -31,20 +31,25 @@ describe('React management views', () => {
     expect(await screen.findByRole('link', { name: 'Pruebas · Laboratorio QR' })).toHaveAttribute('href', expect.stringContaining('/templates/testing/index.php'));
     expect(await screen.findByRole('alert')).toHaveTextContent('Volvamos a conectar');
   });
-  it('renders real endpoint counts and keeps legacy access', async () => {
+  it('renders real endpoint counts without a legacy menu', async () => {
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'Nuestros encuentros' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Menú clásico/ })).toHaveAttribute('href', expect.stringContaining('index.php?legacy=1'));
+    expect(screen.queryByRole('link', { name: /menú clásico/i })).not.toBeInTheDocument();
+    expect(document.querySelector('a[href*="legacy=1"], a[href*="menu.php"]')).toBeNull();
     const credit = within(screen.getByRole('contentinfo')).getByRole('link', { name: 'SciStitch' });
     expect(credit).toHaveAttribute('href', 'https://scistitch.com/');
     expect(credit).toHaveAttribute('rel', 'noopener noreferrer');
     expect(fetch).toHaveBeenCalledTimes(5);
     expect(screen.getByRole('region', { name: 'Resumen de la comunidad' })).toHaveTextContent('8');
+    await userEvent.click(screen.getByRole('button', { name: 'Ayuda' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Usa la navegación');
+    expect(screen.queryByText(/menú clásico/i)).not.toBeInTheDocument();
   });
   it('shows connection failures without substituting sample data and allows retry', async () => {
     vi.mocked(fetch).mockRejectedValueOnce(new Error('Offline'));
     render(<App />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Volvamos a conectar');
+    expect(screen.queryByRole('link', { name: /menú clásico/i })).not.toBeInTheDocument();
     expect(screen.queryByText('Ana Flores')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Preparar evento 2026' })).toHaveAttribute('href', expect.stringContaining('/scripts/setup.php?mode=prepare2026'));
     await userEvent.click(screen.getByRole('button', { name: 'Volver a intentar' }));
@@ -55,6 +60,12 @@ describe('React management views', () => {
     render(<App />);
     expect(screen.getByRole('link', { name: 'Preparar evento 2026' })).toHaveAttribute('href', expect.stringContaining('/scripts/setup.php?mode=prepare2026'));
     expect(screen.getByRole('button', { name: 'Crear evento' })).toBeDisabled();
+  });
+  it('retains the PHP detailed report from the React navigation', async () => {
+    location.hash = '#informes';
+    render(<App />);
+    expect(await screen.findByRole('link', { name: /Informe detallado de asistencia/ })).toHaveAttribute('href', expect.stringContaining('/templates/attendance/report.php'));
+    expect(screen.queryByRole('link', { name: /menú clásico/i })).not.toBeInTheDocument();
   });
   it('filters participants by accent-insensitive search and activation state', async () => {
     location.hash = '#participantes';
@@ -111,6 +122,7 @@ it('requires login on an expired session instead of showing private data', async
   render(<App />);
   expect(await screen.findByRole('heading', { name: 'Inicia sesión para continuar' })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute('href', expect.stringContaining('/templates/login.php'));
+  expect(screen.queryByRole('link', { name: /menú clásico/i })).not.toBeInTheDocument();
   expect(screen.queryByText('Ana Flores')).not.toBeInTheDocument();
   expect(fetch).toHaveBeenCalledTimes(1);
 });

@@ -76,6 +76,7 @@ class QrAdmissionTest(unittest.TestCase):
         for text in ('Primera', 'Segunda', 'Permitir participación', 'Denegar participación'):
             self.assertIn(text, body)
         self.assertNotIn('Otro evento', body)
+        self.assertNotIn('data-auto-checkin="1"', body)
         self.request('/templates/index.php?legacy=1')
         self.assertEqual(self.query('SELECT * FROM attendance'), [])
         self.assertEqual(self.query('SELECT * FROM qr_admission_decision'), [])
@@ -88,7 +89,9 @@ class QrAdmissionTest(unittest.TestCase):
         self.assertEqual(self.query('SELECT person_id, event_session_id FROM attendance'), [(1, 3)])
         audit = self.query('SELECT decision, warnings_json, actor, decided_at FROM qr_admission_decision')[0]
         self.assertEqual((audit[0], audit[2]), ('allow', 'admin'))
-        self.assertEqual([s['id'] for s in json.loads(audit[1])], [1, 2])
+        snapshot = json.loads(audit[1])
+        self.assertEqual([s['id'] for s in snapshot['missing_sessions']], [1, 2])
+        self.assertEqual((snapshot['version'], snapshot['mode'], snapshot['staff_confirmed']), (2, 'staff', True))
         self.assertTrue(audit[3])
         self.assertEqual(self.decide(token, 'allow')[0], 409)
         self.assertEqual(len(self.query('SELECT * FROM attendance')), 1)
@@ -105,13 +108,94 @@ class QrAdmissionTest(unittest.TestCase):
         self.assertEqual(self.query('SELECT decision FROM qr_admission_decision ORDER BY id'), [('deny',), ('allow',)])
         self.assertEqual(len(self.query('SELECT * FROM attendance')), 1)
 
-    def test_without_missing_sessions_still_requires_staff_decision(self):
+    def test_clear_active_session_offers_automatic_post_but_get_never_writes(self):
         self.query("INSERT INTO attendance VALUES (1, 1, 1, datetime('now'))")
         self.query("INSERT INTO attendance VALUES (2, 1, 2, datetime('now'))")
         token, body = self.review()
         self.assertIn('No faltan asistencias', body)
+        self.assertIn('data-auto-checkin="1"', body)
+        self.assertEqual(self.query('SELECT * FROM attendance WHERE event_session_id=3'), [])
+        self.assertEqual(self.query('SELECT * FROM qr_admission_decision'), [])
+        self.assertEqual(self.request('/static/qr-checkin.js')[0], 200)
+        status, _, body = self.decide(token, 'automatic')
+        self.assertEqual(status, 200, body)
+        self.assertIn('Asistencia registrada automáticamente', body)
+        self.assertNotIn('data-auto-checkin="1"', body)
+        snapshot = json.loads(self.query('SELECT warnings_json FROM qr_admission_decision')[0][0])
+        self.assertEqual(snapshot['warnings'], [])
+        self.assertEqual((snapshot['mode'], snapshot['staff_confirmed']), ('automatic', False))
+        self.assertEqual(self.decide(token, 'automatic')[0], 409)
+        self.assertEqual(len(self.query('SELECT * FROM attendance WHERE event_session_id=3')), 1)
+
+    def test_outside_times_suggests_nearest_session_and_manual_confirmation_works(self):
+        self.query("UPDATE event_session SET end_date=datetime('now', '-10 minutes'), start_date=datetime('now', '-50 minutes') WHERE id=3")
+        token, body = self.review()
+        self.assertNotIn('data-auto-checkin="1"', body)
+        self.assertIn('fuera del horario orientativo', body)
+        self.assertRegex(body, r'<option value="3" selected>')
+        self.assertEqual(self.query('SELECT * FROM attendance'), [])
+        self.assertEqual(self.decide(token, 'allow', notes='Ingreso autorizado')[0], 200)
+        snapshot = json.loads(self.query('SELECT warnings_json FROM qr_admission_decision')[0][0])
+        self.assertIn('outside_session_time', [w['code'] for w in snapshot['warnings']])
+        self.assertEqual(snapshot['notes'], 'Ingreso autorizado')
+        self.assertTrue(snapshot['staff_confirmed'])
+
+    def test_selection_refreshes_review_without_writing_and_never_auto_posts(self):
+        token, _ = self.review()
+        status, _, body = self.decide(token, 'review', selected_session_id='1')
+        self.assertEqual(status, 200, body)
+        self.assertNotIn('data-auto-checkin="1"', body)
+        self.assertEqual(self.query('SELECT * FROM attendance'), [])
+        self.assertEqual(self.query('SELECT * FROM qr_admission_decision'), [])
+        next_token = re.search(r'name="review_token" value="([a-f0-9]+)"', body)[1]
+        self.assertEqual(self.decide(next_token, 'allow', selected_session_id='1')[0], 200)
+        self.assertEqual(self.query('SELECT event_session_id FROM attendance'), [(1,)])
+
+    def test_changed_dropdown_cannot_commit_an_unreviewed_session(self):
+        token, _ = self.review()
+        status, _, body = self.decide(token, 'allow', selected_session_id='1')
+        self.assertEqual(status, 409)
+        self.assertIn('todavía no se registró asistencia', body)
+        self.assertEqual(self.query('SELECT * FROM attendance'), [])
+        next_token = re.search(r'name="review_token" value="([a-f0-9]+)"', body)[1]
+        self.assertEqual(self.decide(next_token, 'allow', selected_session_id='1')[0], 200)
+
+    def test_other_event_and_forged_automatic_actions_cannot_bypass_review(self):
+        token, _ = self.review()
+        self.assertEqual(self.decide(token, 'review', selected_session_id='4')[0], 409)
+        token, _ = self.review()
+        self.assertEqual(self.decide(token, 'automatic')[0], 409)
+        token, _ = self.review()
+        self.decide(token, 'deny')
+        token, body = self.review()
+        self.assertNotIn('data-auto-checkin="1"', body)
+        self.assertEqual(self.decide(token, 'automatic')[0], 409)
+        self.assertEqual(self.query('SELECT * FROM attendance'), [])
+
+    def test_automatic_conditions_are_rechecked_and_failure_never_auto_retries(self):
+        self.query("INSERT INTO attendance VALUES (1, 1, 1, datetime('now')), (2, 1, 2, datetime('now'))")
+        token, body = self.review()
+        self.assertIn('data-auto-checkin="1"', body)
+        self.query("UPDATE event_session SET end_date=datetime('now', '-1 second') WHERE id=3")
+        status, _, body = self.decide(token, 'automatic')
+        self.assertEqual(status, 409)
+        self.assertNotIn('data-auto-checkin="1"', body)
+        self.assertEqual(self.query('SELECT * FROM attendance WHERE event_session_id=3'), [])
+
+    def test_overlapping_sessions_require_review(self):
+        self.query("INSERT INTO attendance VALUES (1, 1, 1, datetime('now')), (2, 1, 2, datetime('now'))")
+        self.query("INSERT INTO event_session VALUES (5, 1, 'Solapada', datetime('now', '-30 minutes'), datetime('now', '+1 hour'))")
+        token, body = self.review()
+        self.assertIn('Varios períodos coinciden', body)
+        self.assertNotIn('data-auto-checkin="1"', body)
         self.assertEqual(self.decide(token, 'allow')[0], 200)
-        self.assertEqual(json.loads(self.query('SELECT warnings_json FROM qr_admission_decision')[0][0]), [])
+
+    def test_changed_qr_event_rejects_selection_and_confirmation(self):
+        token, _ = self.review()
+        self.query("CREATE TABLE app_setting (name TEXT PRIMARY KEY, value TEXT NOT NULL)")
+        self.query("INSERT INTO app_setting VALUES ('qr_event_id', '2')")
+        self.assertEqual(self.decide(token, 'review', selected_session_id='4')[0], 409)
+        self.assertEqual(self.query('SELECT * FROM attendance'), [])
 
     def test_concurrent_reviews_cannot_overwrite_a_new_decision(self):
         first, _ = self.review()

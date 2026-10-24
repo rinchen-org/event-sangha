@@ -5,15 +5,15 @@ channels:
 dependencies:
   - sqlite
   - pre-commit
-  # - php 8.*
   - python
   - pip
-  - makim 1.8.3
   - containers-sugar 1.9.0
-  - nodejs
+  - nodejs >=20
   - jinja2
   - requests
   - pip:
     - pygments
     - compose-go>=1.23
     - pre-commit
+    - makim
+    - click

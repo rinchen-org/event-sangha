@@ -49,6 +49,7 @@ if ($method === 'POST') {
   <meta name="theme-color" content="#79364b">
   <title>Iniciar sesión · Rinchen</title>
   <link rel="stylesheet" href="<?php echo auth_escape(auth_url('static/auth.css')); ?>">
+  <script defer src="<?php echo auth_escape(auth_url('static/auth-password.js')); ?>"></script>
 </head>
 <body>
   <main class="auth-card">
@@ -63,7 +64,8 @@ if ($method === 'POST') {
       <label for="username">Usuario</label>
       <input id="username" name="username" autocomplete="username" required maxlength="100" autocapitalize="none" spellcheck="false">
       <label for="password">Contraseña</label>
-      <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="200">
+      <input id="password" name="password" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" required maxlength="200">
+      <button id="toggle-password" class="auth-password-toggle" type="button" aria-controls="password" hidden>Mostrar contraseña</button>
       <button type="submit">Iniciar sesión <span aria-hidden="true">→</span></button>
     </form>
     <footer class="auth-footnote">Sakya Rinchen Ling · Bolivia<br>Desarrollado por <a href="https://scistitch.com/" target="_blank" rel="noopener noreferrer">SciStitch</a></footer>

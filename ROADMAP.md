@@ -27,8 +27,8 @@ production integration tests, or rollout.
 Implemented: temporary shared admin login, server-side protection on business
 pages/API/QR images, CSRF-protected POST actions and logout, session rotation and
 expiry, per-IP login throttling, React session handling, authenticated Python
-reports, and isolated HTTP regression tests. QR check-in now requires staff login
-and confirmation. Apache/Nginx private-file rules and a safe local router are
+reports, and isolated HTTP regression tests. QR check-in requires staff login
+and a protected POST (automatic only for clear in-period scans). Apache/Nginx private-file rules and a safe local router are
 provided; actual hosting configuration must be verified before release.
 
 - [ ] Replace the shared account with individual accounts and roles.
@@ -39,15 +39,22 @@ provided; actual hosting configuration must be verified before release.
 
 ## Implementation update — staff QR admission
 
-The app is staff-only; attendees present their QR at the door. QR scans now
-show missing previous attendance as warnings and let staff permit or deny
-participation. Denials persist for that session and can be explicitly revised.
-Allowing records attendance and an audit entry atomically; denying records no
-attendance. Review tokens prevent replay and stale/concurrent decisions.
+The app is staff-only; attendees present their QR at the door. QR session times
+now guide selection rather than gate admission. A single active interval with
+no warnings/denial permits automatic check-in through a separate protected POST;
+GET remains read-only. Outside the intervals, the nearest session is preselected
+and staff confirm a choice. Missing previous attendance, overlaps, and prior
+denials require manual review, never a silent override or automatic rejection.
+Selection refreshes warnings without recording attendance; staff can choose
+another session of the configured event. Existing attendance is not duplicated.
+Attendance and audit commit together, and server-held reviews prevent replay and
+stale/concurrent decisions. Version-2 audit JSON distinguishes automation from
+staff confirmation without rewriting old snapshots or changing the schema.
 
 Deploy the additive migration using `makim dev.qr-migrate` after backing up
-the database; `makim dev.qr-tests` exercises disposable SQLite fixtures.
-This does not yet replace time-window or other legacy policy gates. QR uses
+the database; `makim dev.qr-tests` runs deterministic in-memory SQLite checks
+and isolated HTTP tests. Browser-script tests run with the frontend suite.
+This does not yet replace policy gates in other legacy/manual routes. QR uses
 the event selected by staff in web setup, falling back to event ID 1 until configured.
 
 ## Implementation update — browser event setup
@@ -58,6 +65,16 @@ repeat runs preserve session IDs, and existing databases are backed up before
 transactional changes. The endpoint can select the event used for QR admission;
 legacy manual/forced shortcuts still need event-selection migration.
 See README for deployment and `makim dev.setup-tests` for isolated tests.
+
+The dashboard and classic menu now offer **Preparar evento 2026**, a read-only
+readiness review followed by authenticated, CSRF-protected confirmation at the
+existing setup endpoint. It validates the real schema and event/session links,
+skips completed work without writes or backups, and applies only missing steps
+under a transaction with a private pre-write snapshot. Existing staff edits,
+history, extra sessions, and QR selection are preserved; unlinked events require
+explicit selection and ambiguous/broken references require review. The original
+editable setup remains available for deliberate changes. Isolated SQLite checks
+now run before the HTTP setup suite; frontend preview disables this shortcut.
 
 ## Implementation update — email diagnostic
 
@@ -96,6 +113,11 @@ legacy policy gates remain future work.
 
 ## 1. Make development and testing reproducible
 
+- [x] Provide an Ubuntu system PHP/Composer installer with a no-write dry run,
+  extension verification, and mocked tests (`makim dev.install-php` and
+  `makim dev.installer-tests`); retain Conda for Python and Node.js. This does not
+  align CI/container runtimes or resolve the existing PHPStan manifest/lock
+  mismatch, and a real host installation still needs verification.
 - [ ] Retain `conda/dev.yaml` as the development entry point; retain Makim and
   Sugar. Document external PHP/Composer setup so PHP need not come from Conda.
 - [ ] Select and verify a supported PHP version against the lockfile and hosting

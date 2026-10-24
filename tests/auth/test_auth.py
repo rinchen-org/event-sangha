@@ -40,7 +40,7 @@ class AuthHTTPTest(unittest.TestCase):
             dest = cls.web / base
             for source in (ROOT / 'src').rglob('*'):
                 relative = source.relative_to(ROOT / 'src')
-                if source.is_file() and (source.suffix == '.php' or relative.as_posix() in ('.htaccess', 'static/auth.css', 'templates/test-email.html')):
+                if source.is_file() and (source.suffix == '.php' or relative.as_posix() in ('.htaccess', 'static/auth.css', 'static/qr-checkin.js', 'static/auth-navigation.js', 'templates/test-email.html')):
                     target = dest / relative
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(source, target)

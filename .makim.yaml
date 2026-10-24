@@ -1,7 +1,14 @@
-version: "1.0"
 groups:
   dev:
-    targets:
+    tasks:
+      install-php:
+        help: Install Ubuntu system PHP/Composer (APT prompts for sudo; leaves Conda and data alone)
+        run: bash scripts/install-php-composer.sh
+
+      installer-tests:
+        help: Test the Ubuntu installer without APT, sudo, downloads, or application data
+        run: python tests/tooling/test_ubuntu_dependencies.py
+
       runserver:
         help: Run the server application
         run: |
@@ -23,11 +30,11 @@ groups:
 
       setup-tests:
         help: Run isolated authenticated event setup tests (requires PHP sqlite3)
-        run: python tests/auth/test_event_setup.py
+        run: php tests/setup/test_preparation.php && python tests/auth/test_event_setup.py
 
       qr-tests:
         help: Run isolated staff QR admission tests (requires PHP sqlite3)
-        run: python tests/auth/test_qr_admission.py
+        run: php tests/qr/test_selection.php && python tests/auth/test_qr_admission.py
 
       qr-migrate:
         help: Add QR decision audit table only (back up the database first)
@@ -49,7 +56,7 @@ groups:
           # ./vendor/bin/phpunit tests/EmailTest.php
 
   frontend:
-    targets:
+    tasks:
       install:
         help: Install locked React dependencies
         run: npm ci --prefix frontend

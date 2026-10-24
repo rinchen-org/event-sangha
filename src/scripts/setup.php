@@ -3,9 +3,12 @@ require_once dirname(__DIR__) . '/lib/auth.php';
 auth_require();
 require_once dirname(__DIR__) . '/lib/event_setup.php';
 
-$values = ['name' => 'Retiro de noviembre', 'description' => '', 'year' => '2026',
-    'morning_start' => '09:00', 'morning_end' => '12:00',
-    'afternoon_start' => '14:00', 'afternoon_end' => '18:00', 'event_id' => '', 'qr_event' => '1'];
+if (($_GET['mode'] ?? '') === 'prepare2026') {
+    require dirname(__DIR__) . '/templates/event/prepare-2026.php';
+    return;
+}
+
+$values = EventSetup::defaults();
 $error = '';
 $success = '';
 $events = [];

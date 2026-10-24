@@ -12,7 +12,7 @@ makim frontend.install
 makim frontend.dev
 ```
 
-Open <http://localhost:5173>. Vite forwards `/templates/` and `/static/` requests to the PHP
+Open <http://localhost:5173>. Vite forwards `/templates/`, `/scripts/`, and `/static/` requests to the PHP
 application at `http://127.0.0.1:8000`. Start PHP using your existing runtime or
 container. To use another origin:
 
@@ -22,8 +22,10 @@ PHP_ORIGIN=http://127.0.0.1:8081 makim frontend.dev
 
 The development PHP server must expose `src/` as its document root. If PHP is
 installed separately, `makim dev.serve-local` uses the protected development router for local use
-with an already initialized development database. Do not use the PHP development
-server for production. No migrations run automatically.
+with the development database. If the database is missing, the home-page
+**Preparar evento 2026** shortcut remains available even when list loading fails;
+it opens the protected PHP readiness/confirmation screen. Do not use the PHP
+development server for production. No migrations run automatically.
 
 For design review without PHP, open
 <http://localhost:5173/?preview=1>. This explicitly labeled, development-only
@@ -48,7 +50,10 @@ root hosting and `/event-retiro` with the authentication file-protection rules d
 Before a build exists, the original menu remains available. After building, use
 `templates/index.php?legacy=1` for the same fallback. PHP result pages include a
 link back to the React interface. Issued QR URLs and the Python report API remain compatible, but now require
-an authenticated session. QR attendance requires a POST confirmation.
+an authenticated session. QR attendance always uses a protected POST: automatic
+for a single clear in-period session, otherwise explicitly confirmed by staff.
+The standalone PHP QR screen uses `src/static/qr-checkin.js`; GET never records
+attendance and session selection/policy evaluation remain server-side.
 
 ## Migration boundary
 
@@ -59,6 +64,12 @@ to those handlers' results. Backend validation, QR generation, email, CSV import
 and attendance rules still run in PHP. Submission/result screens have not yet
 been migrated to a JSON mutation API; the classic detailed report retains its
 Excel/PDF/print features.
+
+**Preparar evento 2026** links to `scripts/setup.php?mode=prepare2026`, independent
+of dashboard loading. PHP checks schema and event/session mappings and confirms
+only pending work; React does not evaluate migration status. Already-prepared
+records and staff edits are preserved. Preview disables the link. The classic
+menu offers the same action, and the original editable setup remains available.
 
 Each existing list route accepts `?format=json` through `src/lib/frontend.php`:
 

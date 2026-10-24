@@ -32,8 +32,15 @@ describe('React management views', () => {
     render(<App />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Volvamos a conectar');
     expect(screen.queryByText('Ana Flores')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Preparar evento 2026' })).toHaveAttribute('href', expect.stringContaining('/scripts/setup.php?mode=prepare2026'));
     await userEvent.click(screen.getByRole('button', { name: 'Volver a intentar' }));
     expect(await screen.findByRole('heading', { name: 'Nuestros encuentros' })).toBeInTheDocument();
+  });
+  it('keeps event preparation available while dashboard data is loading', () => {
+    vi.mocked(fetch).mockImplementation(() => new Promise(() => {}));
+    render(<App />);
+    expect(screen.getByRole('link', { name: 'Preparar evento 2026' })).toHaveAttribute('href', expect.stringContaining('/scripts/setup.php?mode=prepare2026'));
+    expect(screen.getByRole('button', { name: 'Crear evento' })).toBeDisabled();
   });
   it('filters participants by accent-insensitive search and activation state', async () => {
     location.hash = '#participantes';

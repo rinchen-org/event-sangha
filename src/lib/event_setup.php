@@ -5,6 +5,13 @@ auth_block_direct(__FILE__);
 
 class EventSetup
 {
+    /** @return array<string, string> */
+    public static function defaults(): array {
+        return ['name' => 'Retiro de noviembre', 'description' => '', 'year' => '2026',
+            'morning_start' => '09:00', 'morning_end' => '12:00',
+            'afternoon_start' => '14:00', 'afternoon_end' => '18:00', 'event_id' => '', 'qr_event' => '1'];
+    }
+
     /** @param array<string, string> $input
      * @return array<int, array<string, string>>
      */
@@ -149,6 +156,125 @@ class EventSetup
             }
             $db->exec('COMMIT');
             return $id;
+        } catch (Throwable $error) {
+            $db->exec('ROLLBACK');
+            throw $error;
+        }
+    }
+
+    /**
+     * Read-only plan for the shortcut. Existing records are never updated or
+     * deleted here, including edited schedules and obsolete/extra sessions.
+     * @return array<string, mixed>
+     */
+    public static function preparationStatus(?SQLite3 $db, string $selection = ''): array {
+        if ($selection !== '' && $selection !== 'new' && !preg_match('/^[1-9][0-9]{0,9}$/D', $selection)) {
+            throw new DomainException('Selecciona un evento válido.');
+        }
+        $schema = pending_setup_schema($db);
+        $has = static function (string $table) use ($db): bool {
+            return $db !== null && (bool) $db->querySingle("SELECT 1 FROM sqlite_master WHERE type='table' AND name='" . SQLite3::escapeString($table) . "'");
+        };
+        $events = $has('event') ? self::sql($db, 'SELECT * FROM event ORDER BY id') : [];
+        $known = $has('setup_event') ? self::sql($db, "SELECT event_id FROM setup_event WHERE setup_key='november-2026'") : [];
+        $id = $known ? (int) $known[0]['event_id'] : ($selection !== 'new' && $selection !== '' ? (int) $selection : 0);
+        if ($known && $selection !== '' && $selection !== 'new' && $id !== (int) $selection) {
+            throw new DomainException('Noviembre de 2026 ya está vinculado a otro evento. No se cambiará ese vínculo.');
+        }
+        $event = null;
+        foreach ($events as $item) { if ((int) $item['id'] === $id) { $event = $item; } }
+        if (($known || $id) && ($id < 1 || $event === null)) {
+            throw new DomainException('El evento vinculado o seleccionado ya no existe. Revisa los datos antes de continuar.');
+        }
+        if (!$known && $id && $has('setup_event') && self::sql($db, 'SELECT setup_key FROM setup_event WHERE event_id=:id', ['id' => $id])) {
+            throw new DomainException('El evento seleccionado pertenece a otra configuración anual. No se reutilizará para 2026.');
+        }
+        $choose = !$known && !$id && $selection !== 'new' && count($events) > 0;
+        $existing = $id && $has('event_session') ? self::sql($db, 'SELECT * FROM event_session WHERE event_id=:id ORDER BY id', ['id' => $id]) : [];
+        $links = $has('setup_session') ? self::sql($db, 'SELECT * FROM setup_session ORDER BY event_id, slot') : [];
+        $sessions = [];
+        $claimed = [];
+        foreach ($links as $link) { $claimed[(int) $link['session_id']] = true; }
+        foreach (self::schedule(self::defaults()) as $slot) {
+            $linked = null;
+            foreach ($links as $link) {
+                if ((int) $link['event_id'] === $id && $link['slot'] === $slot['slot']) { $linked = (int) $link['session_id']; }
+            }
+            $matches = array_values(array_filter($existing, static function (array $row) use ($linked, $slot): bool {
+                return $linked !== null ? (int) $row['id'] === $linked : $row['start_date'] === $slot['start'];
+            }));
+            if (($linked !== null && count($matches) !== 1) || count($matches) > 1) {
+                throw new DomainException('Una sesión vinculada falta, cambió de evento o tiene coincidencias ambiguas. Revisa la configuración; no se crearán duplicados.');
+            }
+            $session = $matches[0] ?? null;
+            if ($linked === null && $session !== null && isset($claimed[(int) $session['id']])) {
+                throw new DomainException('Una sesión ya pertenece a otro vínculo. Revisa la configuración.');
+            }
+            if ($session !== null) { $claimed[(int) $session['id']] = true; }
+            $sessions[] = $slot + ['action' => $linked !== null ? 'skip' : ($session !== null ? 'adopt' : 'create'), 'record' => $session];
+        }
+        // Missing mappings plus edited/unrecognized sessions cannot be safely
+        // interpreted as missing sessions. Ask for explicit historical review.
+        if (in_array('create', array_column($sessions, 'action'), true)) {
+            foreach ($existing as $session) {
+                if (!isset($claimed[(int) $session['id']])) {
+                    throw new DomainException('Hay sesiones sin vínculo con horarios distintos de los propuestos. Revisa la configuración avanzada antes de crear otras; no se modificarán ni duplicarán esas sesiones.');
+                }
+            }
+        }
+        $qr = $has('app_setting') ? self::sql($db, "SELECT value FROM app_setting WHERE name='qr_event_id'") : [];
+        $eventReady = (bool) $known && !array_filter($sessions, static function (array $slot): bool { return $slot['action'] !== 'skip'; });
+        $state = ['schema' => $schema, 'events' => $events, 'event' => $event, 'linked' => (bool) $known,
+            'choose' => $choose, 'sessions' => $sessions, 'existing' => $existing, 'links' => $links,
+            'qr' => $qr[0]['value'] ?? '1', 'event_ready' => $eventReady, 'ready' => !$schema && $eventReady];
+        $state['fingerprint'] = hash('sha256', json_encode($state, JSON_THROW_ON_ERROR));
+        return $state;
+    }
+
+    /**
+     * Recheck under a write lock; only run missing additive steps. The callback
+     * snapshots from a separate read-only connection while other writers wait.
+     * @param callable(): void $beforeWrite
+     * @return array{changed: bool, event_id: int}
+     */
+    public static function prepare2026(SQLite3 $db, string $selection, string $fingerprint, callable $beforeWrite): array {
+        $db->enableExceptions(true);
+        $db->busyTimeout(5000);
+        $db->exec('BEGIN IMMEDIATE');
+        try {
+            $state = self::preparationStatus($db, $selection);
+            if ($state['ready']) {
+                $db->exec('COMMIT');
+                return ['changed' => false, 'event_id' => (int) $state['event']['id']];
+            }
+            if ($state['choose'] || !hash_equals($fingerprint, $state['fingerprint'])) {
+                throw new DomainException('La configuración cambió desde la revisión. Revisa el estado actual y confirma de nuevo.');
+            }
+            $beforeWrite();
+            foreach ($state['schema'] as $sql) { $db->exec($sql); }
+            $id = (int) ($state['event']['id'] ?? 0);
+            if (!$id) {
+                $schedule = self::schedule(self::defaults());
+                self::sql($db, 'INSERT INTO event (name, description, start_date, end_date) VALUES (:name, :description, :start, :end)',
+                    ['name' => self::defaults()['name'], 'description' => '', 'start' => $schedule[0]['start'], 'end' => $schedule[count($schedule) - 1]['end']]);
+                $id = $db->lastInsertRowID();
+            }
+            foreach ($state['sessions'] as $slot) {
+                if ($slot['action'] === 'skip') { continue; }
+                $sessionId = (int) ($slot['record']['id'] ?? 0);
+                if ($slot['action'] === 'create') {
+                    self::sql($db, 'INSERT INTO event_session (event_id, name, start_date, end_date) VALUES (:event, :name, :start, :end)',
+                        ['event' => $id, 'name' => $slot['name'], 'start' => $slot['start'], 'end' => $slot['end']]);
+                    $sessionId = $db->lastInsertRowID();
+                }
+                self::sql($db, 'INSERT INTO setup_session (event_id, slot, session_id) VALUES (:event, :slot, :session)',
+                    ['event' => $id, 'slot' => $slot['slot'], 'session' => $sessionId]);
+            }
+            if (!$state['linked']) {
+                self::sql($db, "INSERT INTO setup_event (setup_key, event_id) VALUES ('november-2026', :id)", ['id' => $id]);
+            }
+            $db->exec('COMMIT');
+            return ['changed' => true, 'event_id' => $id];
         } catch (Throwable $error) {
             $db->exec('ROLLBACK');
             throw $error;

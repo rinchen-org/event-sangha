@@ -2048,3 +2048,7 @@ h1[tabindex]:focus-visible {
 .email-test-panel h2 { margin:0 0 6px; font-size:16px; }
 .email-test-panel p { margin:0; font-size:13px; line-height:1.6; }
 .email-test-panel > p { flex-basis:100%; }
+
+.setup-event-panel { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; padding:20px; margin-bottom:24px; }
+.setup-event-panel h2 { margin:0 0 6px; font-size:16px; }
+.setup-event-panel p { margin:0; font-size:13px; line-height:1.6; }

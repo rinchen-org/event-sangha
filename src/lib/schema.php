@@ -55,3 +55,77 @@ function create_setup_schema(SQLite3 $db): void {
         event_id INTEGER NOT NULL, slot TEXT NOT NULL, session_id INTEGER NOT NULL UNIQUE,
         PRIMARY KEY (event_id, slot))');
 }
+
+/**
+ * Inspect the real schema without changing it. Derive the target from the same
+ * additive initializer, in memory, rather than maintaining a second schema.
+ * @return array<string, string> Pending step label => trusted SQL.
+ */
+function pending_setup_schema(?SQLite3 $db): array {
+    $model = new SQLite3(':memory:');
+    $model->enableExceptions(true);
+    try {
+        create_setup_schema($model);
+        $pending = [];
+        $objects = $model->query("SELECT type, name, tbl_name, sql FROM sqlite_master
+            WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY type DESC, name");
+        while ($object = $objects->fetchArray(SQLITE3_ASSOC)) {
+            $name = SQLite3::escapeString($object['name']);
+            $actual = $db === null ? false : $db->querySingle(
+                "SELECT type, tbl_name FROM sqlite_master WHERE name='$name'", true);
+            if (!$actual) {
+                $pending[($object['type'] === 'table' ? 'Crear tabla ' : 'Crear índice ') . $object['name']] = $object['sql'];
+                continue;
+            }
+            if ($actual['type'] !== $object['type'] || $actual['tbl_name'] !== $object['tbl_name']) {
+                throw new DomainException('El esquema existente no es compatible: ' . $object['name'] . '. Requiere revisión; no se modificaron datos.');
+            }
+            if ($object['type'] === 'index') {
+                $columns = static function (SQLite3 $connection) use ($name): array {
+                    $result = $connection->query("PRAGMA index_info('$name')");
+                    $names = [];
+                    while ($row = $result->fetchArray(SQLITE3_ASSOC)) { $names[] = $row['name']; }
+                    $result->finalize();
+                    return $names;
+                };
+                if ($columns($db) !== $columns($model)) {
+                    throw new DomainException('El índice ' . $object['name'] . ' no es compatible. Requiere revisión.');
+                }
+                continue;
+            }
+            $columns = [];
+            $result = $db->query("PRAGMA table_info('$name')");
+            while ($row = $result->fetchArray(SQLITE3_ASSOC)) { $columns[$row['name']] = $row; }
+            $result->finalize();
+            $expected = $model->query("PRAGMA table_info('$name')");
+            while ($column = $expected->fetchArray(SQLITE3_ASSOC)) {
+                if (!isset($columns[$column['name']]) && $column['name'] === 'active'
+                    && in_array($object['name'], ['person', 'subscription'], true)) {
+                    $pending['Añadir estado a ' . $object['name']] = "ALTER TABLE $name ADD active INTEGER DEFAULT 1";
+                } elseif (!isset($columns[$column['name']]) || $columns[$column['name']]['pk'] !== $column['pk']
+                    || ($column['name'] === 'id' && strtoupper($columns[$column['name']]['type']) !== 'INTEGER')) {
+                    throw new DomainException('La tabla ' . $object['name'] . ' usa un esquema antiguo incompatible. Requiere revisión; no se modificaron datos.');
+                }
+            }
+            $expected->finalize();
+            // Mapping uniqueness is necessary to avoid adopting a session twice.
+            if ($object['name'] === 'setup_session') {
+                $uniqueSession = false;
+                $indexes = $db->query("PRAGMA index_list('setup_session')");
+                while ($index = $indexes->fetchArray(SQLITE3_ASSOC)) {
+                    if (!$index['unique'] || $index['partial']) { continue; }
+                    $info = $db->query("PRAGMA index_info('" . SQLite3::escapeString($index['name']) . "')");
+                    $first = $info->fetchArray(SQLITE3_ASSOC);
+                    if ($first && $first['name'] === 'session_id' && !$info->fetchArray(SQLITE3_ASSOC)) { $uniqueSession = true; }
+                    $info->finalize();
+                }
+                $indexes->finalize();
+                if (!$uniqueSession) { throw new DomainException('Los vínculos de sesiones requieren una revisión de integridad.'); }
+            }
+        }
+        $objects->finalize();
+        return $pending;
+    } finally {
+        $model->close();
+    }
+}

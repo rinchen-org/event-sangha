@@ -29,18 +29,42 @@ bundle. Replace this shared account with individual accounts before broader use.
 
 Sessions expire after 30 minutes of inactivity or 12 hours total. Forms and
 logout use CSRF protection; login is limited to five failed attempts per IP per
-15 minutes. Issued QR links still work, but staff must log in and confirm
-admission. QR images in emails cannot load anonymously; do not distribute the
+15 minutes. Issued QR links still work, but staff must log in. Clear in-period
+check-ins can run automatically; other cases require review as described below.
+QR images in emails cannot load anonymously; do not distribute the
 admin credentials to participants.
 
 ### Staff QR admission
 
-Only staff use the app; attendees present their QR at the door. The scan shows
-the attendee and session, with warnings for missed previous sessions.
-**Permitir participación** records attendance; **Denegar participación** saves a
-denial for that session without recording attendance. Rescans show the denial;
-staff can explicitly change it to allow participation. Existing attendance is
-not duplicated. Decisions record the account, time, and warning snapshot.
+Only staff use the app; attendees present their QR at the door. **Recorded times
+are illustrative and never restrict admission through this QR flow.**
+
+- **Inside exactly one session, with no other warnings or prior denial:** the
+  session is selected and attendance is recorded automatically, without a
+  confirmation click. The scan GET itself is read-only; the visible browser makes
+  a separate authenticated, CSRF-protected, single-use POST. The server checks
+  the conditions again before writing.
+- **Outside all sessions:** the dropdown proposes the nearest interval. Staff
+  can keep it or choose any other session of the configured QR event, then
+  explicitly permit/deny. Equal-distance ties prefer the upcoming interval.
+- **Missing previous attendance, overlapping periods, or a prior denial:**
+  warnings require staff review even during a session. They are not automatic
+  rejection rules. A prior denial is changed only by an explicit staff decision.
+- **Already checked in:** the existing record is shown; no duplicate is created.
+
+Changing the dropdown refreshes the warnings without recording attendance.
+Without JavaScript, select the period and click **Revisar sesión seleccionada**;
+the **Permitir participación** button also provides a manual fallback when
+automatic submission is unavailable. **Denegar participación** records only a
+session-specific denial. Staff can cancel without writing, and notes are optional.
+Times are shown in Bolivia; attendance records the actual UTC time of check-in,
+not the illustrative session time. Reloading/returning through browser history
+does not automatically retry a submission, nor do error/result pages.
+
+Decisions record the shared account, UTC time, session and warnings. New audit
+JSON uses version 2 and distinguishes automatic admission (`staff_confirmed:
+false`) from an explicit staff decision; old list-only snapshots remain intact.
+This change needs no additional database migration beyond the existing QR table.
 
 Before deploying this workflow, back up the SQLite database, then run:
 
@@ -51,10 +75,46 @@ makim dev.qr-tests
 
 The migration adds only the decision audit table/index; do not rerun the older
 migration bundle against existing data. Tests use disposable synthetic SQLite
-databases and require PHP's sqlite3 extension. QR uses the event selected in web setup (event ID 1 until configured)
-and still selects a session within its active time window.
+databases and require PHP's sqlite3 extension. QR uses the event selected in web
+setup (event ID 1 until configured). `makim dev.qr-tests` first runs deterministic
+in-memory domain checks, then the HTTP suite. If local sockets are unavailable,
+`php tests/qr/test_selection.php` runs just the domain checks; it does not replace
+HTTP security coverage. `makim frontend.tests` covers the browser submission
+script. Deploy `src/static/qr-checkin.js` with the PHP changes; these standalone
+QR-screen assets do not require rebuilding React. Other manual/forced attendance
+routes still retain their legacy policies.
 
 ### Set up the November event without console access
+
+The home page and classic menu now include **Preparar evento 2026**, opening
+`scripts/setup.php?mode=prepare2026`. It remains available if dashboard data
+cannot load because the database is not initialized; development preview disables
+the action. Opening it only inspects the actual schema and the
+`november-2026` event/session mappings. It does not rely on a migration flag alone.
+
+- Review the completed and pending steps, then choose **Confirmar y completar
+  lo pendiente**, or cancel without writing. Only missing additive schema steps,
+  event/session records, and mappings are applied. If everything exists, nothing
+  is written and no extra backup is made.
+- Existing event names, dates, edited sessions, attendance, admission decisions,
+  extra/old sessions, and QR selection stay unchanged. With no saved QR selection,
+  the existing fallback remains event #1; use advanced configuration to select
+  a different event for scanning.
+- If events exist without a 2026 mapping, select one explicitly or explicitly
+  choose a new event. Exact start-time matches can be linked without updating
+  their records. Ambiguous matches, broken mappings, and unrecognized edited
+  sessions require review, not guessed replacements or duplicates.
+- New sessions use the proposed November 12–15, 2026 schedule shown below.
+  **Configuración avanzada** retains the editable year/hours and the original
+  create/update workflow. Unlike the shortcut, that workflow deliberately updates
+  records and may reconcile the old morning slots; review its fields before saving.
+- Confirmation requires authentication, CSRF, and an expiring single-use review
+  token. PHP checks the state again under a write lock; changed pending steps
+  require a fresh review. Existing databases are privately backed up before any
+  writes, and schema/data changes commit together. No mail, QR generation, or
+  participant seeding occurs. Never run the historical migration bundle.
+
+For the original editable setup workflow:
 
 Upload the updated application, then open `/scripts/setup.php` relative to the
 application URL (for example `/event-retiro/scripts/setup.php`). The repository
@@ -92,6 +152,11 @@ form token. PHP needs the sqlite3 extension and write access to `src/`, the
 database, and the private backup directory. Remove or restrict this maintenance
 endpoint after setup if it is no longer needed. Use `makim dev.setup-tests`
 for disposable regression tests.
+
+`makim dev.setup-tests` runs disposable SQLite preparation checks followed by
+the isolated HTTP setup suite. If local sockets are unavailable, run
+`php tests/setup/test_preparation.php` for the database-only checks; this does
+not replace HTTP authentication/CSRF coverage.
 
 For local PHP development (external PHP, Conda tools):
 
@@ -287,87 +352,71 @@ development environment.
 
 ### Prerequisites
 
-- PHP (version >= 8.1)
-- Composer
+- Conda for Python, Makim, Sugar, and Node.js.
+- A separately installed PHP CLI (>= 8.1 and < 9.0) and Composer.
+- On Ubuntu >= 22.04: network access to configured APT repositories (including
+  `universe`) and sudo access for system package installation.
 
 ### Installing Dependencies
 
-1. Install Composer (if not already installed):
-   [Composer Installation Guide](https://getcomposer.org/download/)
+Run these commands from the repository root. First create or update the Conda
+environment as described below, then activate it:
 
-2. Clone the repository to your local machine (if you haven't already):
+```bash
+conda activate rinchen
 
-   ```bash
-   git clone https://github.com/your-username/rinchen.org.git
-   ```
+# Preview without sudo, downloads, or writes; then install the system runtime.
+bash scripts/install-php-composer.sh --dry-run
+bash scripts/install-php-composer.sh
 
-3. Change directory to the project:
+# Install project dependencies as your normal user, never with sudo.
+/usr/bin/php /usr/bin/composer validate --strict
+/usr/bin/php /usr/bin/composer install
+/usr/bin/php /usr/bin/composer check-platform-reqs
+npm ci --prefix frontend
+npm run build --prefix frontend
+```
 
-   ```bash
-   cd rinchen.org
-   ```
+The installer uses Ubuntu's PHP CLI package and configured APT repositories,
+following the [Ubuntu PHP CLI instructions](https://ubuntu.com/server/docs/how-to/web-services/install-php/).
+It installs `php-cli`, `php-sqlite3`, `php-curl`, `php-xml`, `php-mbstring`,
+`php-zip`, `composer`, `ca-certificates`, and `unzip`. Only APT uses sudo; the
+script can also be run by an administrator. Add `--yes` to accept APT's package
+prompt. It does not add PPAs, change Conda, run migrations, send mail, install a
+production web server, or change `src/.env` or the database. APT can update
+already installed packages; it is instructed not to remove packages.
 
-4. Install project dependencies using Composer:
+`makim dev.install-php` runs the same installer. The direct Bash invocation does
+not require a working Makim installation. `makim dev.installer-tests` runs its
+isolated control-flow tests with mocked installation commands (no actual APT,
+sudo, PHP runtime, or network required).
 
-   ```bash
-   composer install
-   ```
+**Known project dependency blocker:** `composer.json` currently requires
+`phpstan/phpstan ~2.1.32`, but `composer.lock` contains `1.10.41`. Resolve this
+manifest/lock mismatch in a deliberate dependency change before expecting a
+successful Composer install. The runtime installer does not change either file.
+Do not bypass failures with `--ignore-platform-reqs`, an unreviewed update, or the
+legacy `scripts/install-php-deps.sh` (which runs `composer require`). Use
+[`composer install` with the lockfile](https://getcomposer.org/doc/01-basic-usage.md#installing-from-composer-lock)
+once the mismatch is resolved.
 
 ### Enabling PHP Extensions
 
-Ensure that the following PHP extensions are enabled in your php.ini
-configuration file:
+The Ubuntu installer checks `/usr/bin/php` and verifies SQLite, cURL, XML/DOM,
+mbstring, ZIP, and the other application/test extensions after installation.
+If verification fails, inspect `/usr/bin/php --ini`; custom `PHPRC` or
+`PHP_INI_SCAN_DIR` environment variables can override the system configuration.
+With several PHP versions installed, check `update-alternatives --config php`
+with your administrator rather than assuming the newest version is selected.
 
-- `mbstring`
-- `dom`
+After activating Conda, verify that `command -v php` and `php --version` still
+select the external runtime. Remove any conflicting Conda PHP from `PATH` before
+running Makim tasks; keep Conda's Python and Node.js. Absolute `/usr/bin/php`
+and `/usr/bin/composer` paths above avoid using a Conda copy during setup.
 
-You can enable these extensions by modifying your php.ini file:
-
-- For Ubuntu/Debian:
-
-  ```bash
-  sudo nano /etc/php/8.2/cli/php.ini
-  ```
-
-- For CentOS/RHEL:
-
-  ```bash
-  sudo nano /etc/php.ini
-  ```
-
-- For macOS with Homebrew:
-
-  ```bash
-  sudo nano /usr/local/etc/php/8.2/php.ini
-  ```
-
-Uncomment the lines for `mbstring` and `dom` extensions by removing the
-semicolon (`;`) at the beginning of the lines:
-
-```ini
-extension=mbstring
-extension=dom
-```
-
-Save the changes and restart your web server or PHP-FPM service:
-
-- For Apache:
-
-  ```bash
-  sudo service apache2 restart
-  ```
-
-- For Nginx:
-
-  ```bash
-  sudo service nginx restart
-  ```
-
-- For PHP-FPM:
-
-  ```bash
-  sudo service php8.2-fpm restart
-  ```
+This configures CLI/local development only. Production Apache/FPM extensions,
+mail transport, private-file protections, and database migrations remain
+separate deployment work; see [containers/README.md](containers/README.md).
 
 ### Conda Environment
 
@@ -375,11 +424,14 @@ To set up the Conda environment for this project, use the following commands:
 
 ```bash
 # Create the Conda environment from the provided YAML file
-mamba env create -f conda/dev.yaml
+conda env create -f conda/dev.yaml
 
 # Activate the Conda environment
 conda activate rinchen
 ```
+
+For an existing environment, use `conda env update -f conda/dev.yaml` instead
+of `conda env create`.
 
 ### Makim Automation
 

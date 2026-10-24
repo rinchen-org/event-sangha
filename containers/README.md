@@ -50,8 +50,10 @@ actual host, test both root/subdirectory deployments as applicable:
 - Direct requests to `.env`, `db.sqlite`, libraries, migrations, backups and
   `static/app/index.html` return 403/404, even after login.
 - Existing `static/qr/<hash>.jpg` URLs require login and then serve the image.
-- Login, POST logout, expiry, form CSRF rejection, and QR attendance confirmation
-  work. Issued QR query strings survive the login redirect.
+- Login, POST logout, expiry, form CSRF rejection, automatic in-period QR POSTs,
+  and explicit outside-period/warning confirmations work. GET scans never write.
+  `static/qr-checkin.js` is deployed; failures are not auto-retried and existing
+  attendance is not duplicated. Issued QR query strings survive the login redirect.
 - Cookies have Secure on HTTPS, and sessions/throttle files are private.
 - Authenticated Python reports can fetch API data and QR images.
 

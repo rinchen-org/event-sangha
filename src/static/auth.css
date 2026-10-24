@@ -12,6 +12,11 @@ label { display: block; font-size: 13px; margin: 18px 0 8px; }
 input:not([type=hidden]) { width: 100%; min-height: 48px; padding: 12px; border: 1px solid #ded6cb; border-radius: 8px; font: inherit; background: white; }
 button { display: flex; justify-content: space-between; width: 100%; min-height: 48px; padding: 13px 18px; margin-top: 26px; background: #79364b; color: white; border: 0; border-radius: 8px; cursor: pointer; font: 600 14px system-ui, sans-serif; }
 button:hover { background: #62283b; }
+.auth-password-toggle { width: auto; min-height: 44px; margin: 4px 0 0 auto; padding: 8px 0; background: transparent; color: #79364b; }
+.auth-password-toggle:hover { background: transparent; color: #62283b; text-decoration: underline; }
+.auth-password-toggle[hidden] { display: none; }
+.qr-auto-submit[hidden] { display: none; }
+.auth-notes { width: 100%; padding: 12px; border: 1px solid #ded6cb; border-radius: 8px; font: inherit; resize: vertical; }
 a { color: #79364b; display: inline-block; margin-top: 16px; }
 :focus-visible { outline: 3px solid #ab8057; outline-offset: 3px; }
 .auth-error { padding: 12px; background: #f8e9eb; color: #842e41; border-radius: 8px; }

@@ -102,9 +102,19 @@ conda activate rinchen
 ```
 
 For an existing environment, use `conda env update -f conda/dev.yaml`.
-The README's `mamba env create -n conda/dev.yaml` example is incorrect; use `-f`.
-The manifest currently pins Makim 1.8.3 and containers-sugar 1.9.0, and comments
-out PHP. Keep tool upgrades deliberate and update their configuration together.
+The current manifest installs Makim through pip and pins containers-sugar 1.9.0;
+PHP remains external. Keep tool upgrades deliberate and update their
+configuration together (`.makim.yaml` now uses the `tasks` format).
+
+On Ubuntu >=22.04, `bash scripts/install-php-composer.sh --dry-run` previews the
+system-runtime setup; omit `--dry-run` to install PHP CLI, SQLite/cURL/XML/mbstring/
+ZIP extensions, Composer, CA certificates, and unzip through configured APT
+repositories (including universe). `makim dev.install-php` invokes the same
+script. Only APT uses sudo when needed; `--yes` accepts its package prompt.
+The script verifies `/usr/bin/php` (>=8.1, <9.0), extensions, and Composer without
+changing Conda, project dependencies, configuration, or data. It does not add
+PPAs or configure mail/production hosting. `makim dev.installer-tests` runs
+mocked installer tests without sudo, APT changes, PHP, or network access.
 
 With a separately installed PHP and Composer available on `PATH`:
 
@@ -115,6 +125,12 @@ composer install
 composer check-platform-reqs
 composer validate --strict
 ```
+
+The current `composer.json` requests PHPStan `~2.1.32`, but `composer.lock` has
+`1.10.41`. This mismatch needs a separately reviewed dependency change; the
+runtime installer intentionally does not fix it or run Composer installation.
+Use `/usr/bin/php /usr/bin/composer` if an active Conda environment shadows the
+system executables, and correct `PATH` before using PHP-based Makim tasks.
 
 The locked PHPUnit 10 dependencies require PHP >=8.1, although `composer.json`
 declares PHP `^8.0`. CI currently provisions PHP 8.1. Check Composer's platform
@@ -208,9 +224,9 @@ of the data-mutating PHP suite.
 - Add regression tests for changed domain behavior and API contracts. Isolate
   database, time, mail, and network dependencies as the test harness evolves.
 - Use `composer install` with the lockfile for setup; avoid incidental dependency
-  updates. The legacy Composer installer embeds an old checksum, and
-  `scripts/install-php-deps.sh` runs `composer require`; neither is a neutral
-  replacement for dependency installation.
+  updates. `scripts/install-php-composer.sh` installs only the Ubuntu system
+  runtime. The legacy `scripts/install-php-deps.sh` runs `composer require` and
+  is not a neutral replacement for dependency installation.
 - Expose new recurring tasks through Makim and keep container orchestration in
   Sugar. Update this file and the roadmap when actual commands or architecture
   change; do not document proposed tasks as available commands.
@@ -224,7 +240,8 @@ them in frontend code. Individual accounts remain future work.
 
 Include `auth_require()` before output or domain work on every new route.
 Mutations must use POST and CSRF validation, including React forms. GET QR
-check-in now renders confirmation rather than recording attendance. Libraries
+check-in is read-only; eligible automatic admission uses a separate protected
+browser POST, never a GET write. Other cases require staff confirmation. Libraries
 reject direct HTTP access; migrations are CLI-only. Preserve these boundaries.
 
 Use `makim dev.serve-local`, not a bare PHP server: its router also protects
@@ -244,34 +261,86 @@ own session; protected QR images no longer load in anonymous email clients.
 
 ## Staff QR admission workflow
 
-Implemented in `src/templates/attendance/log.php` and `src/lib/qr_admission.php`:
-a scan is read-only and shows the person, current session, missing previous
-attendance, and any existing denial. Staff explicitly permit or deny entry.
-Permitting records attendance; denying records only a session-specific decision.
-Rescans show the denial, which staff can explicitly revise to allow entry.
-An existing attendance is not duplicated or deleted through this screen.
+Implemented in `src/templates/attendance/log.php`, `src/lib/qr_admission.php`,
+and `src/static/qr-checkin.js`. Session times are illustrative, not admission
+restrictions. Within exactly one period, with no previous-attendance warnings,
+prior denial, or existing attendance, the initial QR GET renders an eligible
+automatic form. The visible browser submits it once by authenticated POST with
+CSRF and a server-issued single-use token; PHP rechecks eligibility under the
+transaction lock. No staff confirmation click is needed in this clear case.
 
-Missing previous sessions are advisory, including the formerly exempt session
-ID 1. This QR-specific change does not remove other legacy attendance gates.
-QR selects the event from `app_setting.qr_event_id` when configured through web
-setup, otherwise it falls back to event ID 1. Its active time-window selection
-is unchanged; time-window flexibility remains separate work.
+Outside all periods, the dropdown preselects the nearest interval (distance to
+start/end, preferring the upcoming session on a tie, then start time/ID). Any
+session of the configured QR event can be chosen and explicitly allowed or
+denied, regardless of time. Overlaps, missing previous attendance (including
+session ID 1), and prior denials also require review, not automatic rejection.
+Structured Spanish warnings are evaluated in PHP, displayed, and audited.
 
-Decisions and missing-session snapshots are appended to
-`qr_admission_decision` with UTC timestamps and the authenticated account.
-The shared `admin` account identifies the account, not an individual staff member.
-Server-side, expiring single-use review tokens bind the person, session, and
-reviewed state; changed warnings/decisions require another review. Attendance and
-the decision audit are written in one transaction. Technical failures fail closed.
+Changing the dropdown refreshes the review via a read-only, CSRF-protected POST;
+without JavaScript, use “Revisar sesión seleccionada”. Submitting a different
+session with an old review cannot record attendance: staff must see the updated
+warnings first. Notes are optional. A denial is session-specific and can be
+explicitly revised. Existing attendance is never duplicated or deleted here.
+The browser never auto-submits a POST response, reload/history navigation, or
+after staff interaction; no ambiguous failure is automatically retried. Manual
+buttons remain usable without JavaScript. GET/HEAD never write attendance/schema.
+
+QR uses `app_setting.qr_event_id`, falling back to event ID 1. Tokens bind the
+person, event, session, reviewed state, and eligibility for automation. Changed
+events, warnings, decisions, schedules, or interval boundaries require a fresh
+review; ordinary clock ticks do not. The injected PHP clock enables deterministic
+boundary tests. These changes do not remove other legacy/manual attendance gates.
+
+Attendance and decisions are written atomically to the existing tables. New
+`qr_admission_decision.warnings_json` entries are version-2 objects containing
+structured warnings, `missing_sessions`, the selected session snapshot,
+`mode` (`automatic`/`staff`), `staff_confirmed`, and optional notes. Historical
+list-only snapshots are left intact; readers must handle both versions. No new
+schema migration is needed for this JSON evolution. UTC time and the authenticated
+account remain in their existing columns. Automatic actions must not claim a
+human confirmation; the shared `admin` account is not an individual identity.
+Technical failures fail closed and cannot be overridden as policy warnings.
 
 Before deploying this flow, back up the database and run `makim dev.qr-migrate`
 with the external PHP SQLite runtime. This runs only the additive
 `0006_qr_admission.php` migration; do not rerun `migrations/all.php` on existing
 data (older migrations can destroy attendance). No migration runs on a scan.
-Use `makim dev.qr-tests` for isolated SQLite/HTTP regression tests; it requires
-PHP's sqlite3 extension and does not touch the working database or configuration.
+Use `makim dev.qr-tests` for deterministic in-memory SQLite checks followed by
+isolated HTTP regression tests; it requires PHP's sqlite3 extension and does not
+touch working data/configuration. `php tests/qr/test_selection.php` runs only
+the no-socket domain checks, not HTTP security coverage. `makim frontend.tests`
+also checks the auto-submit/selection script using a synthetic DOM.
 
 ## Authenticated browser event setup
+
+The dashboard/classic-menu **Preparar evento 2026** shortcut opens
+`scripts/setup.php?mode=prepare2026`; its protected view/controller is
+`src/templates/event/prepare-2026.php`. It remains available when dashboard data
+fails to load and is disabled in frontend preview. GET inspects schema and
+`setup_event`/`setup_session` references without writing. `pending_setup_schema()`
+derives the expected schema from the additive initializer in an in-memory DB.
+`EventSetup::preparationStatus()` validates mappings and plans only missing steps;
+`prepare2026()` rechecks the server-held review under `BEGIN IMMEDIATE` before
+applying those steps transactionally. Do not trust client completion flags.
+
+Completed preparation is a no-op (no DB writes or backups). Existing edited
+event/session fields, extra/obsolete sessions, history, and QR selection are
+preserved. No QR setting is implicitly added; absent a setting, event #1 remains
+the fallback. Unlinked events require explicit selection or an explicit new-event
+choice. Adoption links only unambiguous exact-start matches without modifying
+them; broken links or unrecognized edited sessions fail for data-integrity review.
+New sessions use the existing proposed 2026 defaults. Keep the original editable
+setup available for deliberate schedule/QR changes, not automatic redeployment.
+
+Expiring, single-use preparation tokens bind the chosen event and reviewed state.
+Stale pending changes require another review; a now-complete state can be skipped.
+Existing DBs are backed up from a separate read-only connection while the writer
+lock is held, before any schema/data write (including WAL data). Never run the
+historical migration bundle. `makim dev.setup-tests` now runs
+`tests/setup/test_preparation.php` (isolated SQLite, no HTTP sockets or Composer)
+before the HTTP suite. Database-only checks do not replace HTTP security coverage.
+
+The original editable setup remains distinct:
 
 `src/scripts/setup.php` is the staff-only web endpoint `/scripts/setup.php`
 under the deployment base path. It is not a public migration endpoint. GET is

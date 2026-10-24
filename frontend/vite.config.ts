@@ -13,6 +13,10 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
+      '/scripts': {
+        target: process.env.PHP_ORIGIN || 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
       '/static': {
         target: process.env.PHP_ORIGIN || 'http://127.0.0.1:8000',
         changeOrigin: true,

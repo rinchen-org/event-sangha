@@ -44,10 +44,10 @@ jobs:
       run: python tests/auth/test_auth.py
 
     - name: Staff QR admission tests (isolated temporary SQLite)
-      run: python tests/auth/test_qr_admission.py
+      run: makim dev.qr-tests
 
     - name: Authenticated event setup tests (isolated temporary SQLite)
-      run: python tests/auth/test_event_setup.py
+      run: makim dev.setup-tests
 
     - name: Email sender endpoint tests (fake sendmail, no real email)
       run: python tests/auth/test_email_sender.py

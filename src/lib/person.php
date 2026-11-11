@@ -88,7 +88,8 @@ class Person {
         return $person_list;
     }
 
-    function validate(): bool {
+    /** Required identity fields shared with CSV imports; phone policy is separate. */
+    function validateIdentity(): bool {
         if ($this->fullname == "") {
             throw new Exception("Fullname is required.");
         }
@@ -100,6 +101,12 @@ class Person {
         if (!filter_var($this->email, FILTER_VALIDATE_EMAIL)) {
             throw new Exception("Email is invalid.");
         }
+
+        return true;
+    }
+
+    function validate(): bool {
+        $this->validateIdentity();
 
         if ($this->phone == "") {
             throw new Exception("Phone is required.");

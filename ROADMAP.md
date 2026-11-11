@@ -150,6 +150,13 @@ and structured row errors. Both upload interfaces review before confirming;
 legacy payment markers are advisory warnings with cancel/continue choices.
 Single-use server-held reviews, transactional row/audit writes, duplicate
 protection, and separate saved-but-mail-unconfirmed results are implemented.
+CSV now requires name and valid email while blank/unrecognized phones trigger
+reviewable, audited warnings. Recognizable 2026 phones are normalized; uncertain
+originals are preserved. Empty-phone QR links retain exact, unambiguous identity
+matching, and ordinary manual phone validation remains unchanged. Activation
+updates only status, atomically, preserving reviewed contact data. Optional local
+roster checks exercise parsing and in-memory imports without mail/network; the
+no-socket subset does not replace HTTP/cookie/upload regression coverage.
 `makim dev.csv-tests` uses disposable SQLite/HTTP fixtures and fake QR/mail.
 JSON mutation APIs, broader identity reconciliation, and migration of the other
 legacy policy gates remain future work.

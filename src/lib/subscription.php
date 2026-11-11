@@ -187,6 +187,47 @@ class Subscription {
         return $this;
     }
 
+    /** Change status only; reviewed CSV phone warnings must not block activation. */
+    public static function setActive(SQLite3 $db, int $id, int $active): void {
+        if ($id < 1 || !in_array($active, [0, 1], true)) {
+            throw new DomainException('La inscripción o el estado no son válidos.');
+        }
+        $db->enableExceptions(true);
+        $db->busyTimeout(5000);
+        $db->exec('BEGIN IMMEDIATE');
+        try {
+            $statement = $db->prepare('SELECT person_id FROM subscription WHERE id=:id');
+            if ($statement === false) { throw new RuntimeException('No se pudo revisar la inscripción.'); }
+            $statement->bindValue(':id', $id, SQLITE3_INTEGER);
+            $result = $statement->execute();
+            if ($result === false) { throw new RuntimeException('No se pudo revisar la inscripción.'); }
+            $row = $result->fetchArray(SQLITE3_ASSOC);
+            $result->finalize();
+            $statement->close();
+            if (!$row) { throw new DomainException('La inscripción no existe.'); }
+            $personId = $row['person_id'];
+            if (!is_int($personId) || $personId < 1) {
+                throw new RuntimeException('La inscripción no tiene una persona válida.');
+            }
+            foreach ([['person', $personId], ['subscription', $id]] as [$table, $recordId]) {
+                // Table names are fixed above, never supplied by the request.
+                $statement = $db->prepare("UPDATE $table SET active=:active WHERE id=:id");
+                if ($statement === false) { throw new RuntimeException('No se pudo preparar el cambio de estado.'); }
+                $statement->bindValue(':active', $active, SQLITE3_INTEGER);
+                $statement->bindValue(':id', $recordId, SQLITE3_INTEGER);
+                $result = $statement->execute();
+                if ($result === false) { throw new RuntimeException('No se pudo cambiar el estado.'); }
+                $result->finalize();
+                $statement->close();
+                if ($db->changes() !== 1) { throw new RuntimeException('La inscripción no tiene una persona válida.'); }
+            }
+            $db->exec('COMMIT');
+        } catch (Throwable $exception) {
+            $db->exec('ROLLBACK');
+            throw $exception;
+        }
+    }
+
     public static function subscribe_person(
         string $fullname, string $email, string $phone
     ): Subscription {

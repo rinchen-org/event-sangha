@@ -108,8 +108,9 @@ class SubscriptionCsv {
                 foreach ($rules['fields'] as $field => $column) {
                     $data[$field] = $values[self::header($column)];
                 }
+                $originalPhone = $data['phone'];
                 if ($rules['normalize_phone']) {
-                    // Formatting only. A misplaced '+' (e.g. 591+123) remains invalid, not guessed.
+                    // Normalize only recognizable numbers; preserve uncertain originals for review.
                     $phone = preg_replace('/[\s().-]/u', '', $data['phone']);
                     if ($phone === null) {
                         throw new RuntimeException('No se pudo normalizar el celular.');
@@ -118,23 +119,31 @@ class SubscriptionCsv {
                 }
                 $person = new Person(trim($data['firstname'] . ' ' . $data['lastname']), $data['email'], $data['phone']);
                 try {
-                    $person->validate();
+                    $person->validateIdentity();
                 } catch (Exception $exception) {
                     $messages = [
                         'Fullname is required.' => 'Falta el nombre del participante.',
                         'Email is required.' => 'Falta el correo electrónico.',
                         'Email is invalid.' => 'El correo electrónico no es válido.',
-                        'Phone is required.' => 'Falta el número de celular.',
-                        'Phone is invalid.' => 'El número de celular no es válido. Revisa su formato; el signo + solo puede ir al inicio.',
                     ];
                     $result['errors'][] = ['row' => $rowLine, 'message' => $messages[$exception->getMessage()] ?? 'Datos del participante no válidos.'];
                     continue;
                 }
                 $warnings = [];
+                if ($originalPhone === '') {
+                    $warnings[] = ['code' => 'phone_missing',
+                        'message' => 'No se indicó un número de celular. Puedes cancelar o continuar de todos modos sin celular.'];
+                } elseif (!preg_match('/^\+?[0-9]+$/D', str_replace(' ', '', $person->phone))) {
+                    $person->phone = $originalPhone;
+                    $warnings[] = ['code' => 'phone_unverified',
+                        'message' => 'El celular no tiene un formato reconocido; el signo + solo puede ir al inicio. Se conservará el valor original sin adivinar dígitos ni prefijos. Puedes cancelar o continuar de todos modos.'];
+                }
                 if ($rules['payment_column'] !== null && $values[self::header($rules['payment_column'])] != 1) {
                     $warnings[] = ['code' => 'payment_unverified',
                         'message' => 'El registro histórico no está marcado como válido (valido=1); el aporte puede estar pendiente. Puedes cancelar o continuar de todos modos.'];
-                    $result['warnings'][] = ['row' => $rowLine, 'message' => $warnings[0]['message']];
+                }
+                foreach ($warnings as $warning) {
+                    $result['warnings'][] = ['row' => $rowLine, 'message' => $warning['message']];
                 }
                 $result['rows'][] = ['row' => $rowLine, 'fullname' => $person->fullname,
                     'email' => $person->email, 'phone' => $person->phone, 'warnings' => $warnings];

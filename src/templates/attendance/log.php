@@ -81,7 +81,9 @@ try {
         $sessionId = $admission->selection()['recommended_id'];
     } else {
         foreach (['fullname', 'email', 'phone'] as $field) {
-            if (!isset($_GET[$field]) || !is_string($_GET[$field]) || $_GET[$field] === '') {
+            // CSV registrations may have no phone. Keep the parameter and exact
+            // stored-value lookup mandatory; never fall back to name/email alone.
+            if (!isset($_GET[$field]) || !is_string($_GET[$field]) || ($field !== 'phone' && $_GET[$field] === '')) {
                 throw new DomainException('El QR no contiene todos los datos necesarios.');
             }
         }

@@ -379,12 +379,24 @@ identify the 2026 format but are not stored; names, email, and phone use the
 existing person/subscription schema. Registration timestamps remain the time
 of import, not the historical form timestamp.
 
-The 2026 adapter removes phone formatting such as spaces, parentheses, and
-hyphens; it does not guess a misplaced `+`, country code, or missing digits.
-Invalid rows are listed by physical CSV line number and omitted while valid
-rows can be confirmed. The supplied local roster has 73 importable rows and a
-phone requiring correction on line 70 (`591+…`). The roster itself is ignored
-by Git; do not commit participant details.
+CSV imports require a nonempty name and valid email. A blank or unrecognized
+phone produces a Spanish warning, not a rejected registration: staff can cancel
+or explicitly continue. The 2026 adapter removes phone formatting such as spaces,
+parentheses, and hyphens only when the result is a recognizable number. Otherwise
+it preserves the original trimmed value; it never guesses a misplaced `+`, country
+code, or missing digits. Historical imports retain their existing phone mapping.
+Both profiles still require their listed column headers, even when phone cells
+are empty. Ordinary manual registration keeps its existing phone validation.
+Activation changes only person/subscription status in one transaction, without
+rewriting or revalidating the previously reviewed contact fields.
+
+Invalid names/emails and malformed rows remain errors, listed by physical CSV
+line number and omitted while valid rows can be confirmed. Phone warnings are
+shown before confirmation and stored in the existing import/membership audits.
+QR links include the exact stored phone, including an explicit `phone=` for an
+empty value; missing/non-string parameters and ambiguous identities still fail.
+No fallback to name/email-only matching or automatic identity merging is added.
+Local participant rosters are ignored by Git; do not commit participant details.
 
 Historical `valido` values other than 1 are now **warnings**, not automatic
 payment-based rejection. Staff see them before confirming **Continuar de todos
@@ -417,10 +429,20 @@ and `&` in names; the existing attendance path and query keys are unchanged.
 Run `makim dev.csv-tests` with the external PHP SQLite extension. It uses
 disposable code/databases/configuration, synthetic participants, fake QR
 generation, and fake sendmail: **no real emails or external QR requests**.
-When the supplied local roster exists, a read-only parsing check also runs with
-mail and cURL entry points disabled; CI uses synthetic equivalents and skips
-that optional private-file check. Do not run the legacy real-mail test as a
-substitute.
+When a local roster exists at `tests/data/2026/participantes.csv` or
+`tests/data/Lista_de_inscritos_Evento_SS_43_2026 .csv`, optional read-only parsing
+and in-memory import/reimport checks also run. Mail is disabled and QR transport
+is faked; CI skips these private-file checks when the files are absent.
+For focused checks without sockets, run:
+
+```bash
+python tests/auth/test_csv_import.py CsvReaderTest CsvImportDomainTest
+```
+
+These include CLI CSV/QR-controller validation, not real HTTP headers, cookies,
+or multipart uploads; CSV confirmation uses a server-side review fixture. Run the
+full `makim dev.csv-tests` suite on a host with sockets before deployment. Do not
+run the legacy real-mail test as a substitute.
 
 ## Table of Contents
 

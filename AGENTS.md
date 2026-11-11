@@ -537,8 +537,18 @@ tokens, and retained auth/CSRF/identity/FK failures. Rebuild the frontend.
 `2026.php` maps the six-column participant roster. `SubscriptionCsv` detects the
 profile by normalized headers, skips empty records (including before headers),
 trims fields, and returns structured row errors and warnings without side effects.
-The 2026 phone adapter removes formatting but never guesses misplaced plus signs.
-Keep the local real-participant CSV ignored; commit only synthetic test inputs.
+CSV requires a nonempty name and valid email; blank/unrecognized phone values
+produce structured `phone_missing`/`phone_unverified` warnings with cancel/continue
+choices, not rejected rows. The 2026 phone adapter removes formatting only when
+the result is recognizable; otherwise preserve the original trimmed value, never
+guessing misplaced plus signs or digits. Keep the profile headers and historical
+mapping; phone cells may be blank. Ordinary manual `Person::validate()` remains
+strict; CSV uses the shared identity-only validation. QR GET accepts an explicit
+empty `phone=` but still requires a present string and an unambiguous exact
+name/email/phone match, not a name/email fallback. Preserve existing links.
+Activation uses a status-only transaction for person/subscription, preserving
+reviewed phone values and QR links rather than invoking full contact validation.
+Keep local real-participant CSVs ignored; commit only synthetic test inputs.
 
 Both React and the classic upload route first review the CSV. Confirmation uses
 an expiring single-use session token and re-parses the original server-held CSV;
@@ -557,7 +567,11 @@ registration to retry. Production imports still email newly created subscription
 linking an existing registration does not resend its email.
 
 `makim dev.csv-tests` runs disposable SQLite/HTTP tests with synthetic identities,
-fake QR generation, and fake sendmail, plus a read-only optional check of the
-local roster. It never delivers mail or calls the external QR service. The
-legacy PHPUnit CSV test now only parses its fixture. See README for CSV columns
+fake QR generation, and fake sendmail, plus optional parsing and in-memory
+import/reimport checks of the two private roster paths documented in README.
+It never delivers mail or calls the external QR service. The no-socket subset is
+`python tests/auth/test_csv_import.py CsvReaderTest CsvImportDomainTest`; its CLI
+CSV/QR-controller checks use server-held CSV reviews, not multipart uploads, and
+do not replace HTTP/cookie/upload coverage. The legacy PHPUnit CSV test only
+parses its fixture. See README for CSV columns
 and limits; use external PHP with sqlite3, not the Conda PHP runtime.

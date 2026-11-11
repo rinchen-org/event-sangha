@@ -18,3 +18,4 @@ src/.test-lab/
 
 # Local real-participant roster; regression tests use synthetic records instead.
 tests/data/2026/participantes.csv
+tests/data/Lista_de_inscritos_*.csv

@@ -133,7 +133,7 @@ $first=$import->run(csvReview(1),true,'admin','first',1);
 check($first['imported']===1 && $first['linked']===0 && $first['errors']===[]);
 $repeat=$import->run(csvReview(1),true,'admin','repeat',1); check($repeat['duplicates']===1);
 $second=$import->run(csvReview(2),true,'admin','second',2); check($second['linked']===1 && $second['imported']===0);
-check($GLOBALS['qr_calls']===1 && $GLOBALS['mail_calls']===1);
+check($GLOBALS['qr_calls']===1 && $GLOBALS['mail_calls']===0);
 check((int)$db->querySingle('SELECT count(*) FROM person')===3);
 check((int)$db->querySingle('SELECT count(*) FROM event_registration')===2);
 check($db->querySingle("SELECT value FROM app_setting WHERE name='qr_event_id'")==='2');
@@ -175,15 +175,15 @@ check((int)$db->querySingle('SELECT count(*) FROM subscription')===2);
 check((int)$db->querySingle('SELECT count(*) FROM event_registration')===0 && $GLOBALS['mail_calls']===0);
 ''')
 
-    def test_mail_failure_is_saved_membership_not_a_retry_and_qr_failure_saves_nothing(self):
+    def test_csv_never_sends_mail_and_qr_failure_saves_nothing(self):
         self.check('''
 $GLOBALS['qr_fail']=true; $failed=$import->run(csvReview(1),true,'admin','',1);
 check(count($failed['errors'])===1 && (int)$db->querySingle('SELECT count(*) FROM person')===2);
 $GLOBALS['qr_fail']=false; $GLOBALS['mail_fail']=true;
 $saved=$import->run(csvReview(1),true,'admin','',1);
-check($saved['imported']===1 && count($saved['mail_errors'])===1);
+check($saved['imported']===1 && $saved['mail_errors']===[] && $GLOBALS['mail_calls']===0);
 check((int)$db->querySingle('SELECT count(*) FROM event_registration')===1);
-$repeat=$import->run(csvReview(1),true,'admin','',1); check($repeat['duplicates']===1 && $GLOBALS['mail_calls']===1);
+$repeat=$import->run(csvReview(1),true,'admin','',1); check($repeat['duplicates']===1 && $GLOBALS['mail_calls']===0);
 ''')
 
     def test_general_import_remains_unassigned_and_unrelated_records_unchanged(self):
@@ -192,6 +192,7 @@ $review=SubscriptionCsv::readContents("No.,NOMBRE,APELLIDOS,CORREO ELECTRONICO,N
 check($import->run($review,true,'admin')['imported']===1);
 check((int)$db->querySingle('SELECT count(*) FROM event_registration')===0);
 check((int)$db->querySingle('SELECT count(*) FROM attendance')===2);
+check($GLOBALS['mail_calls']===0);
 ''')
 
 
@@ -246,8 +247,9 @@ INSERT INTO attendance VALUES (1,50,100,'2026-11-01'),(2,50,200,'2026-12-01');
             'csrf_token': self.csrf(base), 'event_id': event, 'review_token': token, 'action': action,
         })
 
-    def csv_review(self, event='1'):
-        contents = test_csv_import.csv_text([['1','Existing','Test','existing@example.test','12345','La Paz']])
+    def csv_review(self, event='1', contents=None):
+        if contents is None:
+            contents = test_csv_import.csv_text([['1','Existing','Test','existing@example.test','12345','La Paz']])
         if not self.cli:
             status, body = self.upload(contents, event_id=event)
             self.assertEqual(status, 200, body)

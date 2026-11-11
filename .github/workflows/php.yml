@@ -46,6 +46,9 @@ jobs:
     - name: Event registrations and scoped CSV imports (isolated, fake QR and mail)
       run: makim dev.event-tests
 
+    - name: Separate event email phase (isolated, embedded synthetic QR and fake sendmail)
+      run: makim dev.event-email-tests
+
     - name: Staff QR admission tests (isolated temporary SQLite)
       run: makim dev.qr-tests
 

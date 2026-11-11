@@ -141,17 +141,8 @@ class SubscriptionCsvImport {
                     ? $exception->getMessage() : 'No se guardó la inscripción por un fallo técnico de base de datos o generación del QR. Contacta al administrador.'];
                 continue;
             }
-            // A mail failure after COMMIT is not an import failure or an invitation to retry the row.
-            try {
-                $subscription = new Subscription(new Person($row['fullname'], $row['email'], $row['phone'], (int) $person['id'], (int) $person['active']),
-                    $qr, convert_from_utc0($now), $subscriptionId, 1);
-                Subscription::send_email($subscription);
-            } catch (Throwable $exception) {
-                error_log('CSV confirmation email row ' . $row['row'] . ': ' . $exception->getMessage());
-                $report['mail_errors'][] = ['row' => $row['row'], 'message' => get_env('SEND_EMAIL') === '0'
-                    ? 'La inscripción quedó guardada. El envío de correo está deshabilitado (SEND_EMAIL=0); no se envió la confirmación.'
-                    : 'La inscripción quedó guardada, pero el transporte de correo no confirmó el envío. No repitas la importación; revisa el correo antes de reenviarlo.'];
-            }
+            // Import is deliberately mail-free. Staff send later from the event roster.
+            // Retain the empty mail_errors report key for existing library consumers.
         }
         return $report;
     }

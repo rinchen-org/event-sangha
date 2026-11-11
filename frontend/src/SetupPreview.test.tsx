@@ -24,6 +24,9 @@ it('keeps event linking and CSV mutations disabled in preview', async () => {
   render(<App />);
   expect(await screen.findByRole('button', { name: 'Vincular inscripción existente' })).toBeDisabled();
   expect(screen.queryByRole('link', { name: 'Vincular inscripción existente' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Enviar a seleccionados' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Enviar a todos' })).toBeDisabled();
+  expect(screen.queryByRole('link', { name: 'Historial de correos' })).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole('button', { name: 'Importar CSV al evento' }));
   fireEvent.submit(screen.getByRole('button', { name: 'Revisar CSV' }).closest('form')!);
   expect(screen.getByRole('status')).toHaveTextContent('No se han guardado datos');

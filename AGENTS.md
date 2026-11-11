@@ -512,7 +512,7 @@ are rechecked under the write lock. Exact existing subscriptions are linked
 without new QR/email; already-linked rows are skipped. Ambiguous identities or
 multiple subscriptions require explicit staff selection, not automatic merging.
 New person/subscription, membership and CSV audit commit atomically per row;
-mail failure after commit still means saved, not safe-to-retry. Global import
+CSV import never sends email. Global import
 without event_id remains compatible and explicitly unassigned. React imports
 require a destination event. Event rows omit global/hardcoded-event shortcuts.
 
@@ -561,10 +561,10 @@ not overridable; valid rows can be imported while invalid rows are reported.
 person, subscription, and the additive `csv_import_audit` table. Audits include
 profile, row, warnings, confirmation, UTC time, available account, and optional
 notes. General imports skip exact existing subscriptions without QR/email side effects;
-there is no automatic identity merging. Email is attempted only after commit;
-failure must report a saved subscription with unconfirmed mail, not a failed
-registration to retry. Production imports still email newly created subscriptions;
-linking an existing registration does not resend its email.
+there is no automatic identity merging. CSV imports never call the mail transport,
+including newly created subscriptions, regardless of SEND_EMAIL. Keep the empty
+`mail_errors` report key for library compatibility. Sending is a separate,
+explicitly reviewed action from the event roster; linking never resends email.
 
 `makim dev.csv-tests` runs disposable SQLite/HTTP tests with synthetic identities,
 fake QR generation, and fake sendmail, plus optional parsing and in-memory
@@ -575,3 +575,38 @@ CSV/QR-controller checks use server-held CSV reviews, not multipart uploads, and
 do not replace HTTP/cookie/upload coverage. The legacy PHPUnit CSV test only
 parses its fixture. See README for CSV columns
 and limits; use external PHP with sqlite3, not the Conda PHP runtime.
+
+## Separate event email phase
+
+The event roster offers selected recipients, all participants of that event (not
+just the filtered/current page), and history. Selection persists across pages and
+filters. React posts to `templates/event/email.php`; PHP `EventEmail` owns recipient
+membership, address/header and local-image validation, inactive/prior-attempt
+warnings, template/configuration snapshots, and an expiring single-use review.
+GET/review/cancel never send or create schema. Confirmation rechecks under
+BEGIN IMMEDIATE, including all-mode roster changes, then creates the additive
+`event_email_attempt` table and claims the entire batch before any transport call.
+No participant, activation, attendance or QR setting is modified by sending.
+
+Audit recipient identity, event, fixed template hash, structured warnings, staff
+confirmation, optional notes, UTC timestamps, shared account and per-recipient
+`pending`/`accepted`/`unconfirmed` outcome. Pending may mean interrupted before or
+after transport: never automatically retry. A fresh review visibly warns about
+earlier attempts and allows an explicit resend. Transport acceptance is not
+delivery. History covers only this new workflow, not legacy individual sends.
+The existing template contains Ngöndro November 2026 details: preview it and warn
+staff it is not automatically adapted to another event.
+
+Use the existing mail transport with validated EMAIL_FROM/EMAIL_REPLY_TO and no
+CC/BCC, never arbitrary HTTP headers/recipients. Private QR images are validated
+bounded local PNG/JPEG files and embedded as MIME content IDs via the optional
+inline-images argument of `send_email()`; no anonymous staff-session links or
+network regeneration. Missing/invalid QR files are technical/integrity failures,
+not overridable warnings. Legacy individual form/resend behavior is unchanged.
+
+Back up before deployment and rebuild frontend assets. The audit table is added
+only by the first confirmed send; do not run historical migrations.
+`makim dev.event-email-tests` runs disposable synthetic-domain/controller/HTTP
+tests with fake sendmail. Explicit `RINCHEN_TEST_SERVER=cli` is available without
+sockets but is not HTTP header/cookie coverage; run the default tests on a capable
+host before deployment. No real QR/mail/data is used in these tests.

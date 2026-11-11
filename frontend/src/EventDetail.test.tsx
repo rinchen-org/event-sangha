@@ -49,6 +49,46 @@ it('binds CSV import to the displayed event and includes CSRF without duplicatin
   expect(form.querySelector('[name="csrf_token"]')).toHaveValue('event-csrf');
   expect(within(dialog).getByText(event2.event.name)).toBeInTheDocument();
   expect(form.querySelector('[name="csv_file"]')).toBeRequired();
+  expect(within(dialog).getByText(/La importación no envía correos/)).toBeInTheDocument();
+});
+
+it('offers separately reviewed selected/all mail with event and CSRF binding', async () => {
+  location.hash = '#eventos/1/participantes';
+  render(<App />);
+  const selected = await screen.findByRole('button', { name: 'Enviar a seleccionados' });
+  expect(selected).toBeDisabled();
+  const all = screen.getByRole('button', { name: 'Enviar a todos' });
+  expect(all).toBeEnabled();
+  expect(all).toHaveAttribute('name', 'mode');
+  expect(all).toHaveAttribute('value', 'all');
+  const form = selected.closest('form')!;
+  expect(form).toHaveAttribute('action', expect.stringContaining('/event/email.php'));
+  expect(form).toHaveAttribute('method', 'POST');
+  expect(form.querySelector('[name="event_id"]')).toHaveValue('1');
+  expect(form.querySelector('[name="csrf_token"]')).toHaveValue('event-csrf');
+  await userEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar a Ana Flores para correo' }));
+  expect(selected).toBeEnabled();
+  expect(form.querySelector('[name="subscription_ids"]')).toHaveValue('1');
+  expect(selected).toHaveAttribute('value', 'selected');
+  expect(screen.getByRole('link', { name: 'Historial de correos' })).toHaveAttribute('href', expect.stringContaining('event/email.php?event_id=1'));
+  await navigate('#eventos/2/participantes');
+  expect(await screen.findByRole('checkbox', { name: 'Seleccionar a Diego Molina para correo' })).not.toBeChecked();
+  expect(screen.getByRole('button', { name: 'Enviar a seleccionados' })).toBeDisabled();
+});
+
+it('keeps explicit selection across pages and filters while all targets the whole event', async () => {
+  const subscriptions = Array.from({ length: 12 }, (_, i) => ({ ...previewData.subscriptions[0], id: 100 + i, person_id: 500 + i, fullname: `Test ${i}` }));
+  vi.mocked(fetch).mockImplementation(async input => String(input).includes('event/detail.php') ? respond({ ...event1, subscriptions }) : normalFetch(input));
+  location.hash = '#eventos/1/participantes';
+  render(<App />);
+  await userEvent.click(await screen.findByRole('checkbox', { name: 'Seleccionar página para correo' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Página siguiente' }));
+  await userEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar a Test 11 para correo' }));
+  const form = screen.getByRole('button', { name: 'Enviar a seleccionados' }).closest('form')!;
+  expect(form.querySelector('[name="subscription_ids"]')).toHaveValue('100,101,102,103,104,105,106,107,108,109,111');
+  await userEvent.type(screen.getByRole('textbox', { name: 'Buscar nombre, correo o teléfono…' }), 'Test 10');
+  expect(screen.getByText(/11 seleccionado\(s\)/)).toHaveTextContent('12 participantes del evento, sin aplicar filtros');
+  expect(form.querySelector('[name="subscription_ids"]')).toHaveValue('100,101,102,103,104,105,106,107,108,109,111');
 });
 
 it('requires an explicit event when importing from the global participant view', () => {

@@ -65,7 +65,7 @@ export function Editor({ editor, data, close }: { editor: EditorType; data: AppD
           {editor.eventId ? <><p className="form-note">Evento: <strong>{data.events.find(item => item.id === editor.eventId)?.name}</strong></p><input type="hidden" name="event_id" value={editor.eventId} /></>
             : <label>Evento de destino<select name="event_id" required value={eventId} onChange={e => setEventId(e.target.value)}><option value="" disabled>Selecciona un evento</option>{data.events.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
           <label className="upload-zone"><Upload size={30} /><strong>Selecciona tu archivo CSV</strong><span>El formato se detecta por sus columnas. Las filas vacías se omiten. UTF-8, máximo 5 MB.</span><input name="csv_file" type="file" accept=".csv,text/csv" required /></label>
-          <p className="form-note">La revisión mostrará el evento y las advertencias antes de guardar. Las inscripciones existentes se vinculan sin duplicar personas ni reenviar su QR.</p>
+          <p className="form-note">La importación no envía correos. La revisión mostrará el evento y las advertencias antes de guardar. Después podrás enviar la plantilla desde la lista del evento. Las inscripciones existentes se vinculan sin duplicar personas ni regenerar su QR.</p>
         </>}
         {message && <p role="status" className="inline-message"><Check size={18} />{message}</p>}
         <div className="form-actions"><button type="button" className="button secondary" onClick={close}>Cancelar</button><button className="button primary" disabled={busy}>{busy ? 'Enviando…' : editor.kind === 'upload' ? 'Revisar CSV' : 'Guardar y continuar'}<ArrowRight size={17} /></button></div>

@@ -36,6 +36,10 @@ groups:
         help: Test event-specific registrations, CSV imports, and detail routes with disposable data
         run: python tests/auth/test_event_registration.py
 
+      event-email-tests:
+        help: Test two-phase event email with disposable SQLite, synthetic QR and fake sendmail
+        run: python tests/auth/test_event_email.py
+
       event-registration-migrate:
         help: Add event registration links only (back up the database first; does not assign old records)
         run: php src/migrations/0007_event_registration.php

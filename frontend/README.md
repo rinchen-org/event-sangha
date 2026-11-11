@@ -86,6 +86,17 @@ uses explicit synthetic event memberships, intercepts forms and disables linking
 New session forms preselect the current event. Historical attendance remains
 visible even without a membership; membership does not retarget QR admission.
 
+CSV imports never send email. Event rosters offer checkboxes (selection persists
+across pages/filters), **Enviar a seleccionados**, **Enviar a todos** (the entire
+event, regardless of filters), and **Historial de correos**. The form posts event
+ID, mode and selected subscription IDs to `templates/event/email.php` for PHP
+review; this first POST sends nothing. An expiring single-use confirmation binds
+the server-held recipients/template/configuration and rechecks them before durable
+per-recipient claims. PHP owns warnings and membership validation. Results/history
+are legacy PHP screens; preview disables sending, selection and history links.
+The fixed template is previewed before confirming and each private QR is embedded
+in its individual email. Mail acceptance is not delivery; no automatic retry is made.
+
 General activation remains global, so event participant rows show it as
 **Estado general** and omit the older global/hardcoded-event row actions. Detailed
 reports and the global subscription API are unchanged. See README for the

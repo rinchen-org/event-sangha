@@ -29,7 +29,7 @@ try {
             if (!$pending || !is_string($submitted) || !hash_equals($pending['token'], $submitted)) {
                 throw new DomainException('La revisión caducó o ya se utilizó. Vuelve a seleccionar el CSV.');
             }
-            // Consume before doing any work: never repeat writes or ambiguous mail attempts on refresh.
+            // Consume before doing any work: never repeat writes on refresh.
             unset($_SESSION['csv_import_review']);
             if (($pending['event_id'] ?? null) !== $eventId) {
                 throw new DomainException('El evento no coincide con la revisión. Vuelve a revisar el CSV para el evento correcto.');
@@ -140,8 +140,8 @@ include dirname(__DIR__) . '/header.php';
                         <td><?php echo auth_escape($row['email']); ?></td><td><?php echo auth_escape($row['phone']); ?></td></tr>
                 <?php endforeach; ?></tbody>
             </table></div>
-            <p>Se generarán los QR y se intentará enviar el correo de confirmación a los participantes importados.
-                La aceptación del transporte no confirma la entrega en su bandeja de entrada.</p>
+            <p>Se guardarán las inscripciones y se generarán los QR nuevos. No se enviarán correos.
+                Después podrás revisar la lista del evento y enviar la plantilla a participantes seleccionados o a todos.</p>
             <form method="post" action="<?php echo auth_escape(auth_url('templates/subscription/upload.php')); ?>">
                 <?php auth_csrf_field(); ?>
                 <input type="hidden" name="import_token" value="<?php echo auth_escape($token); ?>">
@@ -164,7 +164,7 @@ include dirname(__DIR__) . '/header.php';
         <?php foreach (array_merge($report['errors'], $report['mail_errors']) as $issue): ?>
             <p class="alert alert-danger" role="alert">Fila <?php echo (int) $issue['row']; ?>: <?php echo auth_escape($issue['message']); ?></p>
         <?php endforeach; ?>
-        <p>La aceptación del transporte de correo no garantiza la entrega. No se realizan reintentos automáticos.</p>
+        <p>No se enviaron correos. El envío es una acción separada desde la lista de participantes del evento.</p>
     </section>
 <?php endif; ?>
 

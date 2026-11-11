@@ -36,7 +36,7 @@ An additive `event_registration` relationship links existing global subscription
 without rewriting or assigning historical data. Staff can link an existing
 registration after review or import a CSV into a named event. Duplicate memberships
 are prevented; exact existing identities retain their QR/status and are not emailed
-again. New registrations keep the existing QR/mail pipeline. Inactive-state/payment
+again. New CSV registrations generate QR without sending email. Inactive-state/payment
 warnings are advisory, reviewed server-side and audited on confirmed continuation.
 Event-bound review tokens prevent stale/retargeted confirmation; FK/unique
 constraints preserve identity and event integrity. General subscription state,
@@ -49,6 +49,32 @@ and HTTP fixtures; explicit CLI mode does not replace multipart/HTTP coverage.
 Per-event QR routing, per-event activation, JSON mutation/result screens, and
 replacement of remaining hardcoded legacy attendance shortcuts are not implemented
 by this increment.
+
+## Implementation update — separate event email phase
+
+CSV import (both scoped and general) never sends participant email, regardless of
+SEND_EMAIL. It still saves registrations, generates new QR images and audits rows.
+The event roster now offers selection across pages/filters, **Enviar a seleccionados**,
+**Enviar a todos** (the whole event, not the current filter), and email history.
+Both send actions open an authenticated PHP review of the current fixed template,
+recipient list and inactive/prior-attempt warnings. Cancellation is read-only.
+Expiring single-use confirmation rechecks event membership, identity, state,
+template/configuration, QR hashes and previous attempts under the write lock.
+
+The additive `event_email_attempt` table is created only by confirmed sending.
+All recipient claims commit before transport; per-recipient UTC/account/warnings,
+confirmation, notes, template hash and accepted/unconfirmed results are retained.
+Interrupted pending claims remain visible. No automatic retries or delivery claims
+are made; a deliberate resend needs a fresh review. No CC/BCC is added. The
+existing private QR is embedded as an inline MIME image without network generation
+or requiring participant login. The fixed Ngöndro 2026 template is previewed, not
+automatically adapted to arbitrary events. Legacy individual registration/resend
+behavior remains unchanged and is not backfilled into this event-mail history.
+
+`makim dev.event-email-tests` uses synthetic QR and fake sendmail in disposable
+copies. Explicit `RINCHEN_TEST_SERVER=cli` covers controllers without sockets,
+not HTTP headers/cookies. Frontend tests cover selection, event binding and
+disabled preview actions. Rebuild frontend assets before deployment.
 
 ## Implementation update — authentication
 
@@ -149,7 +175,8 @@ column rules, auto-detection, blank-row handling, phone formatting normalization
 and structured row errors. Both upload interfaces review before confirming;
 legacy payment markers are advisory warnings with cancel/continue choices.
 Single-use server-held reviews, transactional row/audit writes, duplicate
-protection, and separate saved-but-mail-unconfirmed results are implemented.
+protection, and a mail-free import result are implemented. Email is now a separate
+event-roster action as described above.
 CSV now requires name and valid email while blank/unrecognized phones trigger
 reviewable, audited warnings. Recognizable 2026 phones are normalized; uncertain
 originals are preserved. Empty-phone QR links retain exact, unambiguous identity

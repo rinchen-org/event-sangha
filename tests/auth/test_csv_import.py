@@ -274,7 +274,7 @@ if (''' + json.dumps(action) + '''==='cancel') {
     $audit=$saved->querySingle('SELECT * FROM csv_import_audit',true);
     check(json_decode($audit['warnings_json'],true)[0]['code']==='phone_unverified','Warning not re-evaluated');
     check($audit['staff_confirmed']===1 && $audit['actor']==='admin');
-    check(str_contains($html,'SEND_EMAIL=0'));
+    check(str_contains($html,'No se enviaron correos.'));
 }
 $saved->close(); unlink($path);
 ''', csv_text([['1', 'Test', 'Person', 'test@example.test', '591+ 123', 'La Paz']]))
@@ -282,7 +282,7 @@ $saved->close(); unlink($path);
     def test_confirmed_phone_warnings_persist_audit_and_reimport_once(self):
         self.check('''
 $report=$import->run($review,true,'admin','Reviewed phone');
-check($report['imported']===2 && $report['errors']===[] && count($report['mail_errors'])===2);
+check($report['imported']===2 && $report['errors']===[] && $report['mail_errors']===[]);
 $people=$registration->rows('SELECT * FROM person ORDER BY id');
 check(array_column($people,'phone')===['591+ 123','']);
 $audits=$registration->rows('SELECT * FROM csv_import_audit ORDER BY id');
@@ -453,8 +453,7 @@ foreach ([null,1] as $event) {
     $report=$import->run($scoped,true,'admin','Isolated roster check',$event);
     check($report['errors']===[]);
     check($event===null ? $report['imported']===$expected : $report['linked']===$expected);
-    check(count($report['mail_errors'])===($event===null ? $expected : 0));
-    foreach ($report['mail_errors'] as $error) { check(str_contains($error['message'],'SEND_EMAIL=0')); }
+    check($report['mail_errors']===[]);
 }
 $again=$import->run($registration->scopeCsv($review,1),true,'admin','',1);
 check($again['duplicates']===$expected && $again['imported']===0 && $again['mail_errors']===[]);
@@ -583,7 +582,7 @@ class CsvImportHTTPTest(unittest.TestCase):
         self.assertEqual(len(audit), 2)
         self.assertEqual(audit[0][:5], ('2026', '[]', 1, 'admin', 'Revisión de prueba'))
         self.assertRegex(audit[0][5], r'^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$')
-        self.assertEqual(self.attempts(self.mail_calls), 2)
+        self.assertEqual(self.attempts(self.mail_calls), 0)
         for route in ('/api/subscription/list.php', '/templates/subscription/list.php?format=json'):
             status, _, body = self.request(route)
             response = json.loads(body)
@@ -609,7 +608,7 @@ class CsvImportHTTPTest(unittest.TestCase):
         self.assertEqual(self.query('SELECT count(*) FROM subscription'), [(2,)])
         self.assertEqual(self.query('SELECT count(*) FROM csv_import_audit'), [(2,)])
         self.assertEqual(self.attempts(self.qr_calls), 2)
-        self.assertEqual(self.attempts(self.mail_calls), 2)
+        self.assertEqual(self.attempts(self.mail_calls), 0)
 
     def test_imported_person_activation_and_qr_attendance(self):
         token, _ = self.review(csv_text([PEOPLE[0]]))
@@ -634,7 +633,7 @@ class CsvImportHTTPTest(unittest.TestCase):
         })
         self.assertEqual(status, 200, body)
         self.assertEqual(self.query('SELECT person_id, event_session_id FROM attendance'), [(51, 1)])
-        self.assertEqual(self.attempts(self.mail_calls), 1)
+        self.assertEqual(self.attempts(self.mail_calls), 0)
 
     def test_duplicate_rows_within_one_csv_are_written_once(self):
         token, _ = self.review(csv_text([PEOPLE[0], PEOPLE[0]]))
@@ -642,7 +641,7 @@ class CsvImportHTTPTest(unittest.TestCase):
         self.assertEqual(status, 200, body)
         self.assertIn('Inscripciones guardadas: 1.', body)
         self.assertIn('Duplicados omitidos: 1.', body)
-        self.assertEqual(self.attempts(self.mail_calls), 1)
+        self.assertEqual(self.attempts(self.mail_calls), 0)
 
     def test_ambiguous_existing_people_are_not_arbitrarily_merged(self):
         for _ in range(2):
@@ -670,7 +669,7 @@ class CsvImportHTTPTest(unittest.TestCase):
         code = require + f'echo json_encode(Subscription::upload_csv({json.dumps(str(file))}, true, "admin"));'
         result = subprocess.run(['php', '-d', f'sendmail_path={self.work / "fake-sendmail"}', '-r', code], check=True, capture_output=True)
         self.assertEqual(json.loads(result.stdout)['imported'], 1)
-        self.assertEqual(self.attempts(self.mail_calls), 1)
+        self.assertEqual(self.attempts(self.mail_calls), 0)
 
     def test_legacy_warning_cancel_and_confirmed_continuation(self):
         legacy = csv_text([['Ana', 'Flores', 'ana@example.test', '12345', '0']],
@@ -789,17 +788,17 @@ class CsvImportHTTPTest(unittest.TestCase):
         self.assertEqual(self.query('SELECT count(*) FROM subscription'), [(0,)])
         self.assertFalse(self.mail_capture.exists())
 
-    def test_mail_failure_keeps_saved_rows_without_automatic_retry(self):
+    def test_import_never_calls_even_a_failing_mail_transport(self):
         self.mail_failure.touch()
         token, _ = self.review(csv_text([PEOPLE[0]]))
         status, _, body = self.decide(token)
         self.assertEqual(status, 200, body)
         self.assertIn('Inscripciones guardadas: 1.', body)
-        self.assertIn('La inscripción quedó guardada', body)
+        self.assertIn('No se enviaron correos.', body)
         self.assertEqual(self.query('SELECT count(*) FROM subscription'), [(1,)])
         token, _ = self.review(csv_text([PEOPLE[0]]))
         self.decide(token)
-        self.assertEqual(self.attempts(self.mail_calls), 1)
+        self.assertEqual(self.attempts(self.mail_calls), 0)
 
     def test_audit_failure_rolls_back_only_the_new_row(self):
         token, _ = self.review(csv_text([PEOPLE[0]]))
@@ -812,16 +811,16 @@ class CsvImportHTTPTest(unittest.TestCase):
         self.assertEqual(self.query('SELECT count(*) FROM person'), [(2,)])
         self.assertEqual(self.query('SELECT count(*) FROM subscription'), [(1,)])
         self.assertEqual(self.query('SELECT count(*) FROM csv_import_audit'), [(1,)])
-        self.assertEqual(self.attempts(self.mail_calls), 1)
+        self.assertEqual(self.attempts(self.mail_calls), 0)
 
-    def test_disabled_email_is_not_a_successful_mock(self):
+    def test_disabled_email_does_not_affect_mail_free_import(self):
         config = self.web / '.env'
         config.write_text(config.read_text().replace('SEND_EMAIL=1', 'SEND_EMAIL=0'))
         token, _ = self.review(csv_text([PEOPLE[0]]))
         status, _, body = self.decide(token)
         self.assertEqual(status, 200, body)
         self.assertIn('Inscripciones guardadas: 1.', body)
-        self.assertIn('deshabilitado (SEND_EMAIL=0)', body)
+        self.assertIn('No se enviaron correos.', body)
         self.assertFalse(self.mail_capture.exists())
 
     def test_subdirectory_and_existing_person_reuse(self):

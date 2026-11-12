@@ -45,14 +45,14 @@ $eventSessionList = EventSession::list(["event_id" => 1]);
 include dirname(__DIR__) . "/header.php";
 ?>
 
-<h1>Attendance Log</h1>
+<h1>Asistencia</h1>
 
 <form method="POST" action="">
       <?php auth_csrf_field(); ?>
     <div class="mb-3">
-        <label for="person" class="form-label">Select a Person:</label>
+        <label for="person" class="form-label">Participante:</label>
         <select name="person" id="person" class="form-select" required>
-            <option value="" disabled selected>Select a Person</option>
+            <option value="" disabled selected>Selecciona un participante</option>
             <?php foreach ($subscriptionList as $subscription) { ?>
                 <option value="<?php echo $subscription->person->id; ?>"><?php
                     echo $subscription->person->fullname . " &lt;" . $subscription->person->email . "&gt;";
@@ -62,10 +62,10 @@ include dirname(__DIR__) . "/header.php";
     </div>
 
     <div class="mb-3">
-        <label for="event" class="form-label">Event:</label>
+        <label for="event" class="form-label">Evento:</label>
         <select name="event" id="event" class="form-select" required>
             <!--
-            <option value="" disabled selected>Select an Event</option>
+            <option value="" disabled selected>Selecciona un evento</option>
             -->
             <?php foreach ($eventList as $event) { ?>
                 <option value="<?php echo $event->id; ?>"><?php echo $event->name; ?></option>
@@ -74,9 +74,9 @@ include dirname(__DIR__) . "/header.php";
     </div>
 
     <div class="mb-3">
-        <label for="event_session" class="form-label">Event Session:</label>
+        <label for="event_session" class="form-label">Sesión:</label>
         <select name="event_session" id="event_session" class="form-select" required>
-            <option value="" disabled selected>Select an Event Session</option>
+            <option value="" disabled selected>Selecciona una sesión</option>
             <?php foreach ($eventSessionList as $eventSession) { ?>
                 <option value="<?php echo $eventSession->id; ?>"><?php echo $eventSession->name; ?></option>
             <?php } ?>
@@ -84,17 +84,17 @@ include dirname(__DIR__) . "/header.php";
     </div>
 
     <div class="mb-3">
-        <label for="event_session" class="form-label">Force:</label>
+        <label for="event_session" class="form-label">Registrar como excepción:</label>
         <input type="checkbox" name="force" value="1" />
     </div>
 
     <div class="mb-3">
-        <button type="submit" class="btn btn-primary">Log</button>
+        <button type="submit" class="btn btn-primary">Registrar asistencia</button>
     </div>
 </form>
 
-<a href="../" class="btn btn-warning my-3">Back to the menu</a>
-<a href="./list.php" class="btn btn-warning my-3">Back to the List</a>
+<a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
+<a href="./list.php" class="btn btn-warning my-3">Volver a la lista</a>
 
 <?php
 include dirname(__DIR__) . "/footer.php";

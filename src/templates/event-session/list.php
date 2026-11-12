@@ -12,20 +12,20 @@ include dirname(__DIR__) . "/header.php";
 $result = EventSession::list();
 
 ?>
-<h2>Event Session List</h2>
-<a href="../" class="btn btn-warning my-3">Back to the menu</a>
-<a href="./form.php" class="btn btn-primary my-3">New Session</a>
+<h2>Sesiones</h2>
+<a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
+<a href="./form.php" class="btn btn-primary my-3">Nueva sesión</a>
 
 <?php if ($result): ?>
   <table id="eventsession_list">
     <thead>
       <tr>
         <th>ID</th>
-        <th>Event Title</th>
-        <th>Event Session Title</th>
-        <th>Start Date</th>
-        <th>End Date</th>
-        <th>Actions</th>
+        <th>Evento</th>
+        <th>Sesión</th>
+        <th>Inicio</th>
+        <th>Fin</th>
+        <th>Acciones</th>
       </tr>
     </thead>
     <tbody>
@@ -40,7 +40,7 @@ $result = EventSession::list();
             <form action="./form.php" method="GET">
               <input type="hidden" name="id" value="<?php echo $session->id; ?>" />
               <button type="submit" class="btn btn-success">
-                update
+                Editar
               </button>
             </form>
           </td>
@@ -49,10 +49,10 @@ $result = EventSession::list();
     </tbody>
   </table>
 <?php else: ?>
-  <p>No records found.</p>
+  <p>No hay registros en esta vista.</p>
 <?php endif; ?>
 
-<a href="../" class="btn btn-warning my-3">Back to the menu</a>
+<a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
 
 <script>
   let table = new DataTable('#eventsession_list');

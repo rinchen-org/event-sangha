@@ -101,17 +101,9 @@ if ($state !== null && !$state['choose'] && !$state['ready']) {
 $localTime = static function (string $value): string {
     return (new DateTimeImmutable($value, new DateTimeZone('UTC')))->setTimezone(new DateTimeZone('America/La_Paz'))->format('d/m/Y H:i');
 };
+require_once dirname(__DIR__, 2) . '/lib/layout.php';
+AppLayout::start('Preparar evento 2026', 'eventos');
 ?>
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Preparar evento 2026 · Rinchen</title>
-  <link rel="stylesheet" href="<?php echo auth_escape(auth_url('static/auth.css')); ?>">
-</head>
-<body>
-<main class="auth-card">
   <p class="eyebrow">SOLO PERSONAL · CONFIGURACIÓN</p>
   <h1>Preparar evento 2026</h1>
   <p>Esta revisión no modifica la base. La confirmación completa solo lo que falta, sin sobrescribir nombres, horarios, asistencias ni decisiones.</p>
@@ -156,6 +148,4 @@ $localTime = static function (string $value): string {
   <?php endif; ?>
   <a href="<?php echo auth_escape(auth_url('templates/index.php')); ?>">Cancelar y volver</a><br>
   <a href="<?php echo auth_escape(auth_url('scripts/setup.php')); ?>">Configuración avanzada (permite actualizar horarios)</a>
-</main>
-</body>
-</html>
+<?php AppLayout::end(); ?>

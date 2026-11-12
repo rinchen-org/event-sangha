@@ -1,16 +1,10 @@
 :root {
-  font-family:'Manrope',sans-serif;
-  color:#302d2b;
-  background:#faf9f6;
+  font-family:var(--font-ui);
+  color:var(--ink);
+  background:var(--background);
   font-synthesis:none;
   font-weight:400;
   font-size:13px;
-  --wine:#79364b;
-  --wine-dark:#62283b;
-  --muted:#797570;
-  --border:#eae6e0;
-  --paper:#fff;
-  --radius:14px;
   line-height:1.6;
 }
 

@@ -19,6 +19,11 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def write_frontend_fixture(web):
     """Synthetic build in a disposable web root, never copy generated app assets."""
+    for relative in ('ui.css', 'ui.js', 'theme.css', 'images/logo-head-square.png'):
+        destination = web / 'static' / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / 'src/static' / relative, destination)
+    shutil.copytree(ROOT / 'src/static/fonts', web / 'static/fonts', dirs_exist_ok=True)
     build = web / 'static/app'
     (build / '.vite').mkdir(parents=True, exist_ok=True)
     (build / 'assets').mkdir(exist_ok=True)
@@ -42,7 +47,8 @@ class AuthSessionTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.work = Path(self.temp.name)
         self.web = self.work / 'web'
-        for relative in ('lib/auth.php', 'templates/logout.php', 'templates/index.php', 'templates/menu.php'):
+        for relative in ('lib/auth.php', 'lib/layout.php', 'lib/version.php', 'lib/test_mode.php', 'lib/dotenv.php',
+                         'templates/logout.php', 'templates/index.php', 'templates/menu.php'):
             target = self.web / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / 'src' / relative, target)
@@ -59,6 +65,7 @@ $_SERVER['SCRIPT_FILENAME'] = $web . '/' . ($input['route'] ?? 'templates/logout
 $_SERVER['SCRIPT_NAME'] = ($input['base'] ?? '') . '/' . ($input['route'] ?? 'templates/logout.php');
 $_SERVER['REQUEST_METHOD'] = $input['method'] ?? (isset($input['route']) ? 'GET' : 'POST');
 $_SERVER['HTTP_ACCEPT'] = $input['accept'] ?? 'application/json';
+$_SERVER['HTTP_HOST'] = 'localhost';
 $_GET = $input['get'] ?? [];
 $_POST = $input['post'] ?? [];
 ob_start();
@@ -108,6 +115,20 @@ echo json_encode(['logged_in' => $loggedIn, 'session' => $_SESSION, 'cookie' => 
                     self.assertEqual(self.request(base=base, route=route, get=query)['status'], 401)
                     self.assertEqual(self.request(base=base, route=route, get=query, method='POST',
                                                   seed={'created': 0, 'seen': 0})['status'], 403)
+
+    def test_shared_footer_displays_version_without_touching_app_data(self):
+        for relative in ('lib/version.php', 'templates/footer.php'):
+            shutil.copyfile(ROOT / 'src' / relative, self.web / relative)
+        source = (self.web / 'lib/version.php').read_text()
+        version = re.search(r"^const APP_VERSION = '(\d+\.\d+\.\d+)';$", source, re.MULTILINE)[1]
+        for base in ('', '/event-retiro'):
+            self.assertEqual(self.request(base=base, route='templates/footer.php')['status'], 401)
+            response = self.request(base=base, route='templates/footer.php', seed={'created': 0, 'seen': 0})
+            self.assertEqual(response['status'], 200)
+            self.assertIn('Versión ' + version, response['body'])
+            self.assertIn('https://scistitch.com/', response['body'])
+        self.assertFalse((self.web / 'db.sqlite').exists())
+        self.assertFalse((self.web / '.env').exists())
 
     def test_old_menu_routes_only_redirect_even_without_a_build(self):
         for base in ('', '/event-retiro'):

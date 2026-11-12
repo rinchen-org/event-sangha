@@ -177,8 +177,11 @@ function auth_fail(int $status, string $message): void {
         echo json_encode(['success' => false, 'message' => $message]);
     } else {
         header('Content-Type: text/html; charset=utf-8');
-        echo '<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Rinchen</title><p>'
-            . auth_escape($message) . '</p><a href="' . auth_escape(auth_url('templates/index.php')) . '">Volver a mi comunidad</a></html>';
+        require_once __DIR__ . '/layout.php';
+        AppLayout::start('No se pudo completar la acción', compact: true, public: true);
+        echo '<h1>No se pudo completar la acción</h1><p class="auth-error" role="alert">' . auth_escape($message)
+            . '</p><a href="' . auth_escape(auth_url('templates/index.php')) . '">Volver a mi comunidad</a>';
+        AppLayout::end();
     }
     exit;
 }
@@ -223,11 +226,13 @@ function auth_confirm_action(string $title): void {
         return; // auth_require() has already verified the CSRF token.
     }
     header('Content-Type: text/html; charset=utf-8');
-    echo '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' . auth_escape($title)
-        . ' · Rinchen</title><link rel="stylesheet" href="' . auth_escape(auth_url('static/auth.css')) . '"></head><body><main class="auth-card"><p class="eyebrow">SAKYA RINCHEN LING</p><h1>' . auth_escape($title)
+    require_once __DIR__ . '/layout.php';
+    AppLayout::start($title, compact: true);
+    echo '<p class="eyebrow">SAKYA RINCHEN LING</p><h1>' . auth_escape($title)
         . '</h1><p>Confirma esta acción para continuar.</p><form method="post" action="' . auth_escape(auth_url(auth_current_next())) . '">';
     auth_csrf_field();
-    echo '<button type="submit">Confirmar y continuar</button></form><a href="' . auth_escape(auth_url('templates/index.php')) . '">Cancelar</a></main></body></html>';
+    echo '<button type="submit">Confirmar y continuar</button></form><a href="' . auth_escape(auth_url('templates/index.php')) . '">Cancelar</a>';
+    AppLayout::end();
     exit;
 }
 

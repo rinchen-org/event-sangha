@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo "<pre class='qr'>\n";
         echo "<img src='$subscription->qr'/>";
         echo "\n</pre>";
-        echo '<a href="./form.php">Back to the form</a>';
+        echo '<a href="./form.php">Volver al formulario</a>';
 ?>
 
 <h3>SUGERENCIAS</h3>
@@ -161,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <img src="https://rinchen.org/wp-content/uploads/2020/08/Sakya-Rinchen-Ling.png"
   alt="Equipo Sakya Rinchen Ling" />
 
-<a href="./form.php">Back to the form</a>
+<a href="./form.php">Volver al formulario</a>
 
 <?php
     }
@@ -175,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' || $status == false) {
 <div class="mt-5">
   <form method="POST" action="">
       <?php auth_csrf_field(); ?>
-      <label for="fullname">Full Name:</label>
+      <label for="fullname">Nombre completo:</label>
       <input
         type="text"
         name="fullname"
@@ -184,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' || $status == false) {
         value="<?php echo $subscription !== null ? $subscription->person->fullname : ""; ?>"
       /><br><br>
 
-      <label for="email">Email:</label>
+      <label for="email">Correo electrónico:</label>
       <input
         type="email"
         name="email"
@@ -193,7 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' || $status == false) {
         value="<?php echo $subscription !== null ? $subscription->person->email : ""; ?>"
       /><br><br>
 
-      <label for="phone">Phone:</label>
+      <label for="phone">Teléfono:</label>
       <input
         type="tel"
         name="phone"
@@ -202,11 +202,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' || $status == false) {
         value="<?php echo $subscription !== null ? $subscription->person->phone : ""; ?>"
       /><br><br>
 
-      <button type="submit" class="btn btn-primary">Save</button>
+      <button type="submit" class="btn btn-primary">Guardar</button>
   </form>
 
-  <a href="../" class="btn btn-warning my-3">Back to the menu</a>
-  <a href="./list.php" class="btn btn-warning my-3">Back to the list</a>
+  <a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
+  <a href="./list.php" class="btn btn-warning my-3">Volver a la lista</a>
 </div>
 
 <?php

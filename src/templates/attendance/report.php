@@ -9,10 +9,10 @@ include dirname(__DIR__) . "/header.php";
 global $BASE_URL;
 ?>
 
-<h2>Attendance Report</h2>
+<h2>Informe de asistencia</h2>
 
-<a href="../" class="btn btn-warning my-3">Back to the menu</a>
-<a href="./form.php" class="btn btn-primary my-3">Log</a>
+<a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
+<a href="./form.php" class="btn btn-primary my-3">Registrar asistencia</a>
 
 <?php
 $events = EventSangha::list();
@@ -26,7 +26,7 @@ if ($sessions && $subscriptions) { ?>
     <table id="attendance_list" class="w-100">
       <thead>
         <tr>
-            <th>Name</th>
+            <th>Nombre</th>
             <th>ID</th>
             <?php
             foreach ($sessions as $session) {
@@ -63,10 +63,10 @@ if ($sessions && $subscriptions) { ?>
       </tbody>
     </table>
 <?php } else { ?>
-    <p>No records found.</p>
+    <p>No hay registros en esta vista.</p>
 <?php }; ?>
 
-<a href="../" class="btn btn-warning my-3">Back to the menu</a>
+<a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
 
 <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>

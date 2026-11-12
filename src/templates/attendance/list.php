@@ -12,10 +12,10 @@ include dirname(__DIR__) . "/header.php";
 global $BASE_URL;
 ?>
 
-<h2>Attendance Log</h2>
+<h2>Asistencia</h2>
 
-<a href="../" class="btn btn-warning my-3">Back to the menu</a>
-<a href="./form.php" class="btn btn-primary my-3">Log</a>
+<a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
+<a href="./form.php" class="btn btn-primary my-3">Registrar asistencia</a>
 
 <?php
 $result = Attendance::list();
@@ -26,12 +26,12 @@ if ($result): ?>
       <thead>
         <tr>
             <th>ID</th>
-            <th>Full Name</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>Event</th>
-            <th>Session</th>
-            <th>Log Time</th>
+            <th>Nombre completo</th>
+            <th>Correo</th>
+            <th>Teléfono</th>
+            <th>Evento</th>
+            <th>Sesión</th>
+            <th>Fecha de registro</th>
         </tr>
       </thead>
       <tbody>
@@ -49,10 +49,10 @@ if ($result): ?>
       </tbody>
     </table>
 <?php else: ?>
-    <p>No records found.</p>
+    <p>No hay registros en esta vista.</p>
 <?php endif; ?>
 
-<a href="../" class="btn btn-warning my-3">Back to the menu</a>
+<a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
 
 <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>

@@ -28,6 +28,10 @@ groups:
         help: Run isolated session-storage, login, and route-protection tests
         run: python tests/auth/test_auth.py
 
+      ui-tests:
+        help: Check shared PHP layouts and protected routes with disposable data (no sockets or mail)
+        run: python tests/auth/test_layout.py
+
       setup-tests:
         help: Run isolated authenticated event setup tests (requires PHP sqlite3)
         run: php tests/setup/test_preparation.php && python tests/auth/test_event_setup.py

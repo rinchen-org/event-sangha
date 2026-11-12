@@ -28,8 +28,8 @@ global $MESSAGE;
 
 ?>
   <h2>Lista de suscriptos</h2>
-  <a href="../" class="btn btn-warning my-3">Back to the menu</a>
-  <a href="./form.php" class="btn btn-primary my-3">New Subscription</a>
+  <a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
+  <a href="./form.php" class="btn btn-primary my-3">Nueva inscripción</a>
 
   <div class="alert alert-secondary input-group" role="alert">
     Filters: <br/>
@@ -76,13 +76,13 @@ global $MESSAGE;
           <thead>
             <tr>
               <th>ID</th>
-              <th>Full Name</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Active</th>
+              <th>Nombre completo</th>
+              <th>Correo</th>
+              <th>Teléfono</th>
+              <th>Estado</th>
               <th>QR</th>
-              <th>DateTime</th>
-              <th>Actions</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -106,10 +106,10 @@ global $MESSAGE;
       <?php auth_csrf_field(); ?>
                   <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
                   <input type="submit"
-                    value="reenviar email"
+                    value="Reenviar correo"
                     class="btn btn-success"
                     onclick="return confirm('Are you sure?')"
-                    style="background:#ffcc00!important;" />
+                     />
                 </form>
   <?php if ($subscription->active == 0) { ?>
                 <form action="./activation.php" method="POST">
@@ -119,7 +119,7 @@ global $MESSAGE;
                   <input type="submit"
                     value="habilitar"
                     class="btn btn-success"
-                    style="background:#1CD324!important;" />
+                     />
                 </form>
   <?php } else { ?>
                 <form action="./activation.php" method="POST">
@@ -129,7 +129,7 @@ global $MESSAGE;
                   <input type="submit"
                     value="inhabilitar"
                     class="btn btn-warning"
-                    style="background:#E50E0E!important;"/>
+                    />
                 </form>
   <?php } ?>
                 <form action="./log_attendance.php" method="POST">
@@ -137,8 +137,8 @@ global $MESSAGE;
                   <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
                   <button type="submit"
                     class="btn btn-success"
-                    style="background:ea3c89!important;"
-                  >log attendance</button>
+
+                  >Registrar asistencia</button>
 
                 </form>
                 <form action="./log_attendance_force.php" method="POST">
@@ -146,7 +146,7 @@ global $MESSAGE;
                   <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
                   <button type="submit"
                     class="btn btn-warning"
-                  >log FORCE</button>
+                  >Registrar como excepción</button>
 
                 </form>
               </td>
@@ -155,10 +155,10 @@ global $MESSAGE;
           </tbody>
         </table>
 <?php else: ?>
-        <p>No records found.</p>
+        <p>No hay registros en esta vista.</p>
 <?php endif; ?>
 
-    <a href="../" class="btn btn-warning my-3">Back to the menu</a>
+    <a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
 
     <script>
         let table = new DataTable('#subscription_list');

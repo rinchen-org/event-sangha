@@ -40,19 +40,9 @@ if ($method === 'POST') {
         }
     }
 }
+require_once dirname(__DIR__) . '/lib/layout.php';
+AppLayout::start('Iniciar sesión', compact: true, public: true, scripts: ['static/auth-password.js']);
 ?>
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#79364b">
-  <title>Iniciar sesión · Rinchen</title>
-  <link rel="stylesheet" href="<?php echo auth_escape(auth_url('static/auth.css')); ?>">
-  <script defer src="<?php echo auth_escape(auth_url('static/auth-password.js')); ?>"></script>
-</head>
-<body>
-  <main class="auth-card">
     <img class="auth-logo" src="<?php echo auth_escape(auth_url('static/images/logo-head-square.png')); ?>" alt="Sakya Rinchen Ling">
     <p class="eyebrow">NUESTRA COMUNIDAD</p>
     <h1>Un espacio para<br><em>volver a conectar.</em></h1>
@@ -68,7 +58,4 @@ if ($method === 'POST') {
       <button id="toggle-password" class="auth-password-toggle" type="button" aria-controls="password" hidden>Mostrar contraseña</button>
       <button type="submit">Iniciar sesión <span aria-hidden="true">→</span></button>
     </form>
-    <footer class="auth-footnote">Sakya Rinchen Ling · Bolivia<br>Desarrollado por <a href="https://scistitch.com/" target="_blank" rel="noopener noreferrer">SciStitch</a></footer>
-  </main>
-</body>
-</html>
+<?php AppLayout::end(); ?>

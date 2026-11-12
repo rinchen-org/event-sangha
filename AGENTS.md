@@ -77,12 +77,16 @@ migration. The README's Laravel/Django ideas are historical suggestions.
 
 The main interface is now React + TypeScript in `frontend/`, built by Vite into
 `src/static/app/`. `src/templates/index.php` reads its build manifest. React is
-the only management menu: `menu.php` is an authenticated compatibility redirect,
+the canonical management interface: `menu.php` is an authenticated compatibility redirect,
 as is `index.php?legacy=1`. Missing/invalid manifests or missing entry JS/CSS
 return an explicit HTTP 503 with build instructions, never a legacy menu or
 synthetic-data fallback. The main interface requires JavaScript. Existing
-PHP action/result pages retain Bootstrap, jQuery, and DataTables. React forms
-submit to those handlers; JSON mutation/result migration remains future work.
+PHP action/result pages now use `AppLayout` in `src/lib/layout.php` with matching
+navigation, typography, colors, cards, forms and versioned footer. Their sidebar
+links to the canonical React hash routes, not another dashboard. Bootstrap utilities,
+jQuery and DataTables remain available for compatibility, including report exports.
+React forms submit to those PHP handlers; JSON mutation/result migration remains
+future work.
 
 Existing list routes expose read-only `?format=json` responses through
 `src/lib/frontend.php`, preserving their route-level access boundaries. Retain
@@ -96,6 +100,31 @@ they are ignored by Git. The explicit development `?preview=1` mode uses synthet
 data and must never become an automatic fallback for unavailable production data.
 
 ## Environment and commands
+
+### Application versioning
+
+The application release baseline is **2.0.0**. `APP_VERSION` in
+`src/lib/version.php` is the single source of truth for the website version,
+not the private frontend package's npm version. Both the React footer and the
+shared PHP footer display `Versión <version>`, retaining Rinchen/SciStitch branding.
+Vite reads the PHP constant at build time without executing PHP; rebuild and deploy
+`src/static/app/` together with PHP changes whenever the version changes.
+
+Use manual Semantic Versioning (`MAJOR.MINOR.PATCH`) and Conventional Commit
+messages: `fix:` means a patch, backward-compatible `feat:` means a minor, and
+`!` or a `BREAKING CHANGE:` footer means a major release. Reset lower components
+when bumping a higher one. Documentation, tests, chores and internal refactoring
+alone do not require a bump. For a release containing several changes, apply the
+highest required bump once, not once per commit or edit. Keep the initial 2.0.0
+baseline until a subsequent release is requested; update the constant manually
+when preparing that release, then run frontend checks/tests/build and the isolated
+footer/session tests (`python tests/auth/test_auth.py AuthSessionTest`).
+
+There is no semantic-release automation, automatic tagging or publishing. Do not
+add a release service, dependency updates, or CI publishing merely to bump this
+version. Keep the constant's simple declaration format so Vite can read it.
+
+### Development setup
 
 Run commands from the repository root unless a script documents otherwise.
 
@@ -610,3 +639,36 @@ only by the first confirmed send; do not run historical migrations.
 tests with fake sendmail. Explicit `RINCHEN_TEST_SERVER=cli` is available without
 sockets but is not HTTP header/cookie coverage; run the default tests on a capable
 host before deployment. No real QR/mail/data is used in these tests.
+
+## Shared PHP presentation
+
+Use `AppLayout::start()` / `AppLayout::end()` for staff HTML pages; the existing
+`templates/header.php` / `footer.php` adapt classic forms, lists and result pages.
+Setup, preparation, lab and email diagnostic use the full shell. Login, live/lab
+QR check-in, technical errors and legacy action confirmations use the compact
+variant. Login/error rendering can be public presentation, never authorization:
+every protected route still calls `auth_require()` before domain work. JSON,
+redirects, QR media and email templates do not acquire an HTML shell.
+
+`src/static/theme.css` is shared with React and defines brand tokens and local
+Manrope fonts (`static/fonts/`, including its OFL license). PHP presentation uses
+`static/ui.css`; mobile navigation is progressively enhanced by `static/ui.js`.
+Without JavaScript the navigation/logout remain visible; compact QR controls keep
+their existing no-JS fallback and auto-submit script. Never add auto-submission to
+the layout script or duplicate PHP policy evaluation. Keep hidden automatic QR
+controls hidden and do not add admission choices to automatic/result-only states.
+
+The renderer reads no database and only reads TEST_ENV through `load_env(false)`
+to show the opt-in lab link. It does not require a Vite manifest, allowing setup,
+login and QR recovery without a built dashboard; this is not a legacy-menu or
+synthetic-data fallback. The React entry still returns 503 for missing builds.
+Use `auth_url()` for root and `/event-retiro` assets, navigation and protected POST
+logout; preserve route field names, CSRF, review tokens and report plugin exports.
+Do not restore the old remote banner or hardcoded year/person-specific branding.
+
+Deploy `src/static/theme.css`, `ui.css`, `ui.js`, `fonts/` and branding images with
+PHP, and rebuild/deploy `src/static/app/`. `makim dev.ui-tests` checks disposable
+PHP layouts/controllers/assets without sockets, network mail, QR generation or
+working data/configuration. Frontend tests cover mobile menu focus and ensure the
+layout never submits protected forms. These checks do not replace real-browser
+responsive review or the HTTP/cookie suites on a socket-capable host.

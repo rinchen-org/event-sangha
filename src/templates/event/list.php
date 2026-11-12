@@ -12,20 +12,20 @@ include dirname(__DIR__) . "/header.php";
 $result = EventSangha::list();
 
 ?>
-<h2>Event List</h2>
-<a href="../" class="btn btn-warning my-3">Back to the menu</a>
-<a href="./form.php" class="btn btn-primary my-3">New Event</a>
+<h2>Eventos</h2>
+<a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
+<a href="./form.php" class="btn btn-primary my-3">Nuevo evento</a>
 
 <?php if ($result): ?>
   <table id="event_list">
     <thead>
       <tr>
         <th>ID</th>
-        <th>Title</th>
-        <th>Description</th>
-        <th>Start Date</th>
-        <th>End Date</th>
-        <th>Actions</th>
+        <th>Nombre</th>
+        <th>Descripción</th>
+        <th>Inicio</th>
+        <th>Fin</th>
+        <th>Acciones</th>
       </tr>
     </thead>
     <tbody>
@@ -44,10 +44,10 @@ $result = EventSangha::list();
     </tbody>
   </table>
 <?php else: ?>
-  <p>No records found.</p>
+  <p>No hay registros en esta vista.</p>
 <?php endif; ?>
 
-<a href="../" class="btn btn-warning my-3">Back to the menu</a>
+<a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
 
 <script>
   let table = new DataTable('#event_list');

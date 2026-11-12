@@ -47,7 +47,7 @@ No Node server is needed in production. The existing `src/index.php` redirect
 opens this page automatically. Relative assets and hash navigation support both
 root hosting and `/event-retiro` with the authentication file-protection rules described in [containers/README.md](../containers/README.md).
 
-React is the only management menu. Authenticated requests to the old
+React is the canonical management interface. Authenticated requests to the old
 `templates/menu.php` and `templates/index.php?legacy=1` URLs redirect to
 `templates/index.php`; there is no classic-menu or missing-build fallback.
 A missing/malformed manifest or missing entry JS/CSS returns HTTP 503 with
@@ -61,6 +61,21 @@ The standalone PHP QR screen uses `src/static/qr-checkin.js`; GET never records
 attendance and session selection/policy evaluation remain server-side.
 
 ## Migration boundary
+
+PHP forms, review/results and reports now share a matching shell through
+`src/lib/layout.php`, `static/ui.css` and `static/ui.js`: sidebar links point to
+React's canonical routes, while PHP continues to own the action and its state.
+Setup, lab and email diagnostic use that shell. Login, QR and errors use the same
+theme in a compact layout. The visual update does not replace PHP with React or
+introduce JSON mutations. Bootstrap utilities and DataTables report exports remain.
+
+Both frontends use `src/static/theme.css` and local Manrope files in
+`src/static/fonts/` (OFL license included). Deploy those static files and branding
+images alongside PHP, in addition to the rebuilt `src/static/app/`. PHP screens
+do not require the Vite manifest; React's missing-build 503 is unchanged. No-JS
+navigation and form controls remain usable. `makim dev.ui-tests` checks layouts
+and root/subdirectory paths with temporary data; frontend tests check mobile
+navigation/focus without submitting forms. Real-browser checks are still needed.
 
 Event cards navigate to `#eventos/<id>/participantes` rather than editing directly.
 Event pages have separate editing, CSV import, explicit existing-registration
@@ -93,7 +108,8 @@ ID, mode and selected subscription IDs to `templates/event/email.php` for PHP
 review; this first POST sends nothing. An expiring single-use confirmation binds
 the server-held recipients/template/configuration and rechecks them before durable
 per-recipient claims. PHP owns warnings and membership validation. Results/history
-are legacy PHP screens; preview disables sending, selection and history links.
+are PHP screens with the shared dashboard layout; preview disables sending,
+selection and history links.
 The fixed template is previewed before confirming and each private QR is embedded
 in its individual email. Mail acceptance is not delivery; no automatic retry is made.
 

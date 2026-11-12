@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   } catch (Exception $e) {
     print("<div><p>" . $e->getMessage() . "</p></div>");
-    echo '<div><p><a href="./form.php" class="btn btn-warning my-3">Back to the form</a></p></div>';
+    echo '<div><p><a href="./form.php" class="btn btn-warning my-3">Volver al formulario</a></p></div>';
   }
 
   if ($eventSession) {
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div><strong>Success!</strong></div>
     <a class="btn btn-primary" href="<?php echo auth_escape(auth_url('templates/index.php#eventos/' . (int) $eventSession->event->id . '/sesiones')); ?>">Volver al evento</a>
     <div>
-        <a href="./list.php" class="btn btn-warning my-3">Back to the list</a>
+        <a href="./list.php" class="btn btn-warning my-3">Volver a la lista</a>
     </div>
 <?php
   }
@@ -59,12 +59,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $eventSession = EventSession::get(["id" => $eventSessionId]);
   }
 ?>
-  <h1>Event Session Form</h1>
+  <h1>Sesión del evento</h1>
 
   <form method="POST" action="">
       <?php auth_csrf_field(); ?>
     <div class="mb-3">
-      <label for="event_id" class="form-label">Event</label>
+      <label for="event_id" class="form-label">Evento</label>
       <select class="form-select" name="event_id" id="event_id" required>
       <?php foreach ($eventList as $event) { ?>
         <option value="<?php echo $event->id; ?>"><?php echo $event->name; ?></option>
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     </div>
 
     <div class="mb-3">
-      <label for="name" class="form-label">Name</label>
+      <label for="name" class="form-label">Nombre</label>
       <input
         type="text"
         class="form-control"
@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     </div>
 
     <div class="mb-3">
-      <label for="start_datetime" class="form-label">Start Date and Time</label>
+      <label for="start_datetime" class="form-label">Fecha y hora de inicio</label>
       <input
         type="datetime-local"
         class="form-control"
@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     </div>
 
     <div class="mb-3">
-      <label for="end_datetime" class="form-label">End Date and Time</label>
+      <label for="end_datetime" class="form-label">Fecha y hora de fin</label>
       <input
         type="datetime-local"
         class="form-control"
@@ -106,11 +106,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     </div>
 
     <input type="hidden" name="event_session_id" value="<?php echo $eventSessionId; ?>">
-    <button type="submit" class="btn btn-primary"><?php echo $eventSessionId ? 'Update' : 'Create'; ?></button>
+    <button type="submit" class="btn btn-primary"><?php echo $eventSessionId ? 'Guardar cambios' : 'Crear sesión'; ?></button>
   </form>
 
-  <a href="../" class="btn btn-warning my-3">Back to the menu</a>
-  <a href="./list.php" class="btn btn-warning my-3">Back to the list</a>
+  <a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
+  <a href="./list.php" class="btn btn-warning my-3">Volver a la lista</a>
 <?php
 }
 include dirname(__DIR__) . "/footer.php";

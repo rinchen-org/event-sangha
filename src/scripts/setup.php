@@ -76,17 +76,9 @@ $_SESSION['setup_tokens'] = array_filter($_SESSION['setup_tokens'] ?? [], functi
 $_SESSION['setup_tokens'] = array_slice($_SESSION['setup_tokens'], -9, null, true);
 $token = bin2hex(random_bytes(24));
 $_SESSION['setup_tokens'][$token] = time() + 1800;
+require_once dirname(__DIR__) . '/lib/layout.php';
+AppLayout::start('Configurar evento', 'eventos');
 ?>
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Configurar evento · Rinchen</title>
-  <link rel="stylesheet" href="<?php echo auth_escape(auth_url('static/auth.css')); ?>">
-</head>
-<body>
-<main class="auth-card">
   <p class="eyebrow">SOLO PERSONAL · CONFIGURACIÓN</p>
   <h1>Evento de noviembre</h1>
   <p>12 y 15 de noviembre: mañana y tarde. 13 y 14 de noviembre: solo tarde.
@@ -123,7 +115,4 @@ $_SESSION['setup_tokens'][$token] = time() + 1800;
     <button type="submit">Guardar evento y seis sesiones</button>
   </form>
   <a href="<?php echo auth_escape(auth_url('templates/index.php')); ?>">Volver sin guardar</a>
-  <footer class="auth-footnote">Desarrollado por <a href="https://scistitch.com/" target="_blank" rel="noopener noreferrer">SciStitch</a></footer>
-</main>
-</body>
-</html>
+<?php AppLayout::end(); ?>

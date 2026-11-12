@@ -28,20 +28,10 @@ if ($json) {
     echo json_encode($result);
     exit;
 }
+require_once dirname(__DIR__) . '/lib/layout.php';
+AppLayout::start('Prueba de correo');
 ?>
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Test email sender · Rinchen</title>
-  <link rel="stylesheet" href="<?php echo auth_escape(auth_url('static/auth.css')); ?>">
-</head>
-<body>
-<main class="auth-card">
-  <h1>Test email sender</h1>
+  <h1>Prueba de correo</h1>
   <p role="<?php echo $result['success'] ? 'status' : 'alert'; ?>" class="<?php echo $result['success'] ? '' : 'auth-error'; ?>"><?php echo auth_escape($result['message']); ?></p>
   <a href="<?php echo auth_escape(auth_url('templates/index.php')); ?>">Volver al inicio</a>
-  <footer class="auth-footnote">Desarrollado por <a href="https://scistitch.com/" target="_blank" rel="noopener noreferrer">SciStitch</a></footer>
-</main>
-</body>
-</html>
+<?php AppLayout::end(); ?>

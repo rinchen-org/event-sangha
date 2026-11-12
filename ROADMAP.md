@@ -25,6 +25,34 @@ The milestones below remain release gates: this first frontend increment does
 not claim completion of test isolation, PHP runtime alignment, mutation APIs,
 production integration tests, or rollout.
 
+## Implementation update — shared PHP presentation
+
+The remaining PHP forms, review/results and detailed reports now share the React
+dashboard's visual system through `AppLayout`: sidebar/navigation, topbar, local
+Manrope typography, wine/paper colors, cards and versioned footer. Setup/preparation,
+the lab and email diagnostic use the same shell; login, live/lab QR and technical
+error/confirmation screens retain a compact variant. `static/theme.css` is shared
+with React; `static/ui.css` adapts existing PHP/Bootstrap and DataTables markup.
+The old remote banner is no longer used. Core legacy form/table labels are Spanish.
+
+This is presentation reuse, not JSON mutation migration or a second management
+dashboard. Handlers, staff reviews, auth/CSRF, admission branches, CSV/mail separation
+and report export/print plugins remain in PHP. No-JS navigation and manual controls
+remain usable; the mobile enhancement never posts forms. PHP screens do not depend
+on Vite availability, while the React entry's explicit missing-build 503 is retained.
+`makim dev.ui-tests` provides disposable controller/layout checks; frontend tests
+exercise mobile-menu behavior. Browser-size/screenshots and HTTP security coverage
+remain required on a host that supports those checks. Deploy the shared static
+styles/fonts/script along with PHP and rebuilt frontend assets.
+
+## Implementation update — visible application version
+
+The React and shared PHP footers display the application version, starting at
+**2.0.0**, from `APP_VERSION` in `src/lib/version.php`. Vite embeds that same value
+at build time; deploy rebuilt frontend assets with the matching PHP version.
+AGENTS.md documents manual SemVer/Conventional Commit rules. No automated release,
+tagging or publishing workflow is installed.
+
 ## Implementation update — event-centered registration
 
 Event cards now open a detail page with event participants, CSV import, sessions,

@@ -43,6 +43,9 @@ jobs:
     - name: Authentication HTTP tests (isolated temporary files)
       run: python tests/auth/test_auth.py
 
+    - name: Shared PHP UI layouts (isolated temporary files)
+      run: makim dev.ui-tests
+
     - name: Event registrations and scoped CSV imports (isolated, fake QR and mail)
       run: makim dev.event-tests
 

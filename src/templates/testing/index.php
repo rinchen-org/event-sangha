@@ -96,14 +96,10 @@ try {
     }
 } catch (Throwable $e) { http_response_code(503); $error = 'No se pudieron leer los datos de prueba.'; $people = []; }
 finally { if ($db !== null) { $db->close(); } }
+require_once dirname(__DIR__, 2) . '/lib/layout.php';
+AppLayout::start('Laboratorio QR', 'pruebas', styles: ['static/test-lab.css']);
 ?>
-<!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Laboratorio QR · Rinchen</title>
-<link rel="stylesheet" href="<?php echo auth_escape(auth_url('static/auth.css')); ?>">
-<link rel="stylesheet" href="<?php echo auth_escape(auth_url('static/test-lab.css')); ?>">
-<script defer src="<?php echo auth_escape(auth_url('static/auth-navigation.js')); ?>"></script>
-</head><body><main class="auth-card lab-card">
+<div class="lab-card">
 <p class="eyebrow">RINCHEN · SOLO PRUEBAS</p><h1>Laboratorio QR</h1>
 <p class="auth-warning">Base de pruebas independiente. Ninguna acción de esta pantalla cambia participantes, asistencias ni el evento QR real. TEST_ENV=0 desactiva estas herramientas sin borrar su historial.</p>
 <?php if ($error !== ''): ?><p class="auth-error" role="alert"><?php echo auth_escape($error); ?></p><?php endif; ?>
@@ -145,4 +141,5 @@ finally { if ($db !== null) { $db->close(); } }
 <p>Opcional: enviar un correo por participante del lote a sus alias configurados, con enlace a esta pantalla (requiere sesión del personal). No se añade EMAIL_CC. Los intentos anteriores nunca se reenvían, incluso si su resultado es desconocido.</p>
 <button class="auth-deny" type="submit">Enviar correos de prueba de este lote</button></form><?php endif; ?>
 </section><a href="<?php echo auth_escape(auth_url('templates/index.php')); ?>">Volver sin otra acción</a>
-</main></body></html>
+</div>
+<?php AppLayout::end(); ?>

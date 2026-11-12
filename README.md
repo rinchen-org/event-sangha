@@ -12,11 +12,20 @@ makim frontend.build
 Run the existing PHP application to open the built interface. For frontend
 work, use `makim frontend.dev`; see [frontend/README.md](frontend/README.md) for
 PHP proxy setup, the sample-data preview, deployment, and checks. React is the
-only management menu; the old `templates/menu.php` and
+canonical management interface; the old `templates/menu.php` and
 `templates/index.php?legacy=1` bookmarks redirect to `templates/index.php` after
 login. A missing/invalid build returns an explicit HTTP 503 with build instructions,
 not a legacy menu. JavaScript is required for the main interface; existing PHP
 forms, action/result pages, reports, and QR links remain supported.
+
+PHP screens now share the dashboard's navigation, colors, local Manrope fonts,
+cards, controls and versioned footer; login/QR use a compact version of the same
+theme. Existing PHP actions, staff confirmations and DataTables exports are not
+replaced by this styling update. Deploy `src/static/theme.css`, `ui.css`, `ui.js`,
+`fonts/` and branding images with PHP, as well as the rebuilt `src/static/app/`.
+`makim dev.ui-tests` checks layouts/controllers using disposable synthetic data
+without sockets, mail or external QR calls. See frontend/README.md for the exact
+presentation/migration boundary.
 
 See [AGENTS.md](AGENTS.md) for repository guidance and [ROADMAP.md](ROADMAP.md)
 for the remaining migration milestones.

@@ -1,65 +1,18 @@
 <?php
 require_once dirname(__DIR__) . '/lib/auth.php';
 auth_require();
-
-include_once __DIR__ . "/config.php";
-
-global $BASE_URL;
+require_once dirname(__DIR__) . '/lib/layout.php';
+include_once __DIR__ . '/config.php';
 global $ENV_PROD;
-?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Evento Retiro con Su Santidad Sakya Trizin 42 y Venerable Lama Rinchen Gyaltsen</title>
-    <link rel="stylesheet" href="<?php echo $BASE_URL; ?>/static/style.css">
-    <!-- datatables -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.css" />
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.js"></script>
-    <!-- bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65"
-      crossorigin="anonymous">
-      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
-        crossorigin="anonymous">
-      </script>
-    <script defer src="<?php echo auth_escape(auth_url('static/auth-navigation.js')); ?>"></script>
-</head>
-<body>
-  <a class="rinchen-back" href="<?php echo htmlspecialchars($BASE_URL, ENT_QUOTES, 'UTF-8'); ?>/templates/index.php">← Volver a mi comunidad</a>
-  <form class="rinchen-logout" method="post" action="<?php echo auth_escape(auth_url('templates/logout.php')); ?>">
-    <?php auth_csrf_field(); ?>
-    <button type="submit">Cerrar sesión</button>
-  </form>
-  <div class="logo_image" style="background-image: url('https://rinchen.org/wp-content/uploads/2021/07/head5.png');">
-    <a href="https://rinchen.org">
-        <img class="spiritual-std-logo" src="https://rinchen.org/wp-content/uploads/2021/07/logo-head.png" alt="Sakya Rinchen Ling" data-retina="https://rinchen.org/wp-content/uploads/2021/07/logo_head_retina.png">
-    </a>
-  </div>
-  <?php if ($ENV_PROD === false) { ?>
-  <div class="alert alert-danger">Development Mode</div>
-  <?php } ?>
-  <div class="container">
-    <div class="">
-<?php
-  $message_type = $_SESSION['message']["type"] ?? "";
-  $message_text = $_SESSION['message']["text"] ?? "";
-  $_SESSION['message'] = [];
-?>
-<?php
-if ($message_type != "" || $message_text != ""){
+[$layoutTitle, $layoutSection] = AppLayout::route();
+AppLayout::start($layoutTitle, $layoutSection, legacy: true);
+if ($ENV_PROD === false) { echo '<p class="alert alert-info">Entorno de desarrollo</p>'; }
 
-  $alert_type = $message_type == "error" ? "danger" : $message_type;
-
-  print("<div class='alert alert-{$alert_type}' role='alert'>");
-  print($message_text);
-  print("</div>");
-
-  $_SESSION['message']["type"] = "";
-  $_SESSION['message']["text"] = "";
+$messageType = $_SESSION['message']['type'] ?? '';
+$messageText = $_SESSION['message']['text'] ?? '';
+$_SESSION['message'] = [];
+if ($messageText !== '') {
+    $alertType = in_array($messageType, ['success', 'warning', 'info'], true) ? $messageType : 'danger';
+    echo '<div class="alert alert-' . $alertType . '" role="alert">' . auth_escape($messageText) . '</div>';
 }
-?>

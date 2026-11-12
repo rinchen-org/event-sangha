@@ -125,7 +125,7 @@ export function App() {
           {page === 'asistencia' && <Attendance data={data} />}
           {page === 'informes' && <Reports data={data} />}
         </>}
-        <footer className="page-footer"><span><Flower2 size={15} strokeWidth={1.4} /> Hecho para cultivar comunidad.</span><span>Sakya Rinchen Ling · Bolivia</span><span>Desarrollado por <a href="https://scistitch.com/" target="_blank" rel="noopener noreferrer">SciStitch</a></span></footer>
+        <footer className="page-footer"><span><Flower2 size={15} strokeWidth={1.4} /> Hecho para cultivar comunidad.</span><span>Sakya Rinchen Ling · Bolivia</span><span>Versión {__APP_VERSION__}</span><span>Desarrollado por <a href="https://scistitch.com/" target="_blank" rel="noopener noreferrer">SciStitch</a></span></footer>
       </main>
     </div>
     {editor && <Editor editor={editor} data={data} close={() => setEditor(null)} />}

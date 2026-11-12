@@ -37,6 +37,7 @@ describe('React management views', () => {
     expect(screen.queryByRole('link', { name: /menú clásico/i })).not.toBeInTheDocument();
     expect(document.querySelector('a[href*="legacy=1"], a[href*="menu.php"]')).toBeNull();
     const credit = within(screen.getByRole('contentinfo')).getByRole('link', { name: 'SciStitch' });
+    expect(within(screen.getByRole('contentinfo')).getByText(`Versión ${__APP_VERSION__}`)).toBeInTheDocument();
     expect(credit).toHaveAttribute('href', 'https://scistitch.com/');
     expect(credit).toHaveAttribute('rel', 'noopener noreferrer');
     expect(fetch).toHaveBeenCalledTimes(5);

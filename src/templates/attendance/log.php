@@ -123,19 +123,9 @@ $sessionLabel = static function (array $session): string {
     $end = (new DateTimeImmutable('@' . $session['end_timestamp']))->setTimezone($zone);
     return $session['name'] . ' · ' . $start->format('d/m/Y H:i') . ' — ' . $end->format('d/m/Y H:i');
 };
+require_once dirname(__DIR__, 2) . '/lib/layout.php';
+AppLayout::start('Control de acceso', 'asistencia', compact: true, scripts: ['static/qr-checkin.js?v=2']);
 ?>
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Control de acceso · Rinchen</title>
-  <link rel="stylesheet" href="<?php echo auth_escape(auth_url('static/auth.css')); ?>">
-  <script defer src="<?php echo auth_escape(auth_url('static/auth-navigation.js')); ?>"></script>
-  <script defer src="<?php echo auth_escape(auth_url('static/qr-checkin.js?v=2')); ?>"></script>
-</head>
-<body>
-<main class="auth-card">
   <?php if ($isLab): ?><p class="auth-warning">SOLO PRUEBAS · Esta asistencia se guarda en el laboratorio, nunca en el evento real.</p><?php endif; ?>
   <p class="eyebrow">SOLO PERSONAL · CONTROL DE ACCESO</p>
   <h1>Registro de asistencia</h1>
@@ -213,7 +203,4 @@ $sessionLabel = static function (array $session): string {
     <?php endif; ?>
   <?php endif; ?>
   <a href="<?php echo auth_escape(auth_url($isLab ? 'templates/testing/index.php' : 'templates/index.php')); ?>">Volver</a>
-  <footer class="auth-footnote">Desarrollado por <a href="https://scistitch.com/" target="_blank" rel="noopener noreferrer">SciStitch</a></footer>
-</main>
-</body>
-</html>
+<?php AppLayout::end(); ?>

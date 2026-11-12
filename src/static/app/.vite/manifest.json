@@ -1,0 +1,38 @@
+{
+  "../src/static/fonts/manrope-400.woff2": {
+    "file": "assets/manrope-400-PaqtzbVb.woff2",
+    "src": "../src/static/fonts/manrope-400.woff2"
+  },
+  "../src/static/fonts/manrope-500.woff2": {
+    "file": "assets/manrope-500-BYYD-dBL.woff2",
+    "src": "../src/static/fonts/manrope-500.woff2"
+  },
+  "../src/static/fonts/manrope-600.woff2": {
+    "file": "assets/manrope-600-4f0koTD-.woff2",
+    "src": "../src/static/fonts/manrope-600.woff2"
+  },
+  "../src/static/fonts/manrope-700.woff2": {
+    "file": "assets/manrope-700-BZp_XxE4.woff2",
+    "src": "../src/static/fonts/manrope-700.woff2"
+  },
+  "../src/static/images/logo-head-square.png": {
+    "file": "assets/logo-head-square-SAUHwtdU.png",
+    "src": "../src/static/images/logo-head-square.png"
+  },
+  "index.html": {
+    "file": "assets/index-BkilPCSl.js",
+    "name": "index",
+    "src": "index.html",
+    "isEntry": true,
+    "css": [
+      "assets/index-CfaQXfmv.css"
+    ],
+    "assets": [
+      "assets/logo-head-square-SAUHwtdU.png",
+      "assets/manrope-400-PaqtzbVb.woff2",
+      "assets/manrope-500-BYYD-dBL.woff2",
+      "assets/manrope-600-4f0koTD-.woff2",
+      "assets/manrope-700-BZp_XxE4.woff2"
+    ]
+  }
+}

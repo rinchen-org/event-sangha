@@ -40,12 +40,44 @@ makim frontend.tests
 ```
 
 The build type-checks TypeScript and writes hashed assets, fonts, and a manifest
-to `src/static/app/`. These generated files are ignored by Git: build them before
-deploying and include the entire directory, including `.vite/manifest.json`, in
-the deployment artifact. PHP reads that manifest in `src/templates/index.php`.
-No Node server is needed in production. The existing `src/index.php` redirect
+to `src/static/app/`. **The complete public build is tracked by Git**, including
+the hidden `.vite/manifest.json`, so it travels with the source through GitHub.
+Rebuild on the development server and commit the generated additions/deletions
+with changes to frontend source, dependencies/configuration, shared theme/assets,
+or `APP_VERSION`. Do not manually edit/format generated files; the end-of-file
+fixer excludes the build. node_modules and private attendee QR images stay ignored.
+PHP reads the committed manifest in `src/templates/index.php`.
+No Node server or build step is needed on production or the operator's machine.
+The existing `src/index.php` redirect
 opens this page automatically. Relative assets and hash navigation support both
 root hosting and `/event-retiro` with the authentication file-protection rules described in [containers/README.md](../containers/README.md).
+
+### GitHub → local pull → FTP
+
+1. On the development server, run the frontend checks/tests/build and include
+   `src/static/app/` in the same commit as the corresponding source changes.
+   Push that commit to GitHub. GitHub CI checks/builds the frontend but does not
+   deploy or commit files for you.
+2. Pull that commit onto the machine used for FTP. No local compilation is needed.
+3. Upload changed application code/public assets from `src/` to the existing
+   website document root. Local `src/static/app/` maps to remote `static/app/`;
+   do not create an extra `src/` level or replace `templates/index.php` with the
+   generated index.html. Include `.vite/manifest.json` even if the FTP client
+   hides dot-directories. Its existing HTTP protection must remain enabled.
+4. Upload the new `static/app/assets/` files before uploading
+   `static/app/.vite/manifest.json` last. Keep old hashed assets during the upload
+   so requests using the old manifest still work; do not delete the live build
+   directory first. Retire old assets only later, allowing cached/open pages to
+   finish using them.
+5. Hard-refresh and verify the deployed participant list, QR previews and
+   **Regenerar QR** button. Deployment still needs the production HTTP/browser
+   checks below; a successful local build is not a production deployment.
+
+Never mirror the entire local data directory over production. Preserve its
+`src/.env` equivalent, SQLite databases/journals, `static/qr/`, sessions/throttle
+state, `.test-lab/` and `.backups/`. Private QR outputs are ignored separately
+from the public compiled frontend. This workflow adds no automatic FTP upload,
+release tagging, version bump or publishing service.
 
 React is the canonical management interface. Authenticated requests to the old
 `templates/menu.php` and `templates/index.php?legacy=1` URLs redirect to

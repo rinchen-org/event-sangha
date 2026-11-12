@@ -58,8 +58,14 @@ settings. Client-provided forwarded headers are deliberately not trusted.
 
 ## Release checks
 
-Build `makim frontend.build` and deploy the complete `src/static/app/`, including
-`.vite/manifest.json`, so the React interface and current CSRF forms are available.
+Run `makim frontend.build` on the development server and commit the complete
+`src/static/app/`, including `.vite/manifest.json`, with source changes. For the
+GitHub → local pull → FTP workflow, upload that committed build and changed PHP
+files; neither the local FTP machine nor production needs Node/build commands.
+Upload new assets before the manifest, keeping old assets available during
+transfer. Preserve production configuration, databases, QR images and private
+state. See [frontend/README.md](../frontend/README.md#github--local-pull--ftp).
+This makes the React interface and current CSRF forms available.
 The legacy menu is removed; missing/invalid builds return a Spanish HTTP 503
 with build instructions instead of falling back to it. On the
 actual host, test both root/subdirectory deployments as applicable:

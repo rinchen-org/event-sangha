@@ -25,6 +25,18 @@ The milestones below remain release gates: this first frontend increment does
 not claim completion of test isolation, PHP runtime alignment, mutation APIs,
 production integration tests, or rollout.
 
+## Implementation update — versioned build for FTP deployment
+
+The complete public Vite build under `src/static/app/`, including its hidden
+manifest and hashed assets, is now versioned in Git. Build and commit it alongside
+frontend/shared-asset/version changes on the development server, push to GitHub,
+pull on the operator's local machine, then upload code/assets via FTP. No build
+step is required on the operator's machine or production. Formatters leave the
+generated output untouched. Public bundled branding is separate from ignored
+private attendee QR images, configuration, databases and test/backup/session state.
+Upload new assets first and the manifest last; retain old assets during transfer.
+This is a deployment packaging change, not automatic publishing or a new release.
+
 ## Implementation update — shared PHP presentation
 
 The remaining PHP forms, review/results and detailed reports now share the React

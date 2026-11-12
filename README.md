@@ -9,6 +9,14 @@ makim frontend.install
 makim frontend.build
 ```
 
+The complete public build in `src/static/app/` is now versioned with the source.
+Build here on the development server, commit and push both source/build to
+GitHub, pull on your local machine, then transfer the changed application files
+via FTP. No build commands are needed locally or on production. Include the
+hidden `.vite/manifest.json`; upload assets first and the manifest last.
+Preserve production `.env`, databases, attendee QR images and private state.
+See [the FTP workflow](frontend/README.md#github--local-pull--ftp) for details.
+
 Run the existing PHP application to open the built interface. For frontend
 work, use `makim frontend.dev`; see [frontend/README.md](frontend/README.md) for
 PHP proxy setup, the sample-data preview, deployment, and checks. React is the

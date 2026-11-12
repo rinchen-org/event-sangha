@@ -95,9 +95,23 @@ without using the legacy library's assumption that person/subscription IDs match
 See [frontend/README.md](frontend/README.md) for the exact migration boundary.
 
 Use `makim frontend.install`, `makim frontend.dev`, `makim frontend.check`,
-`makim frontend.tests`, and `makim frontend.build`. Build assets before deployment;
-they are ignored by Git. The explicit development `?preview=1` mode uses synthetic
-data and must never become an automatic fallback for unavailable production data.
+`makim frontend.tests`, and `makim frontend.build`. The public production build in
+`src/static/app/` is versioned in Git, including `.vite/manifest.json`, hashed
+JS/CSS, fonts, branding and generated index.html. The deployment workflow is:
+build on this development server, commit source and the complete build together,
+push to GitHub, pull on the operator's machine, then upload via FTP to production.
+Neither the operator's machine nor production needs to run Node/build commands.
+
+Rebuild and include additions/deletions in `src/static/app/` whenever frontend
+source, dependencies, build configuration, shared theme/branding/fonts or the
+embedded application version changes. Do not edit generated assets manually or
+let formatters rewrite them; the end-of-file fixer excludes this directory.
+Keep node_modules, private configuration, databases, attendee QR files, test state
+and backups out of Git and deployment uploads. `src/static/qr/.gitignore` excludes
+all private QR output, not public bundled branding. See frontend/README.md for
+FTP upload ordering and preservation of production data. The explicit development
+`?preview=1` mode uses synthetic data and must never become an automatic fallback
+for unavailable production data.
 
 ## Environment and commands
 

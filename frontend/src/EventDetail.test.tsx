@@ -97,6 +97,32 @@ it('requires an explicit event when importing from the global participant view',
   expect(screen.getByLabelText('Evento de destino')).toHaveValue('');
 });
 
+it('offers per-person QR review with event/subscription/CSRF binding, not legacy attendance actions', async () => {
+  location.hash = '#eventos/2/participantes';
+  render(<App />);
+  const button = await screen.findByRole('button', { name: 'Regenerar QR' });
+  const form = button.closest('form')!;
+  expect(button).toBeEnabled();
+  expect(form).toHaveAttribute('action', expect.stringContaining('/subscription/regenerate_qr.php'));
+  expect(form).toHaveAttribute('method', 'POST');
+  expect(form.querySelector('[name="subscription_id"]')).toHaveValue(String(event2.subscriptions[0].id));
+  expect(form.querySelector('[name="event_id"]')).toHaveValue('2');
+  expect(form.querySelector('[name="csrf_token"]')).toHaveValue('event-csrf');
+  expect(form.querySelector('[name="action"]')).toBeNull(); // default is review, never confirm
+  expect(screen.queryByRole('button', { name: /Acciones de/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Forzar asistencia' })).not.toBeInTheDocument();
+});
+
+it('offers the same QR review from the global list without inventing an event scope', async () => {
+  location.hash = '#participantes';
+  render(<App />);
+  const button = (await screen.findAllByRole('button', { name: 'Regenerar QR' }))[0];
+  const form = button.closest('form')!;
+  expect(form.querySelector('[name="subscription_id"]')).toHaveValue(String(previewData.subscriptions[0].id));
+  expect(form.querySelector('[name="event_id"]')).toBeNull();
+  expect(form.querySelector('[name="csrf_token"]')).toHaveValue('event-csrf');
+});
+
 it('keeps participants, sessions and attendance isolated when navigating and returning', async () => {
   location.hash = '#eventos/1/participantes';
   render(<App />);

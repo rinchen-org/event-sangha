@@ -26,6 +26,7 @@ it('keeps event linking and CSV mutations disabled in preview', async () => {
   expect(screen.queryByRole('link', { name: 'Vincular inscripción existente' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Enviar a seleccionados' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Enviar a todos' })).toBeDisabled();
+  for (const button of screen.getAllByRole('button', { name: 'Regenerar QR' })) expect(button).toBeDisabled();
   expect(screen.queryByRole('link', { name: 'Historial de correos' })).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole('button', { name: 'Importar CSV al evento' }));
   fireEvent.submit(screen.getByRole('button', { name: 'Revisar CSV' }).closest('form')!);

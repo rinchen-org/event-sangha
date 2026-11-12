@@ -710,3 +710,43 @@ silently resend mail or change environment files to repair historical data.
 covering local/prod base paths, missing/invalid configuration, saved-origin rebasing,
 unchanged QR bytes/records, the report API and MIME rendering. Run event-email
 tests as well for stale HOST_ADDRESS review rejection and warning/cancel/continue.
+
+## Explicit attendee QR regeneration
+
+React event/global rosters and the classic subscription list POST to
+`templates/subscription/regenerate_qr.php`. Initial review and cancellation are
+read-only. Confirmation requires auth/CSRF and a ten-minute, single-use
+server-held token binding the subscription/person identity, raw old QR,
+HOST_ADDRESS, optional explicit event membership and prior attempt. Event scope
+is validation/navigation only: the QR is shared across events and still follows
+the configured admission event. Never infer event membership or change qr_event_id.
+
+`src/lib/qr_regeneration.php` owns warnings, snapshots and writes. Inactive state,
+old-base metadata and unfinished attempts produce clear Spanish warnings with
+cancel/continue choices. Missing/broken old images do not prevent repair; invalid
+or ambiguous identities and technical failures remain non-overridable. Preserve
+the exact name/email/phone query encoding and `/attendance_log.php/`, including
+an explicit empty phone. Show the current base and external identity disclosure
+before confirmation; never use browser-supplied targets or saved origins.
+
+Claim an attempt durably before the bounded fixed HTTPS QR-service call. Recheck
+under BEGIN IMMEDIATE before exclusive publication/update; use a fresh 64-hex
+filename rather than overwriting deterministic historical images. Preserve old
+images/codes (not revoked), status, membership, attendance and QR selection.
+Never call subscribe_person/save/insert or any mail transport: sending remains
+a separate reviewed phase. A changed QR reference invalidates pending email reviews.
+
+The additive `qr_regeneration` audit/index are created only on confirmation,
+recording old/new references, target hash/base, structured warnings, confirmation,
+optional notes, UTC times and shared account, with pending/completed/failed status.
+Pending is uncertain; do not automatically retry. Filesystem/transport/DB failures
+are errors, never successful warnings. Old files are never removed; clean up only
+the new attempt's file after a confirmed rollback. Back up before deployment;
+do not run historical migrations. Rebuild the frontend; preview disables actions.
+
+`makim dev.qr-regeneration-tests` uses disposable SQLite/config/files, synthetic
+images and fake QR/mail. HTTP is the default; explicit `RINCHEN_TEST_SERVER=cli`
+checks domain/controllers without sockets, not headers/cookies/browser behavior.
+Never exercise regeneration against working participant data or the live service
+in automated tests. Keep the application version at the documented release baseline
+until an actual release is requested.

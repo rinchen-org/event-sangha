@@ -62,6 +62,24 @@ existing QR: regenerating old codes remains a separate explicit operation.
 `makim dev.url-tests` covers fake-transport rendering, local/prod paths and
 read-only rebasing; event-email tests cover base changes and reviewed continuation.
 
+## Implementation update — explicit attendee QR regeneration
+
+Event/global participant lists now offer **Regenerar QR**, including the classic
+list. PHP reviews the existing subscription, identity, optional event membership,
+current HOST_ADDRESS and advisory inactive/old-base warnings. A ten-minute,
+single-use CSRF-protected confirmation claims an audited attempt before bounded
+external generation, then rechecks state before updating the QR reference.
+GET/review/cancel have no generation, schema or mail side effects.
+
+New images use exclusive random filenames; old images/codes are retained, not
+revoked. Only the existing subscription QR changes, shared across events: no mail,
+activation, attendance or QR admission-event changes. Staff send the template in
+a separate phase. Structured warnings, shared account, confirmation, optional notes
+and UTC outcomes are audited; failures never automatically retry. New PHP routes
+reuse AppLayout, not a new React mutation API. Preview disables the buttons.
+`makim dev.qr-regeneration-tests` exercises synthetic domain/HTTP cases with fake
+QR/mail; explicit CLI mode is available without sockets, not HTTP/browser coverage.
+
 ## Implementation update — visible application version
 
 The React and shared PHP footers display the application version, starting at

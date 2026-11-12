@@ -126,6 +126,16 @@ General activation remains global, so event participant rows show it as
 reports and the global subscription API are unchanged. See README for the
 additive schema, explicit historical linking, and deployment/test commands.
 
+Both event/global rosters offer a per-row **Regenerar QR** POST form, bound to the
+subscription ID, CSRF token and (when scoped) event ID. It opens PHP's
+`templates/subscription/regenerate_qr.php` review/confirmation screen, not an
+immediate generation or mail send. PHP owns identity/membership checks, inactive
+warnings, HOST_ADDRESS, expiry/replay protection, transport, file publication and
+audit. Preview disables regeneration. Event rows still omit unrelated global
+activation and hardcoded-event attendance shortcuts. Regeneration does not create
+event-specific codes or change the configured QR admission event. Rebuild assets;
+use `makim dev.qr-regeneration-tests` for isolated backend regression coverage.
+
 The session bootstrap exposes a server-computed `testMode` boolean. With
 `TEST_ENV=1` in `src/.env`, the sidebar links to **Pruebas · Laboratorio QR** at
 `templates/testing/index.php`, even if production list loading fails. Missing or

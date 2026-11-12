@@ -58,6 +58,9 @@ jobs:
     - name: Staff QR admission tests (isolated temporary SQLite)
       run: makim dev.qr-tests
 
+    - name: Attendee QR regeneration (isolated, fake QR and mail)
+      run: makim dev.qr-regeneration-tests
+
     - name: Opt-in QR laboratory tests (isolated, fake QR and mail)
       run: makim dev.lab-tests
 

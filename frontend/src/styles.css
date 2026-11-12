@@ -1277,7 +1277,8 @@ select {
   white-space:normal;
 }
 
-.row-actions button {
+.row-actions button,
+.qr-action button {
   font-size:11px;
   color:var(--wine);
   border:0;

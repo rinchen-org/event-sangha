@@ -56,6 +56,10 @@ groups:
         help: Run isolated staff QR admission tests (requires PHP sqlite3)
         run: php tests/qr/test_selection.php && python tests/auth/test_qr_admission.py
 
+      qr-regeneration-tests:
+        help: Test explicit attendee QR regeneration with disposable SQLite/files and fake QR/mail
+        run: python tests/auth/test_qr_regeneration.py
+
       lab-tests:
         help: Test the opt-in QR lab with synthetic SQLite, fake QR images, and fake mail
         run: php tests/lab/test_lab.php && python tests/auth/test_lab.py

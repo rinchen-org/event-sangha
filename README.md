@@ -62,6 +62,32 @@ saved-origin rebasing, unchanged QR files/records, and MIME output using synthet
 data and fake transport only. `makim dev.event-email-tests` additionally covers
 changed HOST_ADDRESS invalidating an old review and explicit warned continuation.
 
+### Regenerate an attendee's QR
+
+Use **Regenerar QR** beside an attendee in the event roster or global participant
+list (also available in the classic list). Review the attendee and `HOST_ADDRESS`,
+then confirm or cancel. Confirmation sends their identity to the existing external
+QR service and updates only that subscription's QR reference. **It never sends
+email.** Send the template separately when ready. The QR is shared across their
+events and still follows the configured admission event; regeneration does not
+select the event currently being viewed or change activation/attendance.
+
+The new image has a new filename; old images and distributed codes are retained,
+not revoked. Inactive records produce an advisory warning, not a rejection.
+Missing/broken old images can be repaired. Invalid/ambiguous identities, changed
+reviews, transport/filesystem failures and integrity errors are not overridable.
+Review tokens expire after ten minutes and are single-use; there are no automatic
+retries. Check the displayed attempt history after an interruption before starting
+another explicit action. The shared admin account does not identify an individual.
+
+The additive `qr_regeneration` audit table/index are created only on a confirmed
+action, never GET/review/cancel. Back up the database before deployment; no
+historical migration bundle is required. Deploy PHP/static files and rebuild
+the frontend. `makim dev.qr-regeneration-tests` uses disposable data/configuration,
+synthetic images and fake QR/mail. Without sockets, use
+`RINCHEN_TEST_SERVER=cli makim dev.qr-regeneration-tests` for domain/controller
+coverage; it does not replace HTTP cookie/header or real-browser testing.
+
 ## Login and protected access
 
 All application pages, JSON endpoints, and generated QR images require login.

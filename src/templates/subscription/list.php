@@ -105,6 +105,11 @@ global $MESSAGE;
               <?php } catch (DomainException $error) { ?><span role="alert"><?php echo auth_escape($error->getMessage()); ?></span><?php } ?></td>
               <td><?php echo $subscription->datetime->format('Y-m-d H:i:s'); ?></td>
               <td>
+                <form action="./regenerate_qr.php" method="POST">
+                  <?php auth_csrf_field(); ?>
+                  <input type="hidden" name="subscription_id" value="<?php echo $subscription->id; ?>" />
+                  <button type="submit" class="btn btn-secondary">Regenerar QR</button>
+                </form>
                 <form action="./resend_email.php" method="POST">
       <?php auth_csrf_field(); ?>
                   <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />

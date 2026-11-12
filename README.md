@@ -64,6 +64,13 @@ changed HOST_ADDRESS invalidating an old review and explicit warned continuation
 
 ### Regenerate an attendee's QR
 
+The React participant list (`templates/index.php#participantes`) and event rosters
+show each existing QR above **Regenerar QR**. Click **Abrir QR** for the full-size
+protected image in a new tab. Missing images/configuration have a clear message;
+the regeneration button remains available. These previews only read existing
+metadata/files and never generate a replacement or send email. Old-base warnings
+still apply: displaying the image at the current host does not repair its bitmap.
+
 Use **Regenerar QR** beside an attendee in the event roster or global participant
 list (also available in the classic list). Review the attendee and `HOST_ADDRESS`,
 then confirm or cancel. Confirmation sends their identity to the existing external
@@ -87,6 +94,8 @@ the frontend. `makim dev.qr-regeneration-tests` uses disposable data/configurati
 synthetic images and fake QR/mail. Without sockets, use
 `RINCHEN_TEST_SERVER=cli makim dev.qr-regeneration-tests` for domain/controller
 coverage; it does not replace HTTP cookie/header or real-browser testing.
+`makim dev.url-tests` also checks read-only global/event QR preview metadata,
+authentication, missing/unsafe files, HOST_ADDRESS errors and unchanged records.
 
 ## Login and protected access
 

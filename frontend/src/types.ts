@@ -13,6 +13,11 @@ export interface SessionRecord {
   start_date: string;
   end_date: string;
 }
+export interface QrPreview {
+  url: string | null;
+  error: string | null;
+  warnings: { code: string; message: string }[];
+}
 export interface SubscriptionRecord {
   id: number;
   person_id: number;
@@ -22,6 +27,7 @@ export interface SubscriptionRecord {
   active: number;
   datetime: string;
   registered_at?: string;
+  qr_preview?: QrPreview;
 }
 export interface AttendanceRecord {
   id: number;

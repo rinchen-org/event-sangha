@@ -61,7 +61,7 @@ class EventRegistration {
     public function detail(int $eventId): array {
         $event = $this->event($eventId);
         $subscriptions = $this->hasSchema() ? $this->rows('SELECT s.id, s.person_id, p.fullname, p.email, p.phone,
-            s.active, s.datetime, r.registered_at FROM event_registration r
+            s.active, s.datetime, s.qr, r.registered_at FROM event_registration r
             JOIN subscription s ON s.id=r.subscription_id AND s.person_id=r.person_id
             JOIN person p ON p.id=r.person_id WHERE r.event_id=:id ORDER BY p.fullname', ['id' => $eventId]) : [];
         $sessions = $this->rows('SELECT s.id, s.event_id, e.name AS event_name, s.name, s.start_date, s.end_date

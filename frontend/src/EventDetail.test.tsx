@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { App } from './App';
@@ -7,7 +7,8 @@ import { Editor } from './components/Editor';
 
 const event1 = { event: previewData.events[0], sessions: previewData.sessions, subscriptions: [previewData.subscriptions[0]],
   attendance: [{ ...previewData.attendance[0], event_name: previewData.events[0].name, event_session_id: 1 }] };
-const event2 = { event: previewData.events[1], sessions: [{ ...previewData.sessions[0], id: 100, event_id: 2, name: 'Solo evento dos' }], subscriptions: [previewData.subscriptions[1]], attendance: [] };
+const qrPreview = { url: `https://configured.example.test/event-retiro/static/qr/${'a'.repeat(64)}.jpg`, error: null, warnings: [] };
+const event2 = { event: previewData.events[1], sessions: [{ ...previewData.sessions[0], id: 100, event_id: 2, name: 'Solo evento dos' }], subscriptions: [{ ...previewData.subscriptions[1], qr_preview: qrPreview }], attendance: [] };
 const respond = (data: unknown, status = 200) => new Response(JSON.stringify({ success: status === 200, data }), { status });
 const normalFetch = async (input: RequestInfo | URL) => {
   const url = new URL(String(input));
@@ -109,18 +110,28 @@ it('offers per-person QR review with event/subscription/CSRF binding, not legacy
   expect(form.querySelector('[name="event_id"]')).toHaveValue('2');
   expect(form.querySelector('[name="csrf_token"]')).toHaveValue('event-csrf');
   expect(form.querySelector('[name="action"]')).toBeNull(); // default is review, never confirm
+  expect(screen.getByRole('img', { name: 'Código QR de Diego Molina' })).toHaveAttribute('src', qrPreview.url);
   expect(screen.queryByRole('button', { name: /Acciones de/ })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Forzar asistencia' })).not.toBeInTheDocument();
 });
 
 it('offers the same QR review from the global list without inventing an event scope', async () => {
   location.hash = '#participantes';
+  vi.mocked(fetch).mockImplementation(async input => String(input).includes('subscription/list.php')
+    ? respond([{ ...previewData.subscriptions[0], qr_preview: qrPreview }]) : normalFetch(input));
   render(<App />);
   const button = (await screen.findAllByRole('button', { name: 'Regenerar QR' }))[0];
   const form = button.closest('form')!;
   expect(form.querySelector('[name="subscription_id"]')).toHaveValue(String(previewData.subscriptions[0].id));
   expect(form.querySelector('[name="event_id"]')).toBeNull();
   expect(form.querySelector('[name="csrf_token"]')).toHaveValue('event-csrf');
+  const image = screen.getByRole('img', { name: 'Código QR de Ana Flores' });
+  expect(image).toHaveAttribute('src', qrPreview.url);
+  expect(screen.getByRole('link', { name: /Abrir QR de Ana Flores a tamaño completo/ })).toHaveAttribute('href', qrPreview.url);
+  fireEvent.error(image);
+  expect(screen.getByRole('status')).toHaveTextContent('No se pudo cargar el QR');
+  expect(button).toBeEnabled();
+  expect(fetch).toHaveBeenCalledTimes(5); // no mutation, mail or automatic regeneration on image error
 });
 
 it('keeps participants, sessions and attendance isolated when navigating and returning', async () => {

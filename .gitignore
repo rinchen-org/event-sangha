@@ -10,6 +10,10 @@ src/static/app/
 # Python report and authentication-test bytecode
 __pycache__/
 
+# Disposable local validation copies (may contain synthetic sessions and mail state).
+/.qr-preview-*/
+/.qr-regen-*/
+
 # Private database snapshots created by authenticated event setup
 src/.backups/
 

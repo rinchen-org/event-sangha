@@ -721,6 +721,18 @@ HOST_ADDRESS, optional explicit event membership and prior attempt. Event scope
 is validation/navigation only: the QR is shared across events and still follows
 the configured admission event. Never infer event membership or change qr_event_id.
 
+Global/event roster JSON adds `qr_preview` (`url`, `error`, structured `warnings`)
+via `frontend_subscription_record()` / `qr_preview()` and omits the raw saved QR
+URL from these presentation responses. Keep the reports API's existing contract.
+Resolve only the validated saved filename against HOST_ADDRESS; inspect local
+file metadata without downloading or decoding every image in the roster. Missing,
+unsafe or unavailable images/configuration are per-row errors, not invented QR
+codes or a reason to lose the roster. React shows a lazy thumbnail/full-size
+protected image link beside Regenerar QR, retaining warnings and the protected
+review form after image failure. Never automatically retry/generate/send mail on
+view or error; preview mode must load no live QR assets. `makim dev.url-tests`
+covers the read-only metadata/auth contract; frontend tests cover presentation.
+
 `src/lib/qr_regeneration.php` owns warnings, snapshots and writes. Inactive state,
 old-base metadata and unfinished attempts produce clear Spanish warnings with
 cancel/continue choices. Missing/broken old images do not prevent repair; invalid

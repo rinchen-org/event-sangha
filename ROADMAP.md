@@ -64,6 +64,14 @@ read-only rebasing; event-email tests cover base changes and reviewed continuati
 
 ## Implementation update — explicit attendee QR regeneration
 
+React global/event participant rows display the existing QR thumbnail, a protected
+full-size image link and **Regenerar QR** together. Both roster JSON responses add
+PHP-evaluated `qr_preview` metadata using HOST_ADDRESS, without exposing the saved
+origin as an image URL. Missing/unsafe images, configuration and load failures
+show clear messages; old-base warnings remain visible. Viewing/failing a preview
+does not generate QR, send mail or write data. Explicit preview mode loads no live
+QR files. URL/frontend tests cover this presentation contract; rebuild assets.
+
 Event/global participant lists now offer **Regenerar QR**, including the classic
 list. PHP reviews the existing subscription, identity, optional event membership,
 current HOST_ADDRESS and advisory inactive/old-base warnings. A ten-minute,

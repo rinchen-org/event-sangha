@@ -2,6 +2,7 @@
 require_once dirname(__DIR__, 2) . '/lib/auth.php';
 auth_require();
 require_once dirname(__DIR__, 2) . '/lib/event_registration.php';
+require_once dirname(__DIR__, 2) . '/lib/frontend.php';
 header('Content-Type: application/json; charset=utf-8');
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
     header('Allow: GET');
@@ -13,6 +14,7 @@ try {
     try {
         $data = (new EventRegistration($db))->detail($eventId);
     } finally { $db->close(); }
+    $data['subscriptions'] = array_map('frontend_subscription_record', $data['subscriptions']);
     echo json_encode(['success' => true, 'data' => $data], JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
 } catch (DomainException $error) {
     http_response_code(404);

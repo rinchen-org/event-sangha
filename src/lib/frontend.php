@@ -25,7 +25,7 @@ function frontend_list_response(string $resource): void {
         'events' => 'SELECT id, name, description, start_date, end_date FROM event ORDER BY start_date DESC',
         'sessions' => 'SELECT s.id, s.event_id, e.name AS event_name, s.name, s.start_date, s.end_date
             FROM event_session s JOIN event e ON e.id = s.event_id ORDER BY s.start_date',
-        'subscriptions' => 'SELECT s.id, s.person_id, p.fullname, p.email, p.phone, s.active, s.datetime
+        'subscriptions' => 'SELECT s.id, s.person_id, p.fullname, p.email, p.phone, s.active, s.datetime, s.qr
             FROM subscription s JOIN person p ON p.id = s.person_id ORDER BY p.fullname',
         'attendance' => 'SELECT a.id, a.person_id, p.fullname, e.name AS event_name,
             s.name AS session_name, a.event_session_id, a.log_time
@@ -47,7 +47,7 @@ function frontend_list_response(string $resource): void {
         }
         $rows = [];
         while (($row = $result->fetchArray(SQLITE3_ASSOC)) !== false) {
-            $rows[] = $row;
+            $rows[] = $resource === 'subscriptions' ? frontend_subscription_record($row) : $row;
         }
         $result->finalize();
         $db->close();
@@ -57,4 +57,14 @@ function frontend_list_response(string $resource): void {
         http_response_code(503);
         echo json_encode(['success' => false, 'message' => 'No se pudieron cargar los datos.']);
     }
+}
+
+/** Present the saved image using HOST_ADDRESS, never expose its old origin as an image URL.
+ * @param array<string, mixed> $row
+ * @return array<string, mixed> */
+function frontend_subscription_record(array $row): array {
+    require_once __DIR__ . '/qr_assets.php';
+    $row['qr_preview'] = qr_preview($row['qr'] ?? null);
+    unset($row['qr']);
+    return $row;
 }

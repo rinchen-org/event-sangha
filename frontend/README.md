@@ -136,6 +136,18 @@ activation and hardcoded-event attendance shortcuts. Regeneration does not creat
 event-specific codes or change the configured QR admission event. Rebuild assets;
 use `makim dev.qr-regeneration-tests` for isolated backend regression coverage.
 
+Those rows also show the existing QR thumbnail and **Abrir QR**, linking to its
+protected full-size image in a new tab. Global subscription JSON and event-detail
+subscription rows add `qr_preview: { url, error, warnings }`; `url`/`error` can be
+null, and warnings have server-evaluated `code`/`message`. PHP resolves the filename
+against HOST_ADDRESS, inspects bounded local file metadata and removes the raw
+saved QR URL from these presentation responses. The reports API remains unchanged.
+React displays missing/configuration/load errors and keeps **Regenerar QR** usable;
+image failures never trigger retries, generation or mail. A new regenerated URL
+replaces the failed preview. Explicit preview mode never loads live QR assets.
+Use `makim dev.url-tests` for this read-only contract and the frontend tests for
+images, warnings, error handling and retained protected regeneration forms.
+
 The session bootstrap exposes a server-computed `testMode` boolean. With
 `TEST_ENV=1` in `src/.env`, the sidebar links to **Pruebas · Laboratorio QR** at
 `templates/testing/index.php`, even if production list loading fails. Missing or

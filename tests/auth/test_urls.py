@@ -96,6 +96,75 @@ echo json_encode(['data'=>base64_encode($image['data']),'mime'=>$image['mime']])
         self.assertEqual(image.read_bytes(), png)
         self.assertEqual(len(list(image.parent.iterdir())), 1)
 
+    def test_roster_preview_rebases_only_existing_images_and_returns_structured_warnings(self):
+        png = test_lab.fake_png()
+        image = self.web / 'static/qr' / FILENAME
+        image.write_bytes(png)
+        stored = 'http://localhost:8081/static/qr/' + FILENAME
+        for base in ('http://localhost:8081', 'https://production.example.test/event-retiro/'):
+            self.config(base)
+            preview = self.run_php('echo json_encode(qr_preview(' + json.dumps(stored) + '));')
+            self.assertEqual(preview['url'], base.rstrip('/') + '/static/qr/' + FILENAME)
+            self.assertIsNone(preview['error'])
+            self.assertEqual([w['code'] for w in preview['warnings']], [] if base.startswith('http://localhost') else ['qr_base_changed'])
+        self.assertEqual(image.read_bytes(), png)
+        self.assertEqual(list(image.parent.iterdir()), [image])
+        self.assertFalse((self.web / 'db.sqlite').exists())
+
+    def test_roster_preview_handles_missing_bad_metadata_files_and_configuration_without_writes(self):
+        self.config('https://production.example.test/event-retiro')
+        values = [None, '', 'invalid', 'https://old.example.test/static/qr/' + FILENAME, ['not a string']]
+        previews = self.run_php('echo json_encode(array_map(\'qr_preview\',' + json.dumps(values) + '));')
+        self.assertTrue(all(p['url'] is None and p['error'] for p in previews))
+        directory = self.web / 'static/qr'
+        self.assertEqual(list(directory.iterdir()), [])
+        image = directory / FILENAME
+        image.write_bytes(test_lab.fake_png())
+        config = self.web / '.env'
+        for base in ('', 'https://production.example.test/event-retiro?query=1'):
+            self.config(base)
+            before = config.read_bytes()
+            preview = self.run_php('echo json_encode(qr_preview(' + json.dumps(FILENAME) + '));')
+            self.assertIsNone(preview['url'])
+            self.assertIn('HOST_ADDRESS', preview['error'])
+            self.assertEqual(config.read_bytes(), before)
+        config.unlink()
+        preview = self.run_php('echo json_encode(qr_preview(' + json.dumps(FILENAME) + '));')
+        self.assertIsNone(preview['url'])
+        self.assertIn('HOST_ADDRESS', preview['error'])
+        self.assertFalse(config.exists())
+
+    def test_roster_preview_rejects_links_empty_and_oversized_files_without_reading_targets(self):
+        self.config('http://localhost:8081')
+        directory = self.web / 'static/qr'
+        image = directory / FILENAME
+        outside = self.web / 'synthetic.png'
+        outside.write_bytes(test_lab.fake_png())
+
+        def unavailable():
+            preview = self.run_php('echo json_encode(qr_preview(' + json.dumps(FILENAME) + '));')
+            self.assertIsNone(preview['url'])
+            self.assertIn('no está disponible', preview['error'])
+
+        image.symlink_to(outside)
+        unavailable()
+        image.unlink()
+        os.link(outside, image)
+        unavailable()
+        image.unlink()
+        image.touch()
+        unavailable()
+        with image.open('wb') as stream:
+            stream.truncate(2097153)
+        unavailable()
+        image.write_bytes(test_lab.fake_png())
+        kept = self.web / 'kept-qr'
+        directory.rename(kept)
+        directory.symlink_to(kept, target_is_directory=True)
+        unavailable()
+        self.assertEqual(outside.read_bytes(), test_lab.fake_png())
+        self.assertEqual((kept / FILENAME).read_bytes(), test_lab.fake_png())
+
     def test_missing_host_rejects_manual_registration_before_any_person_or_database_write(self):
         self.config('')
         result = self.run_php('require ' + json.dumps(str(self.web / 'lib/subscription.php')) + ''';
@@ -140,6 +209,80 @@ class AppUrlRoutesTest(unittest.TestCase):
             db.commit()
         (self.web / 'static/qr').mkdir(exist_ok=True)
         (self.web / 'static/qr' / FILENAME).write_bytes(test_lab.fake_png())
+        # Any accidental attempt to invoke the regeneration workflow must fail before networking.
+        (self.web / 'lib/qr_regeneration.php').write_text('<?php throw new RuntimeException("No regeneration in read-only URL tests");')
+
+    def roster(self, *, event=False, base='', **options):
+        return self.request(route='templates/event/detail.php' if event else 'templates/subscription/list.php',
+            get={'format':'json', **({'event_id':'1'} if event else {})}, base=base,
+            accept='application/json', **options)
+
+    def link_fixture(self):
+        with closing(sqlite3.connect(self.database)) as db:
+            db.execute("INSERT INTO event_registration (event_id,person_id,subscription_id,registered_at,actor,source,warnings_json,staff_confirmed,notes) VALUES (1,50,10,'2026-01-01','admin','test','[]',1,'')")
+            db.commit()
+
+    def test_react_global_and_event_rosters_expose_existing_qr_without_old_origins_or_writes(self):
+        self.link_fixture()
+        before = self.database.read_bytes()
+        for host in ('http://localhost:8081', 'https://production.example.test/event-retiro/'):
+            self.env.write_text('HOST_ADDRESS=' + host + '\nSEND_EMAIL=1\n')
+            before_env = self.env.read_bytes()
+            for base in ('', '/event-retiro'):
+                for event in (False, True):
+                    with self.subTest(host=host, base=base, event=event):
+                        response = self.roster(event=event, base=base, seed={'created':0,'seen':0})
+                        self.assertEqual(response['status'], 200, response['body'])
+                        records = response['body']['data']['subscriptions'] if event else response['body']['data']
+                        self.assertEqual(len(records), 1)
+                        row = records[0]
+                        self.assertEqual((row['id'], row['person_id']), (10,50))
+                        self.assertNotIn('qr', row)
+                        self.assertEqual(row['qr_preview']['url'], host.rstrip('/') + '/static/qr/' + FILENAME)
+                        self.assertIsNone(row['qr_preview']['error'])
+                        self.assertEqual([w['code'] for w in row['qr_preview']['warnings']], [] if host.startswith('http://localhost') else ['qr_base_changed'])
+            self.assertEqual(self.env.read_bytes(), before_env)
+        self.assertEqual(self.database.read_bytes(), before)
+        self.assertEqual((self.web / 'static/qr' / FILENAME).read_bytes(), test_lab.fake_png())
+        self.assertEqual(len(list((self.web / 'static/qr').iterdir())), 1)
+
+    def test_missing_images_and_host_errors_keep_the_roster_usable_without_repair_or_fake_qr(self):
+        self.link_fixture()
+        before = self.database.read_bytes()
+        (self.web / 'static/qr' / FILENAME).unlink()
+        for event in (False, True):
+            response = self.roster(event=event, seed={'created':0,'seen':0})
+            self.assertEqual(response['status'], 200, response['body'])
+            rows = response['body']['data']['subscriptions'] if event else response['body']['data']
+            self.assertEqual(len(rows), 1)
+            self.assertIsNone(rows[0]['qr_preview']['url'])
+            self.assertIn('no está disponible', rows[0]['qr_preview']['error'])
+        self.env.unlink()
+        for event in (False, True):
+            response = self.roster(event=event, seed={'created':0,'seen':0})
+            self.assertEqual(response['status'], 200, response['body'])
+            rows = response['body']['data']['subscriptions'] if event else response['body']['data']
+            self.assertIsNone(rows[0]['qr_preview']['url'])
+            self.assertIn('HOST_ADDRESS', rows[0]['qr_preview']['error'])
+            self.assertFalse(self.env.exists())
+        self.assertEqual(list((self.web / 'static/qr').iterdir()), [])
+        self.assertEqual(self.database.read_bytes(), before)
+
+    def test_qr_roster_json_retains_authentication_and_read_only_method_boundaries(self):
+        self.link_fixture()
+        before = self.database.read_bytes()
+        session = self.request(route='templates/session.php', seed={'created':0,'seen':0})
+        token = session['body']['csrfToken']
+        for event in (False, True):
+            for base in ('', '/event-retiro'):
+                response = self.roster(event=event, base=base)
+                self.assertEqual(response['status'], 401)
+                self.assertNotIn('qr_preview', json.dumps(response['body']))
+            response = self.roster(event=event, method='POST', sid=session['sid'])
+            self.assertEqual(response['status'], 403)
+            response = self.roster(event=event, method='POST', sid=session['sid'], post={'csrf_token':token})
+            self.assertEqual(response['status'], 405)
+        self.assertEqual(self.database.read_bytes(), before)
 
     def test_website_and_report_api_rebase_without_writing_data_or_loading_old_origin(self):
         before = self.database.read_bytes()

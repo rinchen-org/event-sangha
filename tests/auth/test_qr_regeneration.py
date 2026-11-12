@@ -303,6 +303,15 @@ class QrRegenerationRoutesTest(unittest.TestCase):
         self.assertIn('QR actualizado. No se envió ningún correo.', body)
         self.assertEqual(self.query('SELECT id,person_id,datetime,active FROM subscription ORDER BY id'), before)
         self.assertEqual(self.query('SELECT subscription_id,person_id,event_id,status,notes FROM qr_regeneration'), [(20,60,1,'completed','Staff note')])
+        new_url = self.query('SELECT qr FROM subscription WHERE id=20')[0][0]
+        for route in ('/templates/subscription/list.php?format=json', '/templates/event/detail.php?format=json&event_id=1'):
+            status, _, body = self.request(route)
+            self.assertEqual(status, 200, body)
+            data = json.loads(body)['data']
+            rows = data['subscriptions'] if 'event/detail.php' in route else data
+            row = next(row for row in rows if row['id'] == 20)
+            self.assertEqual(row['qr_preview']['url'], new_url)
+            self.assertIsNone(row['qr_preview']['error'])
         self.assertEqual(self.query('SELECT count(*) FROM event_registration'), [(3,)])
         self.assertEqual(self.confirm(token, subscription='20')[0], 409)
         self.assertEqual(len(self.qr_capture.read_text().splitlines()), 1)

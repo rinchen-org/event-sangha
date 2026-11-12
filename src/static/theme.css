@@ -1,0 +1,16 @@
+/* Shared by React and PHP. Keep branding and locally hosted typography in sync. */
+@font-face { font-family:Manrope; font-style:normal; font-weight:400; font-display:swap; src:url('./fonts/manrope-400.woff2') format('woff2'); }
+@font-face { font-family:Manrope; font-style:normal; font-weight:500; font-display:swap; src:url('./fonts/manrope-500.woff2') format('woff2'); }
+@font-face { font-family:Manrope; font-style:normal; font-weight:600; font-display:swap; src:url('./fonts/manrope-600.woff2') format('woff2'); }
+@font-face { font-family:Manrope; font-style:normal; font-weight:700; font-display:swap; src:url('./fonts/manrope-700.woff2') format('woff2'); }
+:root {
+  --font-ui:'Manrope',sans-serif;
+  --ink:#302d2b;
+  --background:#faf9f6;
+  --wine:#79364b;
+  --wine-dark:#62283b;
+  --muted:#797570;
+  --border:#eae6e0;
+  --paper:#fff;
+  --radius:14px;
+}

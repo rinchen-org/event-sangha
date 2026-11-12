@@ -17,10 +17,17 @@ try {
             'data' => []
         ];
     } else {
+        // Rebase only the serialized image URL; never rewrite the stored QR or its bitmap.
+        $data = [];
+        foreach ($subscriptions as $subscription) {
+            $record = get_object_vars($subscription);
+            $record['qr'] = qr_image_url($subscription->qr);
+            $data[] = $record;
+        }
         $response = [
             'success' => true,
             'message' => 'Subscriptions retrieved successfully',
-            'data' => $subscriptions
+            'data' => $data
         ];
     }
 } catch (Exception $e) {

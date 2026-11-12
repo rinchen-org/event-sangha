@@ -2,6 +2,7 @@
 require_once __DIR__ . '/auth.php';
 auth_block_direct(__FILE__);
 require_once __DIR__ . "/settings.php";
+require_once __DIR__ . '/urls.php';
 
 
 function generate_qr(string $fullname, string $email, string $phone): string {
@@ -12,9 +13,8 @@ function generate_qr(string $fullname, string $email, string $phone): string {
   $email_clean = urlencode($email);
   $phone_clean = urlencode($phone);
 
-  $root_url = get_env("HOST_ADDRESS");
-
-  $endpoint = "$root_url/attendance_log.php";
+  $root_url = app_base_url();
+  $endpoint = $root_url . '/attendance_log.php';
 
   // todo: it shouldn't have this / after the $endpoint
   //       this works on apache but not on nginx
@@ -45,7 +45,7 @@ function generate_qr(string $fullname, string $email, string $phone): string {
   }
 
   $qr_filename = hash('sha256', $page_url) . ".jpg";
-  $qr_url = "$root_url/static/qr/$qr_filename";
+  $qr_url = $root_url . '/static/qr/' . $qr_filename;
 
   file_put_contents(dirname(__DIR__) . "/static/qr/$qr_filename", $response);
 

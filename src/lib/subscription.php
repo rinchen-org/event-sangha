@@ -8,6 +8,7 @@ require_once __DIR__ . "/person.php";
 require_once __DIR__ . "/settings.php";
 require_once __DIR__ . "/datetime.php";
 require_once __DIR__ . "/subscription_csv_import.php";
+require_once __DIR__ . '/qr_assets.php';
 
 
 class Subscription {
@@ -231,6 +232,7 @@ class Subscription {
     public static function subscribe_person(
         string $fullname, string $email, string $phone
     ): Subscription {
+        app_base_url(); // Reject missing URL configuration before creating a person.
         // Open the SQLite database
         $person_data = [
             "fullname" => $fullname,
@@ -287,8 +289,10 @@ class Subscription {
         $templateFile = dirname(__DIR__) . '/templates/subscription-email.html';
 
         $context = [
-            "<QR>" => "<img src='$subscription->qr'/>",
+            '<QR>' => '<img src="cid:participant-qr" alt="Tu código QR personal" />',
+            '{{HOST_ADDRESS}}' => auth_escape(app_base_url()),
         ];
+        $image = qr_inline_image($subscription->qr);
 
         $to = $subscription->person->email;
         $from = get_env("EMAIL_FROM");
@@ -305,7 +309,8 @@ class Subscription {
                 $from,
                 $to,
                 $reply_to,
-                $cc
+                $cc,
+                ['participant-qr' => $image]
             )
         ) {
             throw new Exception('Email could not be sent.');

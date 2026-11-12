@@ -45,6 +45,23 @@ exercise mobile-menu behavior. Browser-size/screenshots and HTTP security covera
 remain required on a host that supports those checks. Deploy the shared static
 styles/fonts/script along with PHP and rebuilt frontend assets.
 
+## Implementation update — configured asset URLs
+
+`HOST_ADDRESS` is now explicit per-installation configuration, not a hardcoded
+production fallback. QR generation normalizes it once per action. Website QR
+images and the report API rebase the stored filename to the current configured
+origin/base path, without database/image writes. The participant email logo uses
+`{{HOST_ADDRESS}}/static/images/logo-head.png`; both participant mail paths embed
+private QR bytes via CID, while keeping legacy triggers/CC and scoped-send behavior.
+Third-party map, WhatsApp and developer links remain external.
+
+Changing HOST_ADDRESS invalidates pending event-email reviews. Old saved QR URL
+origins produce a visible, auditable `qr_base_changed` warning, not an automatic
+repair or email. Image URL rebasing cannot update a destination encoded inside an
+existing QR: regenerating old codes remains a separate explicit operation.
+`makim dev.url-tests` covers fake-transport rendering, local/prod paths and
+read-only rebasing; event-email tests cover base changes and reviewed continuation.
+
 ## Implementation update — visible application version
 
 The React and shared PHP footers display the application version, starting at

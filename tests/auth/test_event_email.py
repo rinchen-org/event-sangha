@@ -37,6 +37,7 @@ $sender = function(...$args) {
     $GLOBALS['mail_calls']++;
     check($args[6]==='', 'Unexpected CC');
     check($args[1]['<QR>']==='<img src="cid:participant-qr" alt="Tu código QR personal" />');
+    check($args[1]['{{HOST_ADDRESS}}']===auth_escape(app_base_url()));
     check($args[7]['participant-qr']['mime']==='image/png');
     check($args[7]['participant-qr']['data']!== '');
     return !$GLOBALS['mail_fail'];
@@ -102,7 +103,7 @@ $file=getenv('EVENT_TEST_WEB').'/templates/subscription-email.html';
 file_put_contents($file,EventEmail::template().'changed');
 fails(fn()=>$m->send($review,str_repeat('a',48),'admin','',$sender));
 $review=$m->review(1,'selected',[10]);
-$config=getenv('EVENT_TEST_WEB').'/.env'; file_put_contents($config,"EMAIL_FROM=other@example.test\n");
+$config=getenv('EVENT_TEST_WEB').'/.env'; file_put_contents($config,"HOST_ADDRESS=http://localhost\nEMAIL_FROM=other@example.test\n");
 fails(fn()=>$m->send($review,str_repeat('a',48),'admin','',$sender));
 check($GLOBALS['mail_calls']===0 && $m->history(1)===[]);
 ''')
@@ -119,6 +120,22 @@ $db->exec("UPDATE person SET email='bad-address' WHERE id=60");
 fails(fn()=>$m->review(1,'all')); check($GLOBALS['mail_calls']===0);
 $db->exec("UPDATE person SET email='inactive@example.test' WHERE id=60; UPDATE subscription SET qr='https://evil.test/../../.env' WHERE id=20");
 fails(fn()=>$m->review(1,'all')); check($m->history(1)===[]);
+''')
+
+    def test_host_address_change_requires_review_and_keeps_original_qr(self):
+        self.check('''
+$review=$m->review(1,'selected',[10]);
+$old=$db->querySingle('SELECT qr FROM subscription WHERE id=10');
+$config=getenv('EVENT_TEST_WEB').'/.env';
+file_put_contents($config,str_replace('HOST_ADDRESS=http://localhost','HOST_ADDRESS=https://production.example.test/event-retiro/',file_get_contents($config)));
+fails(fn()=>$m->send($review,str_repeat('a',48),'admin','',$sender));
+check($GLOBALS['mail_calls']===0 && $m->history(1)===[]);
+$current=$m->review(1,'selected',[10]);
+check($current['recipients'][0]['warnings'][0]['code']==='qr_base_changed');
+check(str_contains(EventEmail::template(),'https://production.example.test/event-retiro/static/images/logo-head.png'));
+$m->send($current,str_repeat('b',48),'admin','Reviewed old code',$sender);
+check($GLOBALS['mail_calls']===1 && $db->querySingle('SELECT qr FROM subscription WHERE id=10')===$old);
+check(str_contains($db->querySingle('SELECT warnings_json FROM event_email_attempt'),'qr_base_changed'));
 ''')
 
     def test_qr_symlinks_hardlinks_and_invalid_stored_identifiers_fail_closed(self):
@@ -271,6 +288,8 @@ VALUES (1,50,10,'2026-01-01','admin','staff',0,'[]',1,''),(1,60,20,'2026-01-01',
         self.assertIsNone(message['Bcc'])
         parts = list(message.iter_parts())
         self.assertIn('cid:participant-qr', parts[0].get_content())
+        self.assertIn('http://localhost/static/images/logo-head.png', parts[0].get_content())
+        self.assertNotIn('{{HOST_ADDRESS}}', parts[0].get_content())
         self.assertEqual(parts[1].get_payload(decode=True), PNG)
         self.assertEqual(parts[1]['Content-ID'], '<participant-qr>')
         self.assertEqual(self.confirm(token)[0], 409)
@@ -332,6 +351,21 @@ VALUES (1,50,10,'2026-01-01','admin','staff',0,'[]',1,''),(1,60,20,'2026-01-01',
         self.assertIn('Ya hay intentos de envío', body)
         self.assertEqual(self.confirm(token, action='cancel')[0], 200)
         self.assertEqual(self.count_mail(), 1)
+
+    def test_changed_qr_base_warning_can_be_cancelled_or_explicitly_confirmed(self):
+        config = self.web / '.env'
+        config.write_text(config.read_text().replace('HOST_ADDRESS=http://localhost', 'HOST_ADDRESS=https://production.example.test/event-retiro'))
+        before = (self.web / 'db.sqlite').read_bytes()
+        token, body = self.review()
+        self.assertIn('dirección base diferente de HOST_ADDRESS', body)
+        self.assertEqual(self.confirm(token, action='cancel')[0], 200)
+        self.assertEqual(self.count_mail(), 0)
+        self.assertEqual((self.web / 'db.sqlite').read_bytes(), before)
+        token, _ = self.review()
+        status, _, body = self.confirm(token)
+        self.assertEqual(status, 200, body)
+        self.assertEqual(self.count_mail(), 1)
+        self.assertIn('qr_base_changed', self.query('SELECT warnings_json FROM event_email_attempt')[0][0])
 
     def test_disabled_config_and_invalid_qr_or_address_send_nothing(self):
         config = self.web / '.env'

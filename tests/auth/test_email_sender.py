@@ -1,5 +1,7 @@
 """Email endpoint tests using a local fake sendmail; never sends real email."""
 import json
+import email
+import email.policy
 from pathlib import Path
 import shutil
 import subprocess
@@ -8,6 +10,7 @@ import unittest
 import xml.etree.ElementTree as ET
 
 import test_auth
+import test_lab
 
 
 class SubscriptionEmailTemplateTest(unittest.TestCase):
@@ -53,19 +56,28 @@ class SubscriptionEmailTemplateTest(unittest.TestCase):
     def test_qr_branding_and_small_scistitch_footer(self):
         self.assertEqual(self.template.count('<QR>'), 1)
         images = [image.attrib['src'] for image in self.root.iter('img')]
-        self.assertIn('https://rinchen.org/wp-content/uploads/2020/08/Sakya-Rinchen-Ling.png', images)
+        self.assertIn('{{HOST_ADDRESS}}/static/images/logo-head.png', images)
+        self.assertNotIn('https://rinchen.org/', self.template)
         footer = list(self.root)[-1]
         self.assertIn('font-size: 11px', footer.attrib['style'])
         self.assertEqual(footer.find('a').attrib['href'], 'https://scistitch.com/')
         self.assertEqual(footer.find('a').text, 'SciStitch')
 
     def test_subscription_sender_renders_template_without_real_mail(self):
+        for base in ('http://localhost:8081', 'https://example.test/event-retiro/'):
+            with self.subTest(base=base):
+                self.check_subscription_rendering(base)
+
+    def check_subscription_rendering(self, base):
         with tempfile.TemporaryDirectory(prefix='rinchen-email-template-') as directory:
             web = Path(directory) / 'src'
             shutil.copytree(test_auth.ROOT / 'src/lib', web / 'lib')
             (web / 'templates').mkdir()
             (web / 'templates/subscription-email.html').write_text(self.template, encoding='utf-8')
-            (web / '.env').write_text('HOST_ADDRESS=https://example.test/event-retiro\nSEND_EMAIL=1\n'
+            (web / 'static/qr').mkdir(parents=True)
+            png = test_lab.fake_png()
+            (web / 'static/qr' / ('a' * 64 + '.jpg')).write_bytes(png)
+            (web / '.env').write_text(f'HOST_ADDRESS={base}\nSEND_EMAIL=1\n'
                                     'EMAIL_FROM=sender@example.test\nEMAIL_REPLY_TO=reply@example.test\nEMAIL_CC=\n')
             # PHP 8+ allows a fake definition after disabling the real mail function.
             code = '''function mail($to, $subject, $message, $headers): bool {
@@ -74,7 +86,7 @@ class SubscriptionEmailTemplateTest(unittest.TestCase):
             }
             require ''' + json.dumps(str(web / 'lib/subscription.php')) + ''';
             $person = new Person('Synthetic Participant', 'participant@example.test', '12345');
-            Subscription::send_email(new Subscription($person, 'https://example.test/qr.png'));
+            Subscription::send_email(new Subscription($person, 'http://localhost:8081/static/qr/' . str_repeat('a',64) . '.jpg'));
             echo json_encode($GLOBALS['captured_mail'], JSON_THROW_ON_ERROR);'''
             result = subprocess.run(['php', '-d', 'disable_functions=mail,curl_init,curl_exec',
                                      '-d', 'allow_url_fopen=0', '-r', code],
@@ -83,12 +95,20 @@ class SubscriptionEmailTemplateTest(unittest.TestCase):
             mail = json.loads(result.stdout)
             self.assertEqual(mail['to'], 'participant@example.test')
             self.assertNotIn('<QR>', mail['message'])
-            rendered = ET.fromstring(mail['message'])
-            self.assertEqual(sum(image.attrib['src'] == 'https://example.test/qr.png'
+            message = email.message_from_string(mail['headers'] + '\r\n\r\n' + mail['message'], policy=email.policy.default)
+            parts = list(message.iter_parts())
+            html = parts[0].get_content()
+            rendered = ET.fromstring(html)
+            self.assertEqual(sum(image.attrib['src'] == 'cid:participant-qr'
                                  for image in rendered.iter('img')), 1)
-            self.assertIn('43.º Sakya Trizin', mail['message'])
-            self.assertIn('SciStitch', mail['message'])
-            self.assertIn('Content-Type: text/html; charset=utf-8', mail['headers'])
+            self.assertIn(base.rstrip('/') + '/static/images/logo-head.png', html)
+            if not base.startswith('http://localhost'):
+                self.assertNotIn('localhost', html)
+            self.assertNotIn('{{HOST_ADDRESS}}', html)
+            self.assertEqual(parts[1].get_payload(decode=True), png)
+            self.assertIn('43.º Sakya Trizin', html)
+            self.assertIn('SciStitch', html)
+            self.assertIn('Content-Type: multipart/related;', mail['headers'])
             self.assertFalse((web / 'db.sqlite').exists())
 
 

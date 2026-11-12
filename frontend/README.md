@@ -113,6 +113,14 @@ selection and history links.
 The fixed template is previewed before confirming and each private QR is embedded
 in its individual email. Mail acceptance is not delivery; no automatic retry is made.
 
+Absolute QR/image URLs come from per-installation `HOST_ADDRESS` in `src/.env`,
+not a hardcoded production domain or an old saved hostname. The email logo uses
+that base and the existing public `static/images/logo-head.png` asset. A changed
+base requires a fresh email review. A saved QR from another installation produces
+a visible warning: rebasing an image URL does not rewrite the link inside the
+bitmap. No automatic regeneration/data repair/mail occurs. Local and production
+must provide their own configured base (including the deployment path).
+
 General activation remains global, so event participant rows show it as
 **Estado general** and omit the older global/hardcoded-event row actions. Detailed
 reports and the global subscription API are unchanged. See README for the

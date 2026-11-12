@@ -3,6 +3,7 @@ require_once __DIR__ . '/auth.php';
 auth_block_direct(__FILE__);
 require_once __DIR__ . '/event_registration.php';
 require_once __DIR__ . '/dotenv.php';
+require_once __DIR__ . '/qr_assets.php';
 
 /** Explicit event mail only. Review is read-only; claims are durable before any transport call. */
 class EventEmail {
@@ -31,10 +32,10 @@ class EventEmail {
         if ($template === false || strpos($template, '<QR>') === false) {
             throw new RuntimeException('No se pudo leer la plantilla de correo.');
         }
-        return $template;
+        return str_replace('{{HOST_ADDRESS}}', auth_escape(app_base_url()), $template);
     }
 
-    /** @return array{from: string, reply: string} */
+    /** @return array{from: string, reply: string, base: string} */
     private function config(): array {
         $config = load_env(false);
         if (($config['SEND_EMAIL'] ?? '1') === '0') {
@@ -48,29 +49,13 @@ class EventEmail {
             }
         }
         // A targeted send must not silently copy production EMAIL_CC or other recipients.
-        return ['from' => $from, 'reply' => $reply];
+        return ['from' => $from, 'reply' => $reply, 'base' => app_base_url()];
     }
 
     /** No URL is fetched. Existing private QR images are embedded for recipients without a staff login.
      * @return array{data: string, mime: string} */
     private function image(string $url): array {
-        $filename = basename(parse_url($url, PHP_URL_PATH) ?: '');
-        $directory = dirname(__DIR__) . '/static/qr';
-        $path = $directory . '/' . $filename;
-        if (!preg_match('/^[a-f0-9]{64}\.jpg$/D', $filename) || is_link($directory) || is_link($path)
-            || !is_file($path) || ($stat = stat($path)) === false || $stat['nlink'] !== 1
-            || $stat['size'] > 2097152 || $stat['size'] < 1) {
-            throw new DomainException('No se pudo verificar el QR local. Revisa el archivo antes de enviar; no se regeneró ni se envió nada.');
-        }
-        $data = file_get_contents($path, false, null, 0, 2097153);
-        if ($data !== false && strlen($data) > 2097152) {
-            throw new DomainException('El archivo QR supera el límite de 2 MB. No se puede enviar.');
-        }
-        $info = $data === false ? false : @getimagesizefromstring($data);
-        if ($info === false || !in_array($info['mime'], ['image/png', 'image/jpeg'], true)) {
-            throw new DomainException('El QR local no es una imagen PNG/JPEG válida. No se puede enviar.');
-        }
-        return ['data' => $data, 'mime' => $info['mime']];
+        return qr_inline_image($url);
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -103,6 +88,9 @@ class EventEmail {
             $row['qr_hash'] = hash('sha256', $this->image($row['qr'])['data']);
             $row['previous'] = array_values(array_filter($history, static fn(array $attempt): bool => $attempt['subscription_id'] === $row['id']));
             $row['warnings'] = [];
+            if (qr_base_changed($row['qr'])) {
+                $row['warnings'][] = ['code' => 'qr_base_changed', 'message' => QR_BASE_WARNING];
+            }
             if ($row['active'] !== 1 || $row['person_active'] !== 1) {
                 $row['warnings'][] = ['code' => 'inactive_registration', 'message' => 'La persona o su inscripción general está inactiva. Puedes cancelar o enviar de todos modos; su estado no cambiará.'];
             }
@@ -166,7 +154,8 @@ class EventEmail {
                 });
                 try {
                     $accepted = $sender(dirname(__DIR__) . '/templates/subscription-email.html',
-                        ['<QR>' => '<img src="cid:participant-qr" alt="Tu código QR personal" />'], self::SUBJECT,
+                        ['<QR>' => '<img src="cid:participant-qr" alt="Tu código QR personal" />',
+                            '{{HOST_ADDRESS}}' => auth_escape($current['config']['base'])], self::SUBJECT,
                         $current['config']['from'], $row['email'], $current['config']['reply'], '', ['participant-qr' => $image]);
                 } finally { restore_error_handler(); }
                 if ($accepted) { $status = 'accepted'; }

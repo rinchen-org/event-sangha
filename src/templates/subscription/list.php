@@ -99,7 +99,10 @@ global $MESSAGE;
                   <span class="badge bg-danger">INACTIVE</span>
                 <?php } ?>
               </td>
-              <td><img src="<?php echo $subscription->qr; ?>" /></td>
+              <td><?php try { ?>
+                <img src="<?php echo auth_escape(qr_image_url($subscription->qr)); ?>" alt="Código QR personal" />
+                <?php if (qr_base_changed($subscription->qr)): ?><p class="auth-warning"><?php echo auth_escape(QR_BASE_WARNING); ?></p><?php endif; ?>
+              <?php } catch (DomainException $error) { ?><span role="alert"><?php echo auth_escape($error->getMessage()); ?></span><?php } ?></td>
               <td><?php echo $subscription->datetime->format('Y-m-d H:i:s'); ?></td>
               <td>
                 <form action="./resend_email.php" method="POST">

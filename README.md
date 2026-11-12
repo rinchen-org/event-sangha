@@ -33,6 +33,35 @@ for the remaining migration milestones.
 Welcome to the Rinchen repository! This document provides guidelines on how
 to contribute to this project and set up your local development environment.
 
+## Application URLs per environment
+
+Set `HOST_ADDRESS` explicitly in each installation's private `src/.env`. For
+example, local development can use `HOST_ADDRESS=http://localhost:8081`, while
+production uses its own complete HTTPS URL, including `/event-retiro` if deployed
+there. These are per-installation values, not a hardcoded domain or a shared env
+file. Use plain `KEY=value` lines; shell exports alone do not configure this app.
+Missing/invalid HOST_ADDRESS produces a clear error when an absolute QR/image URL
+is needed, rather than silently linking to production. Trailing slashes normalize.
+
+New QR codes encode that configured base. Website QR images and the report API's
+`qr` URL also use it, retaining the stored filename without changing the database.
+Participant email embeds the private QR itself; its public logo comes from
+`HOST_ADDRESS/static/images/logo-head.png`. Both the legacy resend and event send
+paths render the configured logo, without hardcoded application-image origins.
+
+**An image URL is not the URL encoded inside the QR.** If an old saved URL uses
+another installation, staff see a warning: the bitmap was not repaired. Changing
+HOST_ADDRESS does not regenerate old codes, update records, or send emails.
+Verify old codes and regenerate them only through an explicit operation. Localhost
+is valid locally, but it refers to the receiving phone/computer itself when scanned
+elsewhere; choose an address reachable by the devices that will use it. Public
+email logos likewise need an address reachable by the email client.
+
+`makim dev.url-tests` checks local/prod-style configurations, trailing slashes,
+saved-origin rebasing, unchanged QR files/records, and MIME output using synthetic
+data and fake transport only. `makim dev.event-email-tests` additionally covers
+changed HOST_ADDRESS invalidating an old review and explicit warned continuation.
+
 ## Login and protected access
 
 All application pages, JSON endpoints, and generated QR images require login.
@@ -455,7 +484,9 @@ with per-recipient outcomes shown in **Historial de correos**. Accepted means th
 transport accepted the message, **not delivery**. Interrupted/pending or unconfirmed
 attempts never retry automatically; a deliberate resend requires another review
 and shows a warning. History includes only this workflow, not older/global sends.
-Legacy individual registration and global **Reenviar correo** remain unchanged.
+Legacy individual registration and global **Reenviar correo** retain their existing
+triggers and configured CC behavior, but also embed private QR images and use the
+configured HOST_ADDRESS for the email logo.
 
 `makim dev.event-email-tests` uses disposable SQLite, synthetic QR images and fake
 sendmail. Without sockets, use

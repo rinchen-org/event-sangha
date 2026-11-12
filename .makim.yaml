@@ -32,6 +32,10 @@ groups:
         help: Check shared PHP layouts and protected routes with disposable data (no sockets or mail)
         run: python tests/auth/test_layout.py
 
+      url-tests:
+        help: Test HOST_ADDRESS image/QR URLs with disposable configuration, fake QR and mail
+        run: python tests/auth/test_urls.py && python tests/auth/test_email_sender.py SubscriptionEmailTemplateTest
+
       setup-tests:
         help: Run isolated authenticated event setup tests (requires PHP sqlite3)
         run: php tests/setup/test_preparation.php && python tests/auth/test_event_setup.py

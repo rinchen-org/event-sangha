@@ -193,8 +193,9 @@ over `.containers-sugar.yaml` without a coordinated version migration.
   do not configure application settings. Its parser expects plain `KEY=value`
   lines and does not implement general dotenv comment/quoting behavior.
 - Settings include `HOST_ADDRESS`, `SEND_EMAIL`, `EMAIL_FROM`, `EMAIL_REPLY_TO`,
-  and `EMAIL_CC`. The default address is the deployed `/event-retiro` path and
-  email is enabled by default. Use a local address for development.
+  and `EMAIL_CC`. Set HOST_ADDRESS explicitly for each installation, including
+  its deployment subdirectory; there is no hardcoded production-URL fallback.
+  Email is enabled by default. Use a local address for development.
 - `get_db()` hardcodes `src/db.sqlite`. Keep existing databases, local `.env`
   files, credentials, generated QR files, and participant data out of commits.
 - QR generation calls an external service using an attendance URL containing
@@ -631,7 +632,9 @@ CC/BCC, never arbitrary HTTP headers/recipients. Private QR images are validated
 bounded local PNG/JPEG files and embedded as MIME content IDs via the optional
 inline-images argument of `send_email()`; no anonymous staff-session links or
 network regeneration. Missing/invalid QR files are technical/integrity failures,
-not overridable warnings. Legacy individual form/resend behavior is unchanged.
+not overridable warnings. Legacy individual form/resend triggers and CC behavior
+are unchanged; their QR images are now embedded too, never loaded anonymously
+from a protected URL.
 
 Back up before deployment and rebuild frontend assets. The audit table is added
 only by the first confirmed send; do not run historical migrations.
@@ -672,3 +675,38 @@ PHP layouts/controllers/assets without sockets, network mail, QR generation or
 working data/configuration. Frontend tests cover mobile menu focus and ensure the
 layout never submits protected forms. These checks do not replace real-browser
 responsive review or the HTTP/cookie suites on a socket-capable host.
+
+## Configured QR and email asset URLs
+
+`src/lib/urls.php` reads `HOST_ADDRESS` from `src/.env` with `load_env(false)`.
+Use `app_base_url()` / `app_url()` for absolute application image/QR URLs. Require
+an explicit absolute HTTP(S) URL, normalize trailing slashes and preserve its
+base path; do not infer an outbound origin from Host/forwarded headers or add a
+hardcoded local/production fallback. Localhost and LAN addresses remain valid for
+local/test deployments. Normal protected navigation still uses `auth_url()`.
+
+`qr_assets.php` resolves only an existing 64-hex `.jpg` filename from saved QR
+metadata. Website images and the reports API's `qr` field use the current
+HOST_ADDRESS without rewriting the database. Preserve the API's remaining fields,
+person/subscription identity and authentication. QR generation captures the current
+base once per explicit action and retains `/attendance_log.php/` and encoded query
+parameters. Never fetch an old saved origin or regenerate images during a read.
+
+Both participant email paths embed the bounded, validated private QR via CID.
+The template's `{{HOST_ADDRESS}}` placeholder resolves to the configured base for
+the existing public `static/images/logo-head.png` asset; keep external map,
+WhatsApp and SciStitch links unchanged. Event-email reviews bind HOST_ADDRESS and
+the rendered template; a changed base requires review again before any claim/mail.
+
+Rebasing the image URL does not change the bitmap's encoded destination. Show the
+structured `qr_base_changed` warning when saved URL metadata identifies another
+installation; it is not a claim to have decoded the image. Staff may cancel or
+explicitly send after review, and the warning is audited with event-mail attempts.
+No existing QR files, subscriptions or attendance are rewritten automatically.
+Regeneration/repair of old codes remains a separate explicit operation; do not
+silently resend mail or change environment files to repair historical data.
+
+`makim dev.url-tests` uses disposable configuration/SQLite and fake QR/mail,
+covering local/prod base paths, missing/invalid configuration, saved-origin rebasing,
+unchanged QR bytes/records, the report API and MIME rendering. Run event-email
+tests as well for stale HOST_ADDRESS review rejection and warning/cancel/continue.

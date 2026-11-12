@@ -11,7 +11,6 @@ function get_env(string $key, string $default = ""): string {
   $env = load_env();
 
   $env_default = [
-    'HOST_ADDRESS' => 'https://rinchen.org/event-retiro',
     'SEND_EMAIL' => "1",
   ];
 

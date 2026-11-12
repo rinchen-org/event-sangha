@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php
         echo "<pre class='qr'>\n";
-        echo "<img src='$subscription->qr'/>";
+        echo '<img src="' . auth_escape(qr_image_url($subscription->qr)) . '" alt="Código QR personal" />';
         echo "\n</pre>";
         echo '<a href="./form.php">Volver al formulario</a>';
 ?>
@@ -158,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   Equipo Sakya Rinchen Ling
 </p>
 
-<img src="https://rinchen.org/wp-content/uploads/2020/08/Sakya-Rinchen-Ling.png"
+<img src="<?php echo auth_escape(app_url('static/images/logo-head.png')); ?>"
   alt="Equipo Sakya Rinchen Ling" />
 
 <a href="./form.php">Volver al formulario</a>

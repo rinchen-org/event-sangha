@@ -285,6 +285,17 @@ session. Login is public; CSS/JS/fonts/branding remain public. Credentials are
 verified against a server-side bcrypt hash in `src/lib/auth.php`; never place
 them in frontend code. Individual accounts remain future work.
 
+Password rotation changes only `AUTH_ADMIN_HASH` in `src/lib/auth.php`, using a
+PHP-generated bcrypt hash. There is no database user/password migration and no
+frontend rebuild for a hash-only change. Deploy the updated PHP through the
+GitHub/pull/FTP workflow. Do not put real passwords in source, fixtures, command
+arguments or logs. Authentication tests install a synthetic credential only in
+disposable copies via `tests/auth/test_auth.py::install_auth_fixture()`; both HTTP
+and explicit CLI controller harnesses must use it. The helper rejects the real
+`src/` tree. Hash rotation alone does not revoke authenticated sessions; existing
+logout/idle/absolute expiry remain authoritative. Session revocation is a separate
+explicit operation, not an implicit data migration.
+
 Include `auth_require()` before output or domain work on every new route.
 Mutations must use POST and CSRF validation, including React forms. GET QR
 check-in is read-only; eligible automatic admission uses a separate protected

@@ -2,7 +2,7 @@
 
 // Temporary single-account authentication. Never expose this hash in client code.
 const AUTH_ADMIN_USER = 'admin';
-const AUTH_ADMIN_HASH = '$2y$12$2eJhY25bZZ7mFxkeRk5sL.JMG2pmX0kbIXrYGN8qlJNmqTIe5qTOy';
+const AUTH_ADMIN_HASH = '$2y$12$vXLtBxc3I0bh7mh8gRVRHeGqEks9HAvU2aO/35ZEBgG.MqrhxiGKO';
 const AUTH_IDLE_SECONDS = 28800; // 8 hours without an authenticated request.
 const AUTH_MAX_SECONDS = 86400; // 24 hours from login, even while active.
 

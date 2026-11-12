@@ -58,6 +58,7 @@ class LabTest(unittest.TestCase):
                         target.parent.mkdir(parents=True, exist_ok=True)
                         shutil.copyfile(source, target)
                 test_auth.write_frontend_fixture(cls.web / base)
+                test_auth.install_auth_fixture(cls.web / base)
             cls.mail_capture = cls.work / 'mail.txt'
             cls.mail_failure = cls.work / 'mail-failure'
             cls.transport = cls.work / 'fake-sendmail'

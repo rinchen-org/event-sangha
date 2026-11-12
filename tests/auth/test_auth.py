@@ -1,5 +1,6 @@
 """Isolated session-storage and HTTP auth tests; no Composer, SQLite, or app data."""
 import http.cookiejar
+from functools import lru_cache
 import json
 import os
 from pathlib import Path
@@ -15,6 +16,29 @@ import urllib.parse
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
+TEST_PASSWORD = 'Rinchen synthetic test credential only'
+ROTATED_TEST_PASSWORD = 'Different synthetic test credential only'
+
+
+@lru_cache(maxsize=2)
+def fixture_password_hash(password=TEST_PASSWORD):
+    # Low cost is for disposable tests only, never the application's credential.
+    result = subprocess.run(['php', '-r', 'echo password_hash(stream_get_contents(STDIN), PASSWORD_BCRYPT, ["cost"=>4]);'],
+        input=password, capture_output=True, text=True, check=True)
+    return result.stdout
+
+
+def install_auth_fixture(web, password=TEST_PASSWORD):
+    """Replace only the credential constant in a disposable copy, never real source."""
+    target = Path(web) / 'lib/auth.php'
+    if target.is_symlink() or target.resolve().is_relative_to((ROOT / 'src').resolve()):
+        raise ValueError('Authentication fixtures require a disposable code copy.')
+    source, count = re.subn(r"^const AUTH_ADMIN_HASH = '[^'\r\n]+';$",
+        lambda _: "const AUTH_ADMIN_HASH = '" + fixture_password_hash(password) + "';",
+        target.read_text(), flags=re.MULTILINE)
+    if count != 1:
+        raise ValueError('Unexpected credential definition in the disposable copy.')
+    target.write_text(source)
 
 
 def write_frontend_fixture(web):
@@ -52,6 +76,7 @@ class AuthSessionTest(unittest.TestCase):
             target = self.web / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / 'src' / relative, target)
+        install_auth_fixture(self.web)
         self.state = self.work / 'auth-state'
         self.shared = self.work / 'shared-php-sessions'
         self.shared.mkdir()
@@ -299,6 +324,52 @@ echo json_encode(['logged_in' => $loggedIn, 'session' => $_SESSION, 'cookie' => 
             self.assertFalse(self.request(base=base, sid=sid)['body']['logged_in'])
 
 
+    def attempt_credentials(self, username, password, remote='127.0.0.1'):
+        code = '''require getenv('AUTH_TEST_WEB').'/lib/auth.php';
+$input=json_decode(stream_get_contents(STDIN),true,512,JSON_THROW_ON_ERROR);
+$_SERVER['REMOTE_ADDR']=$input['remote'];
+$accepted=auth_attempt_login($input['username'],$input['password']);
+echo json_encode(['accepted'=>$accepted,'status'=>http_response_code() ?: 200]);'''
+        result = subprocess.run(['php', '-r', code], input=json.dumps({'username':username,'password':password,'remote':remote}),
+            text=True, capture_output=True, check=True, env={**os.environ,
+                'AUTH_TEST_WEB':str(self.web),'RINCHEN_AUTH_STATE_DIR':str(self.state),'RINCHEN_HTTPS':'0'})
+        return json.loads(result.stdout)
+
+    def test_synthetic_credentials_accept_only_the_admin_account(self):
+        self.assertTrue(self.attempt_credentials('admin', TEST_PASSWORD)['accepted'])
+        self.assertFalse(self.attempt_credentials('adming', TEST_PASSWORD)['accepted'])
+        self.assertFalse(self.attempt_credentials('admin', 'wrong synthetic credential')['accepted'])
+        self.assertTrue(self.attempt_credentials('admin', TEST_PASSWORD)['accepted'])
+        self.assertFalse((self.web / 'db.sqlite').exists())
+        self.assertFalse((self.web / '.env').exists())
+
+    def test_credential_rotation_rejects_previous_password_without_revoking_existing_sessions(self):
+        session = self.request(seed={'created':0,'seen':0})
+        install_auth_fixture(self.web, ROTATED_TEST_PASSWORD)
+        self.assertFalse(self.attempt_credentials('admin', TEST_PASSWORD)['accepted'])
+        self.assertTrue(self.attempt_credentials('admin', ROTATED_TEST_PASSWORD)['accepted'])
+        existing = self.request(sid=session['sid'])
+        self.assertTrue(existing['body']['logged_in'])
+        self.assertEqual(existing['body']['session']['csrf_token'], session['body']['session']['csrf_token'])
+
+    def test_credential_throttle_survives_new_processes_and_is_per_ip(self):
+        for _ in range(5):
+            self.assertFalse(self.attempt_credentials('admin', 'incorrect')['accepted'])
+        blocked = self.attempt_credentials('admin', TEST_PASSWORD)
+        self.assertFalse(blocked['accepted'])
+        self.assertEqual(blocked['status'], 429)
+        self.assertTrue(self.attempt_credentials('admin', TEST_PASSWORD, remote='127.0.0.2')['accepted'])
+
+    def test_test_fixture_cannot_overwrite_or_authenticate_against_application_source(self):
+        source = ROOT / 'src/lib/auth.php'
+        before = source.read_bytes()
+        with self.assertRaises(ValueError):
+            install_auth_fixture(ROOT / 'src')
+        result = subprocess.run(['php', '-r', 'require $argv[1]; echo json_encode(password_verify(stream_get_contents(STDIN), AUTH_ADMIN_HASH));', str(source)],
+            input=TEST_PASSWORD, capture_output=True, text=True, check=True)
+        self.assertFalse(json.loads(result.stdout), 'Synthetic credentials must not work in the application.')
+        self.assertEqual(source.read_bytes(), before)
+
     def test_frontend_entry_safely_consumes_legacy_action_notice_once(self):
         write_frontend_fixture(self.web)
         fixture = self.web / 'templates/notice-fixture.php'
@@ -344,6 +415,7 @@ class AuthHTTPTest(unittest.TestCase):
             (dest / 'static/app').mkdir(parents=True, exist_ok=True)
             (dest / 'static/app/index.html').write_text('PRIVATE HTML SENTINEL')
             write_frontend_fixture(dest)
+            install_auth_fixture(dest)
         with socket.socket() as sock:
             sock.bind(('127.0.0.1', 0))
             port = sock.getsockname()[1]
@@ -433,7 +505,7 @@ php_flag display_errors Off
         with response:
             return response.status, response.headers, response.read().decode(errors='replace')
 
-    def login(self, base='', password='LoveAndPeace2026', next_page='templates/index.php'):
+    def login(self, base='', password=TEST_PASSWORD, next_page='templates/index.php'):
         status, headers, body = self.request(base + '/templates/login.php?next=' + urllib.parse.quote(next_page))
         self.assertEqual(status, 200)
         csrf = re.search(r'name="csrf_token" value="([a-f0-9]+)"', body)[1]
@@ -488,7 +560,7 @@ php_flag display_errors Off
         self.assertIn('templates%2Findex.php', headers['Location'])
 
     def test_login_csrf_invalid_credentials_and_shared_throttle(self):
-        status, _, _ = self.request('/templates/login.php', {'username': 'admin', 'password': 'LoveAndPeace2026'})
+        status, _, _ = self.request('/templates/login.php', {'username': 'admin', 'password': TEST_PASSWORD})
         self.assertEqual(status, 403)
         for _ in range(5):
             self.assertEqual(self.login(password='incorrect')[0], 401)

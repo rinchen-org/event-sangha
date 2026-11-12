@@ -17,6 +17,7 @@ class LayoutTest(unittest.TestCase):
         test_auth.AuthSessionTest.setUp(self)
         # Copy code and public UI assets only, never configuration/participant files.
         shutil.copytree(ROOT / 'src/lib', self.web / 'lib', dirs_exist_ok=True)
+        test_auth.install_auth_fixture(self.web)
         for directory in ('templates', 'scripts'):
             for source in (ROOT / 'src' / directory).rglob('*.php'):
                 target = self.web / source.relative_to(ROOT / 'src')

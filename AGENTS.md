@@ -767,6 +767,43 @@ covering local/prod base paths, missing/invalid configuration, saved-origin reba
 unchanged QR bytes/records, the report API and MIME rendering. Run event-email
 tests as well for stale HOST_ADDRESS review rejection and warning/cancel/continue.
 
+## Participant pagination and complete print roster
+
+React attendee tables offer **Participantes por página** (10, 25, 50, 100 or
+Todos), with visible ranges and bounded page controls. Changing size/search/state
+returns to the first page; changing event remounts the roster. Mail selection
+still spans pages/filters and is not cleared merely by changing the page size.
+
+**Imprimir lista completa** opens an authenticated, read-only
+`templates/subscription/print.php` in a new tab. A valid event_id prints that
+event's entire explicit membership, including inactive records, without screen
+filters, selected IDs or pagination. Only explicit `scope=general` prints the
+general-history list; reject missing, invalid or mixed contexts. The shared
+`EventRegistration::roster()` query serves both detail and print without querying
+attendance or inferring membership. Missing membership schema is an empty roster,
+not a reason to create tables or fill it from global history. Technical DB errors
+are not a successful empty report. GET/HEAD never write schema/records or invoke
+QR/mail transports; other methods are rejected, with retained auth/CSRF behavior.
+
+Use the compact AppLayout with `static/participants-print.css` for a clean view:
+branding, event/context, complete table and existing protected QR images. Keep
+HOST_ADDRESS, raw-bitmap/old-base warnings and missing-image messages. No signed
+anonymous QR URLs, inline base64 export, regeneration, mail or admission changes
+are added. `participants-print.js` enables an explicit native print/PDF button
+after QR loads settle (bounded wait; errors stay visible and late in-flight loads
+may complete). It never auto-prints, retries images, submits forms or calls a
+transport. All rows load eagerly in the print view; normal tables remain lazy.
+Without JS, the browser print command still works. Print CSS hides controls,
+repeats headings, avoids split rows and uses physical QR dimensions. Preview mode
+must not link to live print data. Treat paper/PDF exports as private staff data.
+
+`makim dev.participant-print-tests` runs disposable synthetic route tests with
+transport guards; explicit `RINCHEN_TEST_SERVER=cli` is controller-only coverage,
+not HTTP cookie/header or real browser/PDF layout/scannability verification.
+Frontend tests cover size/selection changes, print scoping and the readiness script.
+Deploy the new PHP/static print files with the rebuilt, Git-versioned frontend
+through the GitHub/pull/FTP process; no migration or production build is needed.
+
 ## Explicit attendee QR regeneration
 
 React event rosters and the explicit general-history mode POST to

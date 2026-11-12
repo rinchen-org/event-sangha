@@ -43,7 +43,7 @@ def install_auth_fixture(web, password=TEST_PASSWORD):
 
 def write_frontend_fixture(web):
     """Synthetic build in a disposable web root, never copy generated app assets."""
-    for relative in ('ui.css', 'ui.js', 'theme.css', 'images/logo-head-square.png'):
+    for relative in ('ui.css', 'ui.js', 'theme.css', 'images/logo-head-square.png', 'participants-print.css', 'participants-print.js'):
         destination = web / 'static' / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / 'src/static' / relative, destination)

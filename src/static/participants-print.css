@@ -1,0 +1,37 @@
+/* Clean staff-only report; application navigation/actions never appear on paper. */
+.rinchen-ui.ui-compact { display:block; min-height:0; padding:24px; background:#f8f6f1; }
+.rinchen-ui.ui-compact .auth-card { width:100%; max-width:1160px; margin:0 auto; padding:28px; border:0; border-radius:0; box-shadow:none; }
+.participant-print [hidden] { display:none!important; }
+.print-heading { display:flex; align-items:flex-start; gap:16px; margin-bottom:16px; }
+.participant-print .print-heading h1 { margin:4px 0; font-size:25px; }
+.participant-print .print-heading h2 { margin:4px 0; font-size:19px; }
+.print-heading p, .print-context { margin:4px 0; font-size:12px; line-height:1.5; }
+.print-actions { margin:20px 0; padding:16px; background:#f3ede6; display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.print-actions p { margin:0; width:100%; font-size:12px; }
+.participant-print .participant-print-table { width:100%; border-collapse:collapse; table-layout:fixed; margin-top:20px; }
+.participant-print .participant-print-table th, .participant-print .participant-print-table td { padding:10px 8px; border:1px solid #cfc9c0; vertical-align:top; text-align:left; font-size:12px; font-weight:400; white-space:normal; overflow-wrap:anywhere; }
+.participant-print .participant-print-table thead th { font-weight:700; background:#f4f0e9; }
+.participant-print-table th:first-child { width:6%; }
+.participant-print-table th:nth-child(2) { width:23%; }
+.participant-print-table th:nth-child(3) { width:24%; }
+.participant-print-table th:nth-child(4) { width:13%; }
+.participant-print-table th:nth-child(5) { width:34%; }
+.participant-print-table small { display:block; margin-top:6px; font-size:10px; line-height:1.4; }
+.print-qr img { display:block; width:180px; max-width:100%; height:auto; background:white; }
+.print-qr-error, .print-qr-warning { display:block; padding:6px; border:1px solid #a7863e; color:#684d13; background:#fff8e9; font-size:11px; line-height:1.4; }
+@page { size:A4 portrait; margin:12mm; }
+@media print {
+  .rinchen-ui.ui-compact { padding:0!important; background:white!important; }
+  .rinchen-ui.ui-compact .auth-card { max-width:none; width:auto; padding:0!important; margin:0; }
+  .print-actions, .ui-skip, .ui-sidebar, .ui-topbar { display:none!important; }
+  .participant-print .participant-print-table { font-family:Arial,sans-serif; }
+  .participant-print-table thead { display:table-header-group; }
+  .participant-print-table tr { break-inside:avoid; page-break-inside:avoid; }
+  .participant-print .participant-print-table th, .participant-print .participant-print-table td { padding:3mm 2mm; font-size:9pt; color:black; }
+  .participant-print-table small { font-size:8pt; }
+  .print-qr img { width:40mm; height:40mm; object-fit:contain; max-width:100%; }
+  .participant-print .print-heading h1 { font-size:16pt; }
+  .participant-print .print-heading h2 { font-size:13pt; }
+  .participant-print .print-heading p, .participant-print .print-context { font-size:8pt; color:black; }
+  .auth-footnote { margin-top:6mm; color:black; font-size:8pt; }
+}

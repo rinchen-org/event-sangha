@@ -1,7 +1,7 @@
 import { TestEmailSender } from './components/TestEmailSender';
 import { ParticipantQr } from './components/ParticipantQr';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { LogOut, ArrowDownToLine, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Flower2, LayoutDashboard, ListChecks, Menu, Plus, RefreshCw, Sprout, Upload, Users, X, ChartNoAxesCombined } from 'lucide-react';
+import { LogOut, ArrowDownToLine, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Flower2, LayoutDashboard, ListChecks, Menu, Plus, Printer, RefreshCw, Sprout, Upload, Users, X, ChartNoAxesCombined } from 'lucide-react';
 import type { AppData, EventDetailData, EventRecord, Editor as EditorType, Page, SubscriptionRecord } from './types';
 import { AuthenticationError, getCsrfToken, loginUrl, dateValue, downloadCsv, emptyData, eventStatus, formatDate, initials, legacyUrl, loadData, loadEventData, loadEventOptions, matchesSearch, preview, readEntryNotice } from './data';
 import { Editor } from './components/Editor';
@@ -245,13 +245,22 @@ function Sessions({ data, open }: { data: AppData; open: (id: number) => void })
 }
 function Participants({ data, upload, eventScoped = false, eventId }: { data: AppData; upload?: () => void; eventScoped?: boolean; eventId?: number }) {
   const [search, setSearch] = useState(''); const [filter, setFilter] = useState('all'); const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState('10');
   const [emailIds, setEmailIds] = useState<number[]>([]);
   const rows = data.subscriptions.filter(s => matchesSearch([s.fullname, s.email, s.phone], search) && (filter === 'all' || String(s.active) === filter));
-  const pages = Math.max(1, Math.ceil(rows.length / 10));
+  const perPage = pageSize === 'all' ? Math.max(1, rows.length) : Number(pageSize);
+  const pages = Math.max(1, Math.ceil(rows.length / perPage));
+  const currentPage = Math.min(page, pages - 1);
   const selectedIds = emailIds.filter(id => data.subscriptions.some(s => s.id === id));
-  const visibleRows = rows.slice(page * 10, page * 10 + 10);
+  const visibleRows = rows.slice(currentPage * perPage, (currentPage + 1) * perPage);
+  const printUrl = legacyUrl(eventScoped ? `subscription/print.php?event_id=${eventId}` : 'subscription/print.php?scope=general');
   const selectEmail = (ids: number[], checked: boolean) => setEmailIds(current => checked ? [...new Set([...current, ...ids])] : current.filter(id => !ids.includes(id)));
   return <section className="panel"><div className="toolbar panel-toolbar"><SearchInput value={search} onChange={s => { setSearch(s); setPage(0); }} placeholder="Buscar nombre, correo o teléfono…" /><div className="toolbar-actions"><select aria-label="Estado de inscripción" value={filter} onChange={e => { setFilter(e.target.value); setPage(0); }}><option value="all">Todos los estados</option><option value="1">Activas</option><option value="0">Inactivas</option></select><button className="button secondary" disabled={!upload} onClick={upload}><Upload size={16} /> Importar CSV</button></div></div>
+    <div className="participant-print-tools">
+      {preview ? <button className="button secondary" disabled><Printer size={16} /> Imprimir lista completa</button>
+        : <a className="button secondary" href={printUrl} target="_blank" rel="noopener noreferrer" aria-label="Imprimir lista completa (nueva pestaña)"><Printer size={16} /> Imprimir lista completa</a>}
+      <small>Abre una vista con todos los participantes y sus QR, sin filtros ni paginación. {eventScoped ? 'Solo del evento seleccionado.' : 'Inscripciones generales; no corresponde a un evento.'}</small>
+    </div>
     {eventScoped && <div className="event-email-tools">
       <p>Correos: {selectedIds.length} seleccionado(s), incluso en otras páginas o filtros. «Todos» incluye los {data.subscriptions.length} participantes del evento, sin aplicar filtros.</p>
       <form action={legacyUrl('event/email.php')} method="POST" onSubmit={e => { if (preview) e.preventDefault(); }}>
@@ -262,7 +271,12 @@ function Participants({ data, upload, eventScoped = false, eventId }: { data: Ap
       {!preview && <a href={legacyUrl(`event/email.php?event_id=${eventId}`)}>Historial de correos</a>}
       <p>Los botones abren una revisión de la plantilla y los destinatarios. No envían hasta confirmar.</p>
     </div>}
-    <ParticipantTable rows={visibleRows} eventScoped={eventScoped} eventId={eventId} emailSelection={eventScoped ? { ids: selectedIds, toggle: selectEmail } : undefined} /><div className="table-footer"><span>{rows.length} participantes</span><div className="pagination"><button className="icon-button" aria-label="Página anterior" disabled={page === 0} onClick={() => setPage(p => p - 1)}><ChevronLeft size={18} /></button><span>{page + 1} de {pages}</span><button className="icon-button" aria-label="Página siguiente" disabled={page + 1 >= pages} onClick={() => setPage(p => p + 1)}><ChevronRight size={18} /></button></div></div></section>;
+    <ParticipantTable rows={visibleRows} eventScoped={eventScoped} eventId={eventId} emailSelection={eventScoped ? { ids: selectedIds, toggle: selectEmail } : undefined} />
+    <div className="table-footer"><span aria-live="polite">{rows.length ? `Mostrando ${currentPage * perPage + 1}–${Math.min((currentPage + 1) * perPage, rows.length)} de ${rows.length} participantes` : '0 participantes'}</span>
+      <div className="table-footer-controls"><label className="page-size-label">Participantes por página<select value={pageSize} onChange={e => { if (['10', '25', '50', '100', 'all'].includes(e.target.value)) { setPageSize(e.target.value); setPage(0); } }}>
+        {[10, 25, 50, 100].map(size => <option key={size} value={size}>{size}</option>)}<option value="all">Todos</option>
+      </select></label><div className="pagination"><button className="icon-button" aria-label="Página anterior" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}><ChevronLeft size={18} /></button><span>Página {currentPage + 1} de {pages}</span><button className="icon-button" aria-label="Página siguiente" disabled={currentPage + 1 >= pages} onClick={() => setPage(currentPage + 1)}><ChevronRight size={18} /></button></div></div>
+    </div></section>;
 }
 function ParticipantTable({ rows, eventScoped = false, eventId, emailSelection }: { rows: SubscriptionRecord[]; eventScoped?: boolean; eventId?: number; emailSelection?: { ids: number[]; toggle: (ids: number[], checked: boolean) => void } }) {
   const [selected, setSelected] = useState<number | null>(null);

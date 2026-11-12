@@ -123,6 +123,24 @@ navigation/scope reset, aliases/redirects, missing-event rejection, authenticati
 CSRF and retained warning/cancel/continue/duplicate behavior. CLI controller checks
 do not replace multipart HTTP/cookie or real-browser validation.
 
+## Implementation update — complete attendee printing and page size
+
+Event/general-history rosters offer **Participantes por página** (10, 25, 50,
+100 or Todos), visible ranges and clamped navigation while retaining selected
+mail recipients. **Imprimir lista completa** opens a clean authenticated PHP
+view of the complete event membership, including inactive records and existing
+QR images, regardless of UI filters/page size. General printing requires its
+own explicit scope; no membership inference or automatic schema initialization.
+
+The read-only report reuses AppLayout and `EventRegistration::roster()` with
+local print CSS/JS: eager protected QR images, printable missing/old-base warnings,
+repeated table headings, non-splitting rows and a manual print/PDF button after
+image readiness. There is no automatic print, generation, mail or admission write.
+Preview does not link to live print data. `makim dev.participant-print-tests`
+checks synthetic routes with transport guards; frontend tests cover the controls
+and readiness script. Real browser/PDF/scanning checks remain necessary. Deploy
+new PHP/static files with the rebuilt versioned frontend; no new migration.
+
 ## Implementation update — visible application version
 
 The React and shared PHP footers display the application version, starting at

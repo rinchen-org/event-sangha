@@ -92,6 +92,55 @@ it('keeps explicit selection across pages and filters while all targets the whol
   expect(form.querySelector('[name="subscription_ids"]')).toHaveValue('100,101,102,103,104,105,106,107,108,109,111');
 });
 
+it('changes participants per page, preserves mail selection and resets navigation when the size changes', async () => {
+  const subscriptions = Array.from({ length: 36 }, (_, i) => ({ ...previewData.subscriptions[0], id: 100 + i, person_id: 500 + i, fullname: `Print test ${i}` }));
+  vi.mocked(fetch).mockImplementation(async input => String(input).includes('event/detail.php') ? respond({ ...event1, subscriptions }) : normalFetch(input));
+  location.hash = '#participantes/1';
+  render(<App />);
+  const size = await screen.findByRole('combobox', { name: 'Participantes por página' });
+  const region = screen.getByRole('region', { name: 'Lista de participantes' });
+  expect(within(region).getAllByRole('row')).toHaveLength(11);
+  await userEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar a Print test 0 para correo' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Página siguiente' }));
+  expect(screen.getByText('Página 2 de 4')).toBeInTheDocument();
+  await userEvent.selectOptions(size, '25');
+  expect(screen.getByText('Página 1 de 2')).toBeInTheDocument();
+  expect(within(region).getAllByRole('row')).toHaveLength(26);
+  expect(screen.getByRole('checkbox', { name: 'Seleccionar a Print test 0 para correo' })).toBeChecked();
+  const mail = screen.getByRole('button', { name: 'Enviar a seleccionados' }).closest('form')!;
+  expect(mail.querySelector('[name="subscription_ids"]')).toHaveValue('100');
+  await userEvent.click(screen.getByRole('button', { name: 'Página siguiente' }));
+  expect(screen.getByText('Mostrando 26–36 de 36 participantes')).toBeInTheDocument();
+  await userEvent.selectOptions(size, 'all');
+  expect(within(region).getAllByRole('row')).toHaveLength(37);
+  expect(screen.getByText('Página 1 de 1')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Página siguiente' })).toBeDisabled();
+  await userEvent.type(screen.getByRole('textbox', { name: 'Buscar nombre, correo o teléfono…' }), 'no matches');
+  expect(screen.getByText('0 participantes')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Página anterior' })).toBeDisabled();
+});
+
+it('opens a protected full-list print page without forwarding filters, selection or pagination', async () => {
+  location.hash = '#participantes/2';
+  render(<App />);
+  const print = await screen.findByRole('link', { name: 'Imprimir lista completa (nueva pestaña)' });
+  const url = new URL(print.getAttribute('href')!);
+  expect(url.pathname).toMatch(/\/templates\/subscription\/print.php$/);
+  expect([...url.searchParams.entries()]).toEqual([['event_id','2']]);
+  expect(print).toHaveAttribute('target', '_blank');
+  expect(print).toHaveAttribute('rel', 'noopener noreferrer');
+  await userEvent.type(screen.getByRole('textbox', { name: 'Buscar nombre, correo o teléfono…' }), 'no matches');
+  expect(print).toHaveAttribute('href', url.href);
+  expect(screen.queryByText('Diego Molina')).not.toBeInTheDocument();
+});
+
+it('makes general-history printing explicit rather than guessing an event', async () => {
+  location.hash = '#participantes/todos';
+  render(<App />);
+  const print = await screen.findByRole('link', { name: 'Imprimir lista completa (nueva pestaña)' });
+  expect(new URL(print.getAttribute('href')!).search).toBe('?scope=general');
+});
+
 it('requires an explicit event when importing from the global participant view', () => {
   render(<Editor editor={{ kind: 'upload' }} data={previewData} close={() => {}} />);
   expect(screen.getByLabelText('Evento de destino')).toBeRequired();

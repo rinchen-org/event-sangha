@@ -20,12 +20,12 @@
     "src": "../src/static/images/logo-head-square.png"
   },
   "index.html": {
-    "file": "assets/index-BYOu2azM.js",
+    "file": "assets/index-Bs5cH9zF.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
     "css": [
-      "assets/index-DrwfdJWS.css"
+      "assets/index-AIJuXaEq.css"
     ],
     "assets": [
       "assets/logo-head-square-SAUHwtdU.png",

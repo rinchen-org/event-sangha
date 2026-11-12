@@ -60,6 +60,10 @@ groups:
         help: Test explicit attendee QR regeneration with disposable SQLite/files and fake QR/mail
         run: python tests/auth/test_qr_regeneration.py
 
+      participant-print-tests:
+        help: Test complete print rosters with disposable data and existing synthetic QR (no real transports)
+        run: python tests/auth/test_participant_print.py
+
       lab-tests:
         help: Test the opt-in QR lab with synthetic SQLite, fake QR images, and fake mail
         run: php tests/lab/test_lab.php && python tests/auth/test_lab.py

@@ -163,6 +163,22 @@ selection and history links.
 The fixed template is previewed before confirming and each private QR is embedded
 in its individual email. Mail acceptance is not delivery; no automatic retry is made.
 
+The table's **Participantes por página** selector offers 10/25/50/100/**Todos**,
+resets page navigation when changed and retains selected email recipients. The
+footer shows the displayed range and clamps pages when results shrink.
+**Imprimir lista completa** is a new-tab GET link to
+`templates/subscription/print.php?event_id=<id>` (or explicit `scope=general` for
+the historical directory), not a snapshot of visible/selected/filtered rows.
+The protected PHP view uses the shared complete membership query and existing
+HOST_ADDRESS QR metadata, with a compact print shell and no write/transport effects.
+Its public `participants-print.css`/`.js` provide paper layout and an explicit
+print/PDF button once images load/fail/timeout. Errors remain on paper; no automatic
+print, QR replacement, image retry or mail occurs. Preview disables the link.
+Deploy these PHP/static files and commit the rebuilt Vite assets together.
+`makim dev.participant-print-tests` covers isolated routes; frontend tests cover
+pagination/scoping/readiness. Browser/PDF layout and QR scanning still need manual
+verification on a capable host.
+
 Absolute QR/image URLs come from per-installation `HOST_ADDRESS` in `src/.env`,
 not a hardcoded production domain or an old saved hostname. The email logo uses
 that base and the existing public `static/images/logo-head.png` asset. A changed

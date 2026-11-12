@@ -61,6 +61,9 @@ jobs:
     - name: Attendee QR regeneration (isolated, fake QR and mail)
       run: makim dev.qr-regeneration-tests
 
+    - name: Complete participant print rosters (isolated, existing synthetic QR only)
+      run: makim dev.participant-print-tests
+
     - name: Opt-in QR laboratory tests (isolated, fake QR and mail)
       run: makim dev.lab-tests
 

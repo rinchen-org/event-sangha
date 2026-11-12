@@ -396,6 +396,16 @@ separate action. The home page focuses on events and the agenda, not recent glob
 subscriptions.
 
 - **Participantes:** only registrations explicitly linked to this event.
+- **Participantes por página:** choose 10, 25, 50, 100 or **Todos**. The footer shows
+  the displayed range. Changing page size retains email selection across pages.
+- **Imprimir lista completa:** opens a clean staff-only tab with everyone in the
+  chosen event and their existing QR codes, regardless of search/state filters or
+  page size. In the historical mode it prints the explicitly selected general
+  list instead. Use **Imprimir / Guardar PDF** after the QR images finish loading,
+  or the browser print menu without JavaScript. Missing QR images and old-base
+  warnings remain visible; nothing is regenerated, emailed or admitted by printing.
+  Keep the resulting paper/PDF private. Check the browser print preview and QR
+  readability before distributing it.
 - **Importar CSV al evento:** select the CSV, click **Revisar CSV**, check the
   named event, row errors and warnings, then **Confirmar e importar** (or explicitly
   continue despite warnings). Cancel does not write. Import never sends email;

@@ -60,10 +60,7 @@ class EventRegistration {
      * @return array<string, mixed> */
     public function detail(int $eventId): array {
         $event = $this->event($eventId);
-        $subscriptions = $this->hasSchema() ? $this->rows('SELECT s.id, s.person_id, p.fullname, p.email, p.phone,
-            s.active, s.datetime, s.qr, r.registered_at FROM event_registration r
-            JOIN subscription s ON s.id=r.subscription_id AND s.person_id=r.person_id
-            JOIN person p ON p.id=r.person_id WHERE r.event_id=:id ORDER BY p.fullname', ['id' => $eventId]) : [];
+        $subscriptions = $this->roster($eventId);
         $sessions = $this->rows('SELECT s.id, s.event_id, e.name AS event_name, s.name, s.start_date, s.end_date
             FROM event_session s JOIN event e ON e.id=s.event_id WHERE s.event_id=:id ORDER BY s.start_date', ['id' => $eventId]);
         // Historical attendance is shown even if the person has not been explicitly linked yet.
@@ -72,6 +69,16 @@ class EventRegistration {
             JOIN person p ON p.id=a.person_id JOIN event_session s ON s.id=a.event_session_id
             JOIN event e ON e.id=s.event_id WHERE e.id=:id ORDER BY a.log_time DESC', ['id' => $eventId]);
         return compact('event', 'subscriptions', 'sessions', 'attendance');
+    }
+
+    /** Shared complete roster for the screen and print view; no attendance/history query or writes.
+     * @return array<int, array<string, mixed>> */
+    public function roster(int $eventId): array {
+        $this->event($eventId);
+        return $this->hasSchema() ? $this->rows('SELECT s.id, s.person_id, p.fullname, p.email, p.phone,
+            s.active, s.datetime, s.qr, r.registered_at FROM event_registration r
+            JOIN subscription s ON s.id=r.subscription_id AND s.person_id=r.person_id
+            JOIN person p ON p.id=r.person_id WHERE r.event_id=:id ORDER BY p.fullname', ['id' => $eventId]) : [];
     }
 
     /** @return array<int, array<string, mixed>> */

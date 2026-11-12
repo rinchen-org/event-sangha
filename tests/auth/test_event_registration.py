@@ -288,6 +288,33 @@ session_write_close(); echo json_encode(['token'=>$token,'review'=>$review]);'''
         self.assertIn('First &lt;test&gt;', body)
         self.assertEqual(self.confirm(token, action='cancel')[0], 200)
         self.assertEqual((self.web / 'db.sqlite').read_bytes(), before)
+
+    def test_unified_list_redirects_and_csv_requires_an_event_without_side_effects(self):
+        before = (self.web / 'db.sqlite').read_bytes()
+        for path, target in (('/templates/subscription/list.php', '#participantes'),
+                             ('/templates/subscription/list.php?event_id=2', '#participantes/2'),
+                             ('/templates/subscription/upload.php', '#participantes')):
+            status, headers, body = self.request(path)
+            self.assertEqual(status, 303, body)
+            if not self.cli:
+                self.assertEqual(headers['Location'], '/templates/index.php' + target)
+        for event in (None, '0', '01', '999', 'invalid'):
+            data = {'csrf_token':self.csrf(),'action':'review'}
+            if event is not None:
+                data['event_id'] = event
+            status, _, body = self.request('/templates/subscription/upload.php', data)
+            self.assertEqual(status, 409, body)
+        self.assertEqual(self.request('/templates/subscription/upload.php', {'action':'review'})[0], 403)
+        token, _ = self.csv_review(event='1')
+        status, _, body = self.request('/templates/subscription/upload.php', {
+            'csrf_token':self.csrf(),'action':'confirm','import_token':token,
+        })
+        self.assertEqual(status, 409, body)
+        self.assertIn('Selecciona un evento', body)
+        self.assertEqual(self.csv_confirm(token, event='1')[0], 409)
+        self.assertEqual((self.web / 'db.sqlite').read_bytes(), before)
+        self.assertEqual(self.query("SELECT name FROM sqlite_master WHERE name IN ('event_registration','csv_import_audit')"), [])
+        self.assertFalse(self.mail_capture.exists())
         self.assertEqual(self.confirm(token)[0], 409)
 
     def test_link_audit_duplicate_and_multiple_events(self):
@@ -334,7 +361,7 @@ session_write_close(); echo json_encode(['token'=>$token,'review'=>$review]);'''
         token, _ = self.review(base='/event-retiro')
         status, _, body = self.confirm(token, base='/event-retiro')
         self.assertEqual(status, 200, body)
-        self.assertIn('/event-retiro/templates/index.php#eventos/1/participantes', body)
+        self.assertIn('/event-retiro/templates/index.php#participantes/1', body)
         self.assertEqual(self.query('SELECT count(*) FROM event_registration', base='/event-retiro'), [(1,)])
         self.assertEqual(self.query("SELECT name FROM sqlite_master WHERE name='event_registration'"), [])
 
@@ -359,7 +386,7 @@ session_write_close(); echo json_encode(['token'=>$token,'review'=>$review]);'''
             self.assertIn('inactiva', body)
             status, _, result = self.csv_confirm(token, event)
             self.assertEqual(status, 200, result)
-            self.assertIn('Volver al evento', result)
+            self.assertIn('Volver a participantes', result)
         self.assertEqual(self.query('SELECT event_id,person_id,subscription_id,actor,staff_confirmed FROM event_registration ORDER BY event_id'),
                          [(1,50,10,'admin',1),(2,50,10,'admin',1)])
         self.assertIn('inactive_registration', self.query('SELECT warnings_json FROM event_registration LIMIT 1')[0][0])

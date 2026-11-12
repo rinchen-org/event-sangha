@@ -280,14 +280,19 @@ class QrRegenerationRoutesTest(unittest.TestCase):
         self.assertFalse(self.qr_capture.exists())
         self.assertEqual(self.count_mail(), 0)
 
-    def test_classic_list_also_offers_protected_per_subscription_review(self):
-        status, _, body = self.request('/templates/subscription/list.php')
-        self.assertEqual(status, 200, body)
-        forms = re.findall(r'<form action="\./regenerate_qr.php".*?</form>', body, re.S)
-        self.assertEqual(len(forms), 3)
-        self.assertTrue(all('method="POST"' in form and 'name="csrf_token"' in form for form in forms))
-        self.assertTrue(any('name="subscription_id" value="10"' in form for form in forms))
-        self.assertFalse(any('name="event_id"' in form or 'value="confirm"' in form for form in forms))
+    def test_classic_list_redirects_to_the_single_react_list_without_side_effects(self):
+        before = (self.web / 'db.sqlite').read_bytes()
+        for base in ('', '/event-retiro'):
+            if base:
+                self.jar.clear()
+                self.login(base)
+            for suffix, target in (('', '#participantes'), ('?event_id=1', '#participantes/1')):
+                status, headers, body = self.request(base + '/templates/subscription/list.php' + suffix)
+                self.assertEqual(status, 303, body)
+                if not self.cli:
+                    self.assertEqual(headers['Location'], base + '/templates/index.php' + target)
+            self.assertEqual(self.request(base + '/templates/subscription/list.php?event_id=01')[0], 400)
+        self.assertEqual((self.web / 'db.sqlite').read_bytes(), before)
         self.assertFalse(self.qr_capture.exists())
         self.assertEqual(self.count_mail(), 0)
 
@@ -392,7 +397,7 @@ class QrRegenerationRoutesTest(unittest.TestCase):
         (self.web / 'event-retiro/.env').write_text('HOST_ADDRESS=http://localhost/event-retiro\nSEND_EMAIL=1\n')
         token, body = self.review(base='/event-retiro')
         self.assertIn('action="/event-retiro' + ROUTE + '"', body)
-        self.assertIn('/event-retiro/templates/index.php#eventos/1/participantes', body)
+        self.assertIn('/event-retiro/templates/index.php#participantes/1', body)
         status, _, body = self.confirm(token, base='/event-retiro')
         self.assertEqual(status, 200, body)
         url = self.query('SELECT qr FROM subscription WHERE id=10', base='/event-retiro')[0][0]

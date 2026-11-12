@@ -1,4 +1,4 @@
-import type { AppData, EventDetailData } from './types';
+import type { AppData, EventDetailData, EventRecord } from './types';
 
 export const emptyData: AppData = { events: [], sessions: [], subscriptions: [], attendance: [] };
 export const preview = import.meta.env.DEV && new URLSearchParams(location.search).get('preview') === '1';
@@ -10,6 +10,13 @@ export const legacyUrl = (path: string) => new URL(path, templatesUrl).href;
 let csrfToken = '';
 export const getCsrfToken = () => csrfToken;
 export const loginUrl = () => legacyUrl('login.php');
+/** Authenticated PHP entry embeds a consumed flash notice; never render it as HTML. */
+export function readEntryNotice(): { type: string; text: string } | null {
+  try {
+    const value = JSON.parse(document.getElementById('rinchen-action-notice')?.textContent || 'null');
+    return value && typeof value.text === 'string' && ['success', 'info', 'warning', 'error'].includes(value.type) ? value : null;
+  } catch { return null; }
+}
 export class AuthenticationError extends Error {
   constructor() { super('Tu sesión ha caducado. Inicia sesión para continuar.'); }
 }
@@ -23,6 +30,20 @@ async function loadSession(signal: AbortSignal, onTestMode?: (enabled: boolean) 
   if (!identity.success || typeof identity.csrfToken !== 'string') throw new Error('La sesión del servidor no es válida.');
   csrfToken = identity.csrfToken;
   if (!signal.aborted) onTestMode?.(identity.testMode === true);
+}
+
+/** Event selection must not depend on the unrelated global attendee/attendance queries. */
+export async function loadEventOptions(signal: AbortSignal, onTestMode?: (enabled: boolean) => void): Promise<EventRecord[]> {
+  if (preview) return (await import('./preview')).previewData.events;
+  await loadSession(signal, onTestMode);
+  const response = await fetch(legacyUrl('event/list.php?format=json'), {
+    signal, credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' },
+  });
+  if (response.status === 401) throw new AuthenticationError();
+  if (!response.ok) throw new Error('No pudimos cargar la selección de eventos. Vuelve a intentarlo.');
+  const body = await response.json();
+  if (!body.success || !Array.isArray(body.data)) throw new Error('La lista de eventos no es válida.');
+  return body.data;
 }
 
 export async function loadEventData(eventId: number, signal: AbortSignal): Promise<EventDetailData> {

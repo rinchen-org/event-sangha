@@ -26,7 +26,7 @@ const navigate = async (hash: string) => { await act(async () => { location.hash
 it('opens an event page from its card rather than opening the edit form', async () => {
   render(<App />);
   const card = await screen.findByRole('link', { name: /Un encuentro con la calma Tres días/ });
-  expect(card).toHaveAttribute('href', '#eventos/1/participantes');
+  expect(card).toHaveAttribute('href', '#participantes/1');
   await userEvent.click(card);
   expect(await screen.findByRole('heading', { level: 1, name: event1.event.name })).toBeInTheDocument();
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -98,6 +98,80 @@ it('requires an explicit event when importing from the global participant view',
   expect(screen.getByLabelText('Evento de destino')).toHaveValue('');
 });
 
+it('opens the single participant directory from the sidebar and requires explicit event selection', async () => {
+  location.hash = '#participantes';
+  render(<App />);
+  const selector = await screen.findByRole('combobox', { name: 'Evento de participantes' });
+  await waitFor(() => expect(selector).toBeEnabled());
+  expect(selector).toHaveValue('');
+  expect(screen.getByRole('link', { name: 'Participantes' })).toHaveAttribute('aria-current', 'page');
+  expect(screen.queryByText('Ana Flores')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Nueva inscripción' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Importar CSV' })).not.toBeInTheDocument();
+  expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes('event/detail.php'))).toBe(false);
+  expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes('subscription/list.php'))).toBe(false);
+  await userEvent.selectOptions(selector, '2');
+  expect(await screen.findByText('Diego Molina')).toBeInTheDocument();
+  expect(location.hash).toBe('#participantes/2');
+  expect(screen.queryByText('Ana Flores')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Importar CSV al evento' }));
+  const form = screen.getByRole('button', { name: 'Revisar CSV' }).closest('form')!;
+  expect(form.querySelector('[name="event_id"]')).toHaveValue('2');
+  expect(form.querySelector('[name="csrf_token"]')).toHaveValue('event-csrf');
+});
+
+it('switches the event scope without retaining selected email recipients or inventing memberships', async () => {
+  location.hash = '#participantes/1';
+  render(<App />);
+  await userEvent.click(await screen.findByRole('checkbox', { name: 'Seleccionar a Ana Flores para correo' }));
+  expect(screen.getByRole('button', { name: 'Enviar a seleccionados' })).toBeEnabled();
+  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Evento de participantes' }), '2');
+  expect(await screen.findByRole('checkbox', { name: 'Seleccionar a Diego Molina para correo' })).not.toBeChecked();
+  expect(screen.getByRole('button', { name: 'Enviar a seleccionados' })).toBeDisabled();
+  expect(screen.queryByText('Ana Flores')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Enviar a seleccionados' }).closest('form')?.querySelector('[name="event_id"]')).toHaveValue('2');
+  expect(screen.getByRole('button', { name: 'Regenerar QR' }).closest('form')?.querySelector('[name="event_id"]')).toHaveValue('2');
+  await navigate('#participantes/1');
+  expect(await screen.findByRole('checkbox', { name: 'Seleccionar a Ana Flores para correo' })).not.toBeChecked();
+});
+
+it('retains old event-roster bookmarks as aliases, with the Participants menu selected', async () => {
+  location.hash = '#eventos/1/participantes';
+  render(<App />);
+  await screen.findByText('Ana Flores');
+  expect(location.hash).toBe('#participantes/1');
+  expect(screen.getByRole('combobox', { name: 'Evento de participantes' })).toHaveValue('1');
+  expect(screen.getByRole('link', { name: 'Participantes' })).toHaveAttribute('aria-current', 'page');
+});
+
+it('keeps the general historical directory explicit and prevents unscoped CSV or new registrations there', async () => {
+  location.hash = '#participantes/todos';
+  render(<App />);
+  await screen.findByText('Ana Flores');
+  expect(screen.getByRole('combobox', { name: 'Evento de participantes' })).toHaveValue('todos');
+  expect(screen.getByRole('button', { name: 'Importar CSV' })).toBeDisabled();
+  expect(screen.queryByRole('button', { name: 'Nueva inscripción' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Enviar a todos' })).not.toBeInTheDocument();
+});
+
+it('shows an empty event selector without substituting global attendees or enabling unscoped import', async () => {
+  location.hash = '#participantes';
+  vi.mocked(fetch).mockImplementation(async input => new URL(String(input)).pathname.endsWith('/event/list.php') ? respond([]) : normalFetch(input));
+  render(<App />);
+  expect(await screen.findByText('No hay eventos disponibles')).toBeInTheDocument();
+  expect(screen.getByRole('combobox', { name: 'Evento de participantes' })).toHaveValue('');
+  expect(screen.queryByText('Ana Flores')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Importar CSV' })).not.toBeInTheDocument();
+});
+
+it('fails closed for an invalid participant event route instead of selecting the first event', async () => {
+  location.hash = '#participantes/01';
+  render(<App />);
+  expect(await screen.findByRole('alert')).toHaveTextContent('El evento no existe');
+  expect(screen.queryByText('Ana Flores')).not.toBeInTheDocument();
+  expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes('event/detail.php'))).toBe(false);
+});
+
 it('offers per-person QR review with event/subscription/CSRF binding, not legacy attendance actions', async () => {
   location.hash = '#eventos/2/participantes';
   render(<App />);
@@ -116,7 +190,7 @@ it('offers per-person QR review with event/subscription/CSRF binding, not legacy
 });
 
 it('offers the same QR review from the global list without inventing an event scope', async () => {
-  location.hash = '#participantes';
+  location.hash = '#participantes/todos';
   vi.mocked(fetch).mockImplementation(async input => String(input).includes('subscription/list.php')
     ? respond([{ ...previewData.subscriptions[0], qr_preview: qrPreview }]) : normalFetch(input));
   render(<App />);
@@ -131,7 +205,7 @@ it('offers the same QR review from the global list without inventing an event sc
   fireEvent.error(image);
   expect(screen.getByRole('status')).toHaveTextContent('No se pudo cargar el QR');
   expect(button).toBeEnabled();
-  expect(fetch).toHaveBeenCalledTimes(5); // no mutation, mail or automatic regeneration on image error
+  expect(fetch).toHaveBeenCalledTimes(7); // global data + event selector; never mutate on image error
 });
 
 it('keeps participants, sessions and attendance isolated when navigating and returning', async () => {

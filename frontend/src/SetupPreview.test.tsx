@@ -5,8 +5,8 @@ import { App } from './App';
 
 vi.mock('./data', async importOriginal => {
   const data = await importOriginal<typeof import('./data')>();
-  const { previewEventData } = await import('./preview');
-  return { ...data, preview: true, loadData: async () => data.emptyData, loadEventData: async (id: number) => previewEventData(id) };
+  const { previewEventData, previewData } = await import('./preview');
+  return { ...data, preview: true, loadData: async () => data.emptyData, loadEventOptions: async () => previewData.events, loadEventData: async (id: number) => previewEventData(id) };
 });
 
 it('does not link preview mode to live event preparation', async () => {

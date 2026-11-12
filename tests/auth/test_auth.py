@@ -299,6 +299,23 @@ echo json_encode(['logged_in' => $loggedIn, 'session' => $_SESSION, 'cookie' => 
             self.assertFalse(self.request(base=base, sid=sid)['body']['logged_in'])
 
 
+    def test_frontend_entry_safely_consumes_legacy_action_notice_once(self):
+        write_frontend_fixture(self.web)
+        fixture = self.web / 'templates/notice-fixture.php'
+        fixture.write_text('''<?php
+require_once __DIR__.'/../lib/auth.php'; auth_require();
+$_SESSION['message']=['type'=>'error','text'=>'<script>not markup</script>'];
+require __DIR__.'/index.php';''')
+        response = self.request(route='templates/notice-fixture.php', seed={'created':0,'seen':0}, accept='text/html')
+        self.assertEqual(response['status'], 200)
+        body = response['body']
+        self.assertNotIn('<script>not markup</script>', body)
+        notice = re.search(r'<script id="rinchen-action-notice" type="application/json">(.*?)</script>', body)[1]
+        self.assertEqual(json.loads(notice), {'type':'error','text':'<script>not markup</script>'})
+        second = self.request(route='templates/index.php', sid=response['sid'], accept='text/html')
+        self.assertIn('id="rinchen-action-notice" type="application/json">null</script>', second['body'])
+
+
 class AuthHTTPTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

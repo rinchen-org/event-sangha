@@ -114,6 +114,6 @@ El QR privado se incluye en el mensaje; no requiere que el participante inicie s
 <?php foreach ($history as $attempt): ?><tr><td><?php echo auth_escape($attempt['fullname']); ?></td><td><?php echo auth_escape($attempt['email']); ?></td>
 <td><?php echo auth_escape($attempt['attempted_at']); ?></td><td><?php echo auth_escape($statusLabels[$attempt['status']] ?? 'Resultado desconocido'); ?></td></tr><?php endforeach; ?>
 </tbody></table></div>
-<a class="btn btn-secondary my-3" href="<?php echo auth_escape(auth_url('templates/index.php#eventos/' . (int) $event['id'] . '/participantes')); ?>">Volver al evento</a>
+<a class="btn btn-secondary my-3" href="<?php echo auth_escape(auth_url('templates/index.php#participantes/' . (int) $event['id'])); ?>">Volver a participantes</a>
 <?php endif; ?>
 <?php include dirname(__DIR__) . '/footer.php'; ?>

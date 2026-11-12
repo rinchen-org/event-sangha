@@ -1,177 +1,19 @@
 <?php
 require_once dirname(__DIR__, 2) . '/lib/auth.php';
 auth_require();
+// Keep the read-only JSON contract used by React and integrations.
 if (($_GET['format'] ?? '') === 'json') {
-    require_once dirname(dirname(__DIR__)) . '/lib/frontend.php';
+    require_once dirname(__DIR__, 2) . '/lib/frontend.php';
     frontend_list_response('subscriptions');
     exit;
 }
-require_once dirname(dirname(__DIR__)) . "/lib/subscription.php";
-include dirname(__DIR__) . "/header.php";
-
-$filter = $_POST["filter"] ?? "all";
-
-
-if ($filter == "active") {
-  $result = Subscription::list([
-    "active" => 1,
-  ]);
-} else if ($filter == "inactive") {
-  $result = Subscription::list([
-    "active" => 0,
-  ]);
-} else {
-  $result = Subscription::list();
+// One management list: old HTML bookmarks/forms go to the React event selector.
+$target = 'templates/index.php#participantes';
+$requestedEvent = $_POST['event_id'] ?? ($_GET['event_id'] ?? null);
+if ($requestedEvent !== null) {
+    require_once dirname(__DIR__, 2) . '/lib/event_registration.php';
+    try { $target .= '/' . EventRegistration::id($requestedEvent); }
+    catch (DomainException $error) { auth_fail(400, $error->getMessage()); }
 }
-
-global $MESSAGE;
-
-?>
-  <h2>Lista de suscriptos</h2>
-  <a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
-  <a href="./form.php" class="btn btn-primary my-3">Nueva inscripción</a>
-
-  <div class="alert alert-secondary input-group" role="alert">
-    Filters: <br/>
-    <form method="POST" class="mx-1">
-      <?php auth_csrf_field(); ?>
-      <input type="hidden" name="filter" value="all">
-      <input type="submit"
-        value="Todos"
-        class="btn btn-success btn-sm"
-        <?php if ($filter == "all") { ?>
-        style="background:#fafafa!important;color:#888888;"
-        disabled="disabled"
-        <?php } ?>
-      />
-    </form>
-    <form method="POST" class="mx-1">
-      <?php auth_csrf_field(); ?>
-      <input type="hidden" name="filter" value="active">
-      <input type="submit"
-        value="Activos"
-        class="btn btn-success btn-sm"
-        <?php if ($filter == "active") { ?>
-        style="background:#fafafa!important;color:#888888;"
-        disabled="disabled"
-        <?php } ?>
-      />
-    </form>
-    <form method="POST" class="mx-1">
-      <?php auth_csrf_field(); ?>
-      <input type="hidden" name="filter" value="inactive">
-      <input type="submit"
-        value="Inactivos"
-        class="btn btn-success btn-sm"
-        <?php if ($filter == "inactive") { ?>
-        style="background:#fafafa!important;color:#888888;"
-        disabled="disabled"
-        <?php } ?>
-      />
-    </form>
-  </div>
-
-<?php if ($result): ?>
-        <table id="subscription_list">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre completo</th>
-              <th>Correo</th>
-              <th>Teléfono</th>
-              <th>Estado</th>
-              <th>QR</th>
-              <th>Fecha</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-<?php foreach ($result as $subscription) { ?>
-            <tr>
-              <td><?php echo $subscription->id; ?></td>
-              <td><?php echo $subscription->person->fullname; ?></td>
-              <td><?php echo $subscription->person->email; ?></td>
-              <td><?php echo $subscription->person->phone; ?></td>
-              <td>
-                <?php if ($subscription->person->active == 1) { ?>
-                  <span class="badge bg-success">ACTIVE</span>
-                <?php } else { ?>
-                  <span class="badge bg-danger">INACTIVE</span>
-                <?php } ?>
-              </td>
-              <td><?php try { ?>
-                <img src="<?php echo auth_escape(qr_image_url($subscription->qr)); ?>" alt="Código QR personal" />
-                <?php if (qr_base_changed($subscription->qr)): ?><p class="auth-warning"><?php echo auth_escape(QR_BASE_WARNING); ?></p><?php endif; ?>
-              <?php } catch (DomainException $error) { ?><span role="alert"><?php echo auth_escape($error->getMessage()); ?></span><?php } ?></td>
-              <td><?php echo $subscription->datetime->format('Y-m-d H:i:s'); ?></td>
-              <td>
-                <form action="./regenerate_qr.php" method="POST">
-                  <?php auth_csrf_field(); ?>
-                  <input type="hidden" name="subscription_id" value="<?php echo $subscription->id; ?>" />
-                  <button type="submit" class="btn btn-secondary">Regenerar QR</button>
-                </form>
-                <form action="./resend_email.php" method="POST">
-      <?php auth_csrf_field(); ?>
-                  <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
-                  <input type="submit"
-                    value="Reenviar correo"
-                    class="btn btn-success"
-                    onclick="return confirm('Are you sure?')"
-                     />
-                </form>
-  <?php if ($subscription->active == 0) { ?>
-                <form action="./activation.php" method="POST">
-      <?php auth_csrf_field(); ?>
-                  <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
-                  <input type="hidden" name="active" value="1" />
-                  <input type="submit"
-                    value="habilitar"
-                    class="btn btn-success"
-                     />
-                </form>
-  <?php } else { ?>
-                <form action="./activation.php" method="POST">
-      <?php auth_csrf_field(); ?>
-                  <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
-                  <input type="hidden" name="active" value="0" />
-                  <input type="submit"
-                    value="inhabilitar"
-                    class="btn btn-warning"
-                    />
-                </form>
-  <?php } ?>
-                <form action="./log_attendance.php" method="POST">
-      <?php auth_csrf_field(); ?>
-                  <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
-                  <button type="submit"
-                    class="btn btn-success"
-
-                  >Registrar asistencia</button>
-
-                </form>
-                <form action="./log_attendance_force.php" method="POST">
-      <?php auth_csrf_field(); ?>
-                  <input type="hidden" name="id" value="<?php echo $subscription->id; ?>" />
-                  <button type="submit"
-                    class="btn btn-warning"
-                  >Registrar como excepción</button>
-
-                </form>
-              </td>
-            </tr>
-<?php } ?>
-          </tbody>
-        </table>
-<?php else: ?>
-        <p>No hay registros en esta vista.</p>
-<?php endif; ?>
-
-    <a href="../" class="btn btn-warning my-3">Volver a mi comunidad</a>
-
-    <script>
-        let table = new DataTable('#subscription_list');
-    </script>
-
-<?php
-include dirname(__DIR__) . "/footer.php";
-?>
+header('Location: ' . auth_url($target), true, 303);
+exit;

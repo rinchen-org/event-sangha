@@ -14,7 +14,7 @@ export function SectionTitle({ title, subtitle, children }: { title: string; sub
 }
 export function EventCard({ event, sessions, index = 0 }: { event: EventRecord; sessions: number; index?: number }) {
   const status = eventStatus(event.start_date, event.end_date);
-  return <a className={`event-card art-${index % 3}`} href={`#eventos/${event.id}/participantes`}>
+  return <a className={`event-card art-${index % 3}`} href={`#participantes/${event.id}`}>
     <div className="event-art" aria-hidden="true"><div className="art-sun" /><div className="art-hill hill-back" /><div className="art-hill hill-front" /><span className="art-caption">SAKYA RINCHEN LING</span></div>
     <div className="event-body"><span className={`badge ${status.className}`}>{status.label}</span><h3>{event.name}</h3><p>{event.description || 'Un espacio de práctica y encuentro en comunidad.'}</p><div className="event-meta"><span><CalendarDays size={15} />{formatDate(event.start_date, { day: 'numeric', month: 'short' })}</span><span>{sessions} {sessions === 1 ? 'sesión' : 'sesiones'}</span><ArrowUpRight size={18} /></div></div>
   </a>;

@@ -1,9 +1,9 @@
 import { TestEmailSender } from './components/TestEmailSender';
 import { ParticipantQr } from './components/ParticipantQr';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { LogOut, ArrowDownToLine, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Flower2, LayoutDashboard, ListChecks, Menu, Plus, RefreshCw, Sprout, Upload, Users, X, ChartNoAxesCombined } from 'lucide-react';
-import type { AppData, EventDetailData, Editor as EditorType, Page, SubscriptionRecord } from './types';
-import { AuthenticationError, getCsrfToken, loginUrl, dateValue, downloadCsv, emptyData, eventStatus, formatDate, initials, legacyUrl, loadData, loadEventData, matchesSearch, preview } from './data';
+import type { AppData, EventDetailData, EventRecord, Editor as EditorType, Page, SubscriptionRecord } from './types';
+import { AuthenticationError, getCsrfToken, loginUrl, dateValue, downloadCsv, emptyData, eventStatus, formatDate, initials, legacyUrl, loadData, loadEventData, loadEventOptions, matchesSearch, preview, readEntryNotice } from './data';
 import { Editor } from './components/Editor';
 import { Empty, EventCard, SearchInput, SectionTitle } from './components/Shared';
 import logo from '../../src/static/images/logo-head-square.png';
@@ -25,6 +25,7 @@ const titles: Record<Page, [string, string]> = {
   informes: ['Una mirada a lo compartido.', 'Consulta la participación y prepara tus informes.'],
 };
 function currentPage(): Page {
+  if (/^#eventos\/[^/]+(?:\/participantes)?$/.test(location.hash)) return 'participantes';
   const id = location.hash.slice(1).split('/')[0];
   return navigation.some(n => n.id === id) ? id as Page : 'inicio';
 }
@@ -32,6 +33,9 @@ function currentPage(): Page {
 export function App() {
   const [page, setPage] = useState<Page>(currentPage);
   const [route, setRoute] = useState(location.hash);
+  const participantAlias = route.match(/^#eventos\/([^/]+)(?:\/participantes)?$/);
+  const participantRoute = participantAlias ? `#participantes/${participantAlias[1]}` : route;
+  const needsGlobalData = page !== 'participantes' || participantRoute === '#participantes/todos';
   const eventRoute = page === 'eventos' && route.startsWith('#eventos/') ? route.slice(9) : null;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [smallScreen, setSmallScreen] = useState(() => window.matchMedia?.('(max-width: 760px)').matches ?? false);
@@ -49,9 +53,13 @@ export function App() {
   const [error, setError] = useState('');
   const [authRequired, setAuthRequired] = useState(false);
   const [testMode, setTestMode] = useState(false);
+  const [sessionToken, setSessionToken] = useState('');
+  const onSession = useCallback((enabled: boolean) => { setTestMode(enabled); setSessionToken(getCsrfToken()); }, []);
   const [revision, setRevision] = useState(0);
   const [editor, setEditor] = useState<EditorType | null>(null);
-  const [notice, setNotice] = useState('');
+  const [entryNotice] = useState(readEntryNotice);
+  const [notice, setNotice] = useState(entryNotice?.text || '');
+  const [noticeType, setNoticeType] = useState(entryNotice?.type || 'info');
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     const restore = (event: PageTransitionEvent) => { if (event.persisted && !preview) location.reload(); };
@@ -63,15 +71,22 @@ export function App() {
     window.addEventListener('hashchange', change);
     return () => window.removeEventListener('hashchange', change);
   }, []);
+  useEffect(() => {
+    if (participantAlias) {
+      history.replaceState(history.state, '', participantRoute);
+      setRoute(participantRoute);
+    }
+  }, [route, participantRoute]);
   useEffect(() => { document.title = `${navigation.find(n => n.id === page)?.label} · Rinchen`; heading.current?.focus(); }, [page]);
   useEffect(() => {
+    if (!needsGlobalData) { setLoading(false); setError(''); setAuthRequired(false); return; }
     const controller = new AbortController();
     setLoading(true); setError(''); setAuthRequired(false); setTestMode(false);
-    loadData(controller.signal, setTestMode).then(result => { if (!controller.signal.aborted) setData(result); })
-      .catch(err => { if (controller.signal.aborted) return; if (err instanceof AuthenticationError) { setAuthRequired(true); setData(emptyData); setError(err.message); return; } setError(err instanceof Error && err.message.startsWith('No pudimos') ? err.message : 'No pudimos conectar con el centro. Vuelve a intentarlo en un momento.'); })
+    loadData(controller.signal, onSession).then(result => { if (!controller.signal.aborted) setData(result); })
+      .catch(err => { if (controller.signal.aborted) return; if (err instanceof AuthenticationError) { setAuthRequired(true); setSessionToken(''); setData(emptyData); setError(err.message); return; } setError(err instanceof Error && err.message.startsWith('No pudimos') ? err.message : 'No pudimos conectar con el centro. Vuelve a intentarlo en un momento.'); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [revision]);
+  }, [revision, needsGlobalData, onSession]);
   useEffect(() => {
     if (!mobileOpen) return;
     sidebar.current?.querySelector<HTMLButtonElement>('button')?.focus();
@@ -99,18 +114,18 @@ export function App() {
       <div className="nav-label">ORGANIZAR</div>
       {!preview && testMode && !authRequired && <a className="nav-link" href={legacyUrl('testing/index.php')}><ListChecks size={19} /><span>Pruebas · Laboratorio QR</span></a>}
       <nav aria-label="Navegación principal">{navigation.map(({ id, label, icon: Icon }) => <a key={id} href={`#${id}`} onClick={() => setMobileOpen(false)} className={page === id ? 'nav-link selected' : 'nav-link'} aria-current={page === id ? 'page' : undefined}><Icon size={19} strokeWidth={1.65} /><span>{label}</span>{id === 'eventos' && ready && <span className="nav-count">{data.events.length}</span>}</a>)}</nav>
-      <div className="sidebar-bottom"><div className="sidebar-note"><Sprout size={24} strokeWidth={1.4} /><p>Pequeños encuentros.<br /><strong>Grandes conexiones.</strong></p><span>Cultivemos comunidad, juntos.</span></div><form action={legacyUrl('logout.php')} method="POST" className="logout-form"><input type="hidden" name="csrf_token" value={getCsrfToken()} /><button className="external-link" type="submit" disabled={preview || !ready}><LogOut size={16} /> Cerrar sesión</button></form><div className="center-signature"><span className="center-avatar">RL</span><div>Sakya Rinchen Ling<small>La Paz, Bolivia</small></div></div></div>
+      <div className="sidebar-bottom"><div className="sidebar-note"><Sprout size={24} strokeWidth={1.4} /><p>Pequeños encuentros.<br /><strong>Grandes conexiones.</strong></p><span>Cultivemos comunidad, juntos.</span></div><form action={legacyUrl('logout.php')} method="POST" className="logout-form"><input type="hidden" name="csrf_token" value={sessionToken} /><button className="external-link" type="submit" disabled={preview || !sessionToken}><LogOut size={16} /> Cerrar sesión</button></form><div className="center-signature"><span className="center-avatar">RL</span><div>Sakya Rinchen Ling<small>La Paz, Bolivia</small></div></div></div>
     </aside>
     {mobileOpen && <button tabIndex={-1} className="nav-backdrop" aria-label="Cerrar panel lateral" onClick={() => setMobileOpen(false)} />}
     <div className="main-shell">
-      <header className="topbar"><div className="breadcrumb"><button ref={menuButton} className="icon-button mobile-menu" aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'} aria-expanded={mobileOpen} onClick={() => setMobileOpen(!mobileOpen)}>{mobileOpen ? <X size={22} /> : <Menu size={22} />}</button><span>Mi comunidad</span><ChevronRight size={13} /><strong>{navigation.find(n => n.id === page)?.label}</strong></div><div className="topbar-right"><span className="location"><span className="status-dot" /> La Paz, Bolivia</span><button className="icon-button" aria-label="Ayuda" onClick={() => setNotice(notice ? '' : 'Organiza eventos y sesiones, gestiona inscripciones y registra la asistencia. Usa la navegación para acceder a las herramientas y los informes.')}><CircleHelp size={19} /></button><span className="profile-mark" aria-label="Sakya Rinchen Ling">RL</span></div></header>
+      <header className="topbar"><div className="breadcrumb"><button ref={menuButton} className="icon-button mobile-menu" aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'} aria-expanded={mobileOpen} onClick={() => setMobileOpen(!mobileOpen)}>{mobileOpen ? <X size={22} /> : <Menu size={22} />}</button><span>Mi comunidad</span><ChevronRight size={13} /><strong>{navigation.find(n => n.id === page)?.label}</strong></div><div className="topbar-right"><span className="location"><span className="status-dot" /> La Paz, Bolivia</span><button className="icon-button" aria-label="Ayuda" onClick={() => { setNoticeType('info'); setNotice(notice ? '' : 'Organiza eventos y sesiones, gestiona inscripciones y registra la asistencia. Usa la navegación para acceder a las herramientas y los informes.'); }}><CircleHelp size={19} /></button><span className="profile-mark" aria-label="Sakya Rinchen Ling">RL</span></div></header>
       <main id="main-content">
         {preview && <div className="preview-banner"><Sprout size={16} /> Vista previa · Datos de ejemplo · No se guardan cambios</div>}
-        {notice && <div className="notice" role="status"><p>{notice}</p><button className="icon-button" aria-label="Cerrar ayuda" onClick={() => setNotice('')}><X size={18} /></button></div>}
-        {eventRoute === null && <div className="page-heading"><div><span className="eyebrow">{page === 'inicio' ? 'NUESTRA COMUNIDAD' : navigation.find(n => n.id === page)?.label.toUpperCase()}</span><h1 ref={heading} tabIndex={-1}>{titles[page][0]}</h1><p>{titles[page][1]}</p></div><button className="button primary" disabled={!ready} onClick={() => open(page === 'sesiones' ? 'session' : page === 'asistencia' ? 'attendance' : page === 'participantes' ? 'subscription' : 'event')}><Plus size={17} />{page === 'sesiones' ? 'Nueva sesión' : page === 'asistencia' ? 'Registrar asistencia' : page === 'participantes' ? 'Nueva inscripción' : 'Crear evento'}</button></div>}
+        {notice && <div className="notice" role={noticeType === 'error' ? 'alert' : 'status'}><p>{noticeType === 'error' ? `No se confirmó la acción: ${notice}` : notice}</p><button className="icon-button" aria-label="Cerrar ayuda" onClick={() => setNotice('')}><X size={18} /></button></div>}
+        {eventRoute === null && page !== 'participantes' && <div className="page-heading"><div><span className="eyebrow">{page === 'inicio' ? 'NUESTRA COMUNIDAD' : navigation.find(n => n.id === page)?.label.toUpperCase()}</span><h1 ref={heading} tabIndex={-1}>{titles[page][0]}</h1><p>{titles[page][1]}</p></div><button className="button primary" disabled={!ready} onClick={() => open(page === 'sesiones' ? 'session' : page === 'asistencia' ? 'attendance' : 'event')}><Plus size={17} />{page === 'sesiones' ? 'Nueva sesión' : page === 'asistencia' ? 'Registrar asistencia' : 'Crear evento'}</button></div>}
         {page === 'inicio' && <TestEmailSender />}
         {page === 'inicio' && <section className="panel setup-event-panel"><div><h2>Evento de noviembre de 2026</h2><p>Comprueba la base y las sesiones; completa solo los pasos pendientes.</p></div>{preview ? <button className="button secondary" disabled>Preparar evento 2026</button> : <a className="button secondary" href={legacyUrl('../scripts/setup.php?mode=prepare2026')}><CalendarDays size={17} /> Preparar evento 2026</a>}</section>}
-        {eventRoute !== null ? <EventDetail key={eventRoute.split('/')[0]} route={eventRoute} /> : loading ? <div className="loading-state" role="status"><RefreshCw className="spin" size={23} /><span>Preparando tu espacio…</span></div> : error ? <div className="connection-state" role="alert"><CircleHelp size={34} strokeWidth={1.2} /><h2>{authRequired ? 'Inicia sesión para continuar' : 'Volvamos a conectar'}</h2><p>{error}</p>{authRequired ? <a className="button primary" href={loginUrl()}>Iniciar sesión</a> : <button className="button primary" onClick={() => setRevision(r => r + 1)}><RefreshCw size={16} /> Volver a intentar</button>}</div> : <>
+        {page === 'participantes' ? <ParticipantDirectory route={participantRoute} data={data} loading={loading} error={error} authRequired={authRequired} retry={() => setRevision(value => value + 1)} onTestMode={onSession} /> : eventRoute !== null ? <EventDetail key={eventRoute.split('/')[0]} route={eventRoute} /> : loading ? <div className="loading-state" role="status"><RefreshCw className="spin" size={23} /><span>Preparando tu espacio…</span></div> : error ? <div className="connection-state" role="alert"><CircleHelp size={34} strokeWidth={1.2} /><h2>{authRequired ? 'Inicia sesión para continuar' : 'Volvamos a conectar'}</h2><p>{error}</p>{authRequired ? <a className="button primary" href={loginUrl()}>Iniciar sesión</a> : <button className="button primary" onClick={() => setRevision(r => r + 1)}><RefreshCw size={16} /> Volver a intentar</button>}</div> : <>
           {page === 'inicio' && <>
             <section className="stats event-overview-stats" aria-label="Resumen de los eventos">{[
               { title: 'Eventos', value: data.events.length, note: `${data.events.filter(e => eventStatus(e.start_date, e.end_date).className !== 'neutral').length} próximos o en curso`, icon: CalendarDays, color: 'rose' },
@@ -122,7 +137,6 @@ export function App() {
           </>}
           {page === 'eventos' && <Events data={data} />}
           {page === 'sesiones' && <Sessions data={data} open={id => open('session', id)} />}
-          {page === 'participantes' && <Participants data={data} upload={() => open('upload')} />}
           {page === 'asistencia' && <Attendance data={data} />}
           {page === 'informes' && <Reports data={data} />}
         </>}
@@ -132,6 +146,50 @@ export function App() {
     {editor && <Editor editor={editor} data={data} close={() => setEditor(null)} />}
   </div>;
 }
+function ParticipantDirectory({ route, data, loading, error, authRequired, retry, onTestMode }: {
+  route: string; data: AppData; loading: boolean; error: string; authRequired: boolean;
+  retry: () => void; onTestMode: (enabled: boolean) => void;
+}) {
+  const [events, setEvents] = useState<EventRecord[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(true);
+  const [optionsError, setOptionsError] = useState('');
+  const [optionsAuth, setOptionsAuth] = useState(false);
+  const [revision, setRevision] = useState(0);
+  const match = route.match(/^#participantes(?:\/([^/]+))?$/);
+  const selection = match?.[1] || '';
+  const eventId = /^[1-9][0-9]*$/.test(selection) && Number.isSafeInteger(Number(selection)) ? Number(selection) : 0;
+  const valid = !!match && (!selection || selection === 'todos' || eventId > 0);
+  useEffect(() => {
+    const controller = new AbortController();
+    setOptionsLoading(true); setOptionsError(''); setOptionsAuth(false);
+    loadEventOptions(controller.signal, onTestMode).then(result => { if (!controller.signal.aborted) setEvents(result); })
+      .catch(failure => { if (!controller.signal.aborted) { setOptionsError(failure instanceof Error ? failure.message : 'No se pudieron cargar los eventos.'); setOptionsAuth(failure instanceof AuthenticationError); } })
+      .finally(() => { if (!controller.signal.aborted) setOptionsLoading(false); });
+    return () => controller.abort();
+  }, [revision, onTestMode]);
+  return <section aria-label="Participantes por evento">
+    <div className="page-heading"><div><span className="eyebrow">ORGANIZAR</span><h1>Participantes</h1><p>Selecciona el evento para consultar su lista, vincular inscripciones o importar su CSV.</p></div></div>
+    <div className="participant-event-picker panel">
+      <label>Evento de participantes<select aria-label="Evento de participantes" value={valid ? selection : ''} disabled={optionsLoading || optionsAuth || !!optionsError}
+        onChange={e => { location.hash = e.target.value ? `#participantes/${e.target.value}` : '#participantes'; }}>
+        <option value="">Selecciona un evento</option>
+        {events.map(event => <option key={event.id} value={event.id}>{event.name}</option>)}
+        {eventId > 0 && !events.some(event => event.id === eventId) && <option value={eventId}>Evento #{eventId}</option>}
+        <option value="todos">Inscripciones generales (histórico)</option>
+      </select></label>
+      <p>Importar requiere un evento y nunca envía correos. Una persona puede participar en varios eventos; abrir una lista no crea vínculos ni cambia la admisión por QR.</p>
+      {optionsLoading && <small>Cargando selección de eventos…</small>}
+      {optionsError && <div role="alert"><p>{optionsError}</p>{optionsAuth ? <a href={loginUrl()}>Iniciar sesión</a> : <button className="button secondary" onClick={() => setRevision(value => value + 1)}>Reintentar selección de eventos</button>}</div>}
+    </div>
+    {!valid ? <div className="connection-state" role="alert"><h2>El evento no existe.</h2><p>Selecciona un evento válido de la lista.</p></div>
+      : optionsAuth ? null : eventId > 0 ? <EventDetail key={eventId} route={`${eventId}/participantes`} />
+      : selection === 'todos' ? <>
+        <h2>Inscripciones generales (histórico)</h2><p className="event-context-note">Esta vista no equivale a la lista de un evento. Los registros anteriores no se asignan automáticamente. Selecciona un evento para vincular inscripciones existentes o importar un CSV; aquí no se crean inscripciones sin evento.</p>
+        {loading ? <p role="status">Cargando inscripciones generales…</p> : error ? <div role="alert"><p>{error}</p>{authRequired ? <a href={loginUrl()}>Iniciar sesión</a> : <button className="button secondary" onClick={retry}>Volver a intentar</button>}</div> : <Participants data={data} />}
+      </> : <Empty title={events.length ? 'Elige un evento para ver sus participantes' : optionsLoading || optionsError ? 'Selecciona un evento' : 'No hay eventos disponibles'}>No se ha seleccionado ningún evento ni se ha modificado ningún registro. <a href="#eventos">Ver o crear eventos</a>.</Empty>}
+  </section>;
+}
+
 function EventDetail({ route }: { route: string }) {
   const [rawId, rawTab] = route.split('/');
   const eventId = /^[1-9][0-9]*$/.test(rawId) && Number.isSafeInteger(Number(rawId)) ? Number(rawId) : 0;
@@ -164,7 +222,7 @@ function EventDetail({ route }: { route: string }) {
     <div className="toolbar event-detail-tools"><div className="toolbar-actions"><button className="button primary" onClick={() => setEditor({ kind: 'upload', eventId })}><Upload size={17} /> Importar CSV al evento</button>{preview ? <button className="button secondary" disabled>Vincular inscripción existente</button> : <a className="button secondary" href={legacyUrl(`event/register.php?event_id=${eventId}`)}>Vincular inscripción existente</a>}</div><button className="icon-button" aria-label="Actualizar evento" onClick={() => setRevision(value => value + 1)}><RefreshCw size={17} /></button></div>
     <nav className="tabs event-tabs" aria-label="Secciones del evento">{[
       ['participantes', 'Participantes', detail.subscriptions.length], ['sesiones', 'Sesiones', detail.sessions.length], ['asistencia', 'Asistencia', detail.attendance.length],
-    ].map(([id, label, count]) => <a key={id} className={tab === id ? 'active' : ''} aria-current={tab === id ? 'page' : undefined} href={`#eventos/${eventId}/${id}`}>{label} <span>{count}</span></a>)}</nav>
+    ].map(([id, label, count]) => <a key={id} className={tab === id ? 'active' : ''} aria-current={tab === id ? 'page' : undefined} href={id === 'participantes' ? `#participantes/${eventId}` : `#eventos/${eventId}/${id}`}>{label} <span>{count}</span></a>)}</nav>
     {tab === 'participantes' && <><p className="event-context-note">Solo se muestran las inscripciones vinculadas a este evento. Las inscripciones anteriores no se asignan automáticamente: puedes vincularlas explícitamente o importar su CSV. Importar no envía correos: selecciona destinatarios o envía a todos en una acción separada con revisión. El estado mostrado es general; vincular no lo modifica.</p><Participants key={eventId} data={data} eventScoped eventId={eventId} upload={() => setEditor({ kind: 'upload', eventId })} /></>}
     {tab === 'sesiones' && <><div className="toolbar"><h2>Sesiones de este evento</h2><button className="button secondary" onClick={() => setEditor({ kind: 'session', eventId })}><Plus size={17} /> Nueva sesión</button></div><Sessions data={data} open={id => setEditor({ kind: 'session', id, eventId })} /></>}
     {tab === 'asistencia' && <><p className="event-context-note">Asistencias registradas en las sesiones de este evento, incluidas las históricas aunque la persona aún no esté vinculada. Los QR existentes siguen usando el evento configurado para admisión; abrir esta página no cambia esa selección.</p><Attendance data={data} /></>}
@@ -185,7 +243,7 @@ function Sessions({ data, open }: { data: AppData; open: (id: number) => void })
   const rows = [...data.sessions].filter(s => filter === 'all' || String(s.event_id) === filter).sort((a, b) => dateValue(a.start_date).getTime() - dateValue(b.start_date).getTime());
   return <section className="panel"><div className="toolbar panel-toolbar"><h2>Agenda de sesiones</h2><select aria-label="Filtrar por evento" value={filter} onChange={e => setFilter(e.target.value)}><option value="all">Todos los eventos</option>{data.events.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select></div>{rows.length ? <div className="session-list">{rows.map(s => <button className="session-row" key={s.id} onClick={() => open(s.id)}><span className="date-tile"><strong>{formatDate(s.start_date, { day: '2-digit' })}</strong><small>{formatDate(s.start_date, { month: 'short' })}</small></span><span className="session-name"><strong>{s.name}</strong><small>{s.event_name}</small></span><span className="session-time"><Clock3 size={15} />{formatDate(s.start_date, { hour: '2-digit', minute: '2-digit' })} – {formatDate(s.end_date, { hour: '2-digit', minute: '2-digit' })}<small>{formatDate(s.start_date)}</small></span><ArrowUpRight size={19} /></button>)}</div> : <Empty title="Tu agenda tiene espacio">Crea una sesión para comenzar.</Empty>}<div className="table-footer">{rows.length} sesiones · Hora de Bolivia</div></section>;
 }
-function Participants({ data, upload, eventScoped = false, eventId }: { data: AppData; upload: () => void; eventScoped?: boolean; eventId?: number }) {
+function Participants({ data, upload, eventScoped = false, eventId }: { data: AppData; upload?: () => void; eventScoped?: boolean; eventId?: number }) {
   const [search, setSearch] = useState(''); const [filter, setFilter] = useState('all'); const [page, setPage] = useState(0);
   const [emailIds, setEmailIds] = useState<number[]>([]);
   const rows = data.subscriptions.filter(s => matchesSearch([s.fullname, s.email, s.phone], search) && (filter === 'all' || String(s.active) === filter));
@@ -193,7 +251,7 @@ function Participants({ data, upload, eventScoped = false, eventId }: { data: Ap
   const selectedIds = emailIds.filter(id => data.subscriptions.some(s => s.id === id));
   const visibleRows = rows.slice(page * 10, page * 10 + 10);
   const selectEmail = (ids: number[], checked: boolean) => setEmailIds(current => checked ? [...new Set([...current, ...ids])] : current.filter(id => !ids.includes(id)));
-  return <section className="panel"><div className="toolbar panel-toolbar"><SearchInput value={search} onChange={s => { setSearch(s); setPage(0); }} placeholder="Buscar nombre, correo o teléfono…" /><div className="toolbar-actions"><select aria-label="Estado de inscripción" value={filter} onChange={e => { setFilter(e.target.value); setPage(0); }}><option value="all">Todos los estados</option><option value="1">Activas</option><option value="0">Inactivas</option></select><button className="button secondary" onClick={upload}><Upload size={16} /> Importar CSV</button></div></div>
+  return <section className="panel"><div className="toolbar panel-toolbar"><SearchInput value={search} onChange={s => { setSearch(s); setPage(0); }} placeholder="Buscar nombre, correo o teléfono…" /><div className="toolbar-actions"><select aria-label="Estado de inscripción" value={filter} onChange={e => { setFilter(e.target.value); setPage(0); }}><option value="all">Todos los estados</option><option value="1">Activas</option><option value="0">Inactivas</option></select><button className="button secondary" disabled={!upload} onClick={upload}><Upload size={16} /> Importar CSV</button></div></div>
     {eventScoped && <div className="event-email-tools">
       <p>Correos: {selectedIds.length} seleccionado(s), incluso en otras páginas o filtros. «Todos» incluye los {data.subscriptions.length} participantes del evento, sin aplicar filtros.</p>
       <form action={legacyUrl('event/email.php')} method="POST" onSubmit={e => { if (preview) e.preventDefault(); }}>

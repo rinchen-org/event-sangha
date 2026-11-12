@@ -1297,6 +1297,11 @@ select {
   white-space:normal;
 }
 
+.participant-event-picker { padding:20px 22px; margin-bottom:24px; }
+.participant-event-picker label { display:flex; flex-direction:column; gap:8px; max-width:560px; font-weight:600; }
+.participant-event-picker select { width:100%; min-height:44px; }
+.participant-event-picker p { margin:12px 0 0; white-space:normal; line-height:1.6; font-size:12px; }
+
 .qr-preview-link {
   display:inline-flex;
   flex-direction:column;

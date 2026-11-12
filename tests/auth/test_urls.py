@@ -284,17 +284,13 @@ class AppUrlRoutesTest(unittest.TestCase):
             self.assertEqual(response['status'], 405)
         self.assertEqual(self.database.read_bytes(), before)
 
-    def test_website_and_report_api_rebase_without_writing_data_or_loading_old_origin(self):
+    def test_classic_redirect_and_report_api_preserve_data_without_loading_old_origin(self):
         before = self.database.read_bytes()
         for base in ('http://localhost:8081', 'https://production.example.test/event-retiro/'):
             self.env.write_text('HOST_ADDRESS=' + base + '\nSEND_EMAIL=0\n')
             for prefix in ('', '/event-retiro'):
                 response = self.page('templates/subscription/list.php', prefix)
-                self.assertEqual(response['status'], 200)
-                self.assertIn('src="' + base.rstrip('/') + '/static/qr/' + FILENAME + '"', response['body'])
-                if not base.startswith('http://localhost'):
-                    self.assertNotIn('src="' + self.old + '"', response['body'])
-                    self.assertIn('el enlace dentro del QR no se modificó', response['body'])
+                self.assertEqual(response['status'], 303)
                 api = self.request(route='api/subscription/list.php', base=prefix,
                     seed={'created':0,'seen':0}, accept='application/json')
                 self.assertTrue(api['body']['success'], api['body'])

@@ -109,11 +109,28 @@ navigation and form controls remain usable. `makim dev.ui-tests` checks layouts
 and root/subdirectory paths with temporary data; frontend tests check mobile
 navigation/focus without submitting forms. Real-browser checks are still needed.
 
-Event cards navigate to `#eventos/<id>/participantes` rather than editing directly.
-Event pages have separate editing, CSV import, explicit existing-registration
-linking, sessions and attendance. Tabs use hash URLs (`participantes`, `sesiones`,
-`asistencia`) for refresh/back navigation. The home no longer lists latest global
-subscriptions. The global participant directory remains available.
+The left-menu **Participantes** link opens the single attendee directory at
+`#participantes`. An explicit event selector loads only that event's roster at
+`#participantes/<id>`. Event cards use this route too; old `#eventos/<id>` and
+`#eventos/<id>/participantes` bookmarks are replaced with the canonical hash.
+Event editing remains separate; session/attendance tabs retain their
+`#eventos/<id>/sesiones` / `asistencia` routes. Selecting another event resets
+the roster/search/pagination and email selection, without writing membership or
+retargeting QR admission. Event options load independently of unrelated global
+list failures, and a selected roster still has its own protected data/error path.
+
+`templates/subscription/list.php` HTML now only redirects to this directory after
+authentication, preserving a valid optional event_id. Its `?format=json` remains
+the global read-only contract. The explicit **Inscripciones generales (histórico)**
+selector option (`#participantes/todos`) retains old/global record tools without
+pretending those records belong to an event. CSV import is disabled there and the
+directory no longer offers new unassigned general signup. Select an event to
+import CSV or explicitly link an existing subscription. No historical links are
+inferred; one person can still participate in multiple events.
+Legacy activation/resend redirects to general-history mode. `templates/index.php`
+passes its consumed session notice as HTML-escaped JSON; React displays it as
+plain text, including an alert for failed actions. No new mutation API or
+automatic send/retry is introduced by this compatibility feedback.
 
 `templates/event/detail.php?format=json&event_id=<id>` is a protected, read-only
 GET returning `{success:true,data:{event,subscriptions,sessions,attendance}}`.
@@ -126,7 +143,8 @@ No sample/global roster is substituted for an unavailable event response.
 CSV forms send a destination `event_id` to the existing PHP review handler. The
 event and reviewed backend state are bound to its expiring single-use token;
 POST confirmation rechecks them and cannot move a pending import to another event.
-The global upload dialog requires event selection. Existing-registration linking
+The PHP web controller also requires a valid event: unscoped GET/HEAD redirects
+to the selector and unscoped POST fails before parsing/writing. Existing-registration linking
 uses `templates/event/register.php` with PHP-evaluated warnings, review and CSRF
 POST confirmation. React does not evaluate inactive/payment eligibility. Preview
 uses explicit synthetic event memberships, intercepts forms and disables linking.

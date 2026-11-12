@@ -389,7 +389,7 @@ VALUES (1,50,10,'2026-01-01','admin','staff',0,'[]',1,''),(1,60,20,'2026-01-01',
         self.assertIn('action="/event-retiro/templates/event/email.php"', body)
         status, _, body = self.confirm(token, event='2', base='/event-retiro')
         self.assertEqual(status, 200, body)
-        self.assertIn('/event-retiro/templates/index.php#eventos/2/participantes', body)
+        self.assertIn('/event-retiro/templates/index.php#participantes/2', body)
         self.assertEqual(self.query('SELECT event_id,subscription_id FROM event_email_attempt', base='/event-retiro'), [(2,30)])
         self.assertEqual(self.query("SELECT name FROM sqlite_master WHERE name='event_email_attempt'"), [])
 

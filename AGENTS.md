@@ -526,9 +526,37 @@ routine testing. No diagnostic action should create participant/attendance data.
 
 ## Event-centered registration
 
-React event cards open `#eventos/<id>/participantes` (also `sesiones`, `asistencia`),
-not the edit dialog; **Editar evento** is separate. Home no longer shows recent
-global subscriptions. `templates/event/detail.php?format=json&event_id=<id>` is
+The single attendee-management page is React `#participantes`, linked as
+**Participantes** in both left menus. Staff explicitly select an event; its roster
+is bookmarked as `#participantes/<id>`. Event cards use that route, not the edit
+dialog; **Editar evento** is separate. Old `#eventos/<id>` and
+`#eventos/<id>/participantes` bookmarks are canonicalized to it. Session/attendance
+tabs retain `#eventos/<id>/sesiones` and `asistencia`.
+
+`templates/subscription/list.php` HTML is an authenticated 303 redirect to the
+single React page (a validated optional event_id carries the selection), not a
+second table. Its read-only `?format=json` contract stays global and unchanged.
+Neither redirect nor opening/changing the event selector writes data/configuration,
+changes qr_event_id or assigns historical records. Load event options independently
+of unrelated global queries; unavailable data must not become a fabricated roster.
+Switching event remounts the roster and clears selected email recipients.
+The default/event-selected directory does not fetch the global attendee dataset;
+that read is reserved for explicit history/other global views. Keep logout bound
+to the authenticated session bootstrap, not successful loading of unrelated data.
+
+The explicit **Inscripciones generales (histórico)** selector option uses
+`#participantes/todos` for legacy record recovery/global actions. It does not imply
+event membership and disables CSV import/new general signup from this directory.
+Existing manual signup endpoints remain compatible, but are not its normal entry
+point. To add attendees, select an event and import CSV or explicitly link an
+existing subscription. Preserve multi-event membership; never auto-assign or move
+old records. Home no longer shows recent global subscriptions.
+Legacy activation/resend returns to the explicit general-history mode. The
+authenticated PHP entry consumes the session action notice once, embeds it as
+HTML-safe JSON and React renders plain text/status or an error alert. Preserve
+these result/error notices when redirecting old handlers; never silently lose a
+mail failure or claim delivery from transport acceptance.
+`templates/event/detail.php?format=json&event_id=<id>` is
 authenticated read-only GET returning event/subscriptions/sessions/attendance,
 filtered in PHP by ID. Missing registration schema yields an empty roster without
 creating tables or assigning history; invalid events are 404, technical failures
@@ -556,9 +584,12 @@ are rechecked under the write lock. Exact existing subscriptions are linked
 without new QR/email; already-linked rows are skipped. Ambiguous identities or
 multiple subscriptions require explicit staff selection, not automatic merging.
 New person/subscription, membership and CSV audit commit atomically per row;
-CSV import never sends email. Global import
-without event_id remains compatible and explicitly unassigned. React imports
-require a destination event. Event rows omit global/hardcoded-event shortcuts.
+CSV import never sends email. The web upload controller now requires a valid
+destination event for review/confirmation; GET/HEAD without one redirects to the
+React selector, and a protected POST without one fails before parsing or writing.
+Server-held reviews cannot be reused/retargeted between events. Library-level
+global imports remain compatible and explicitly unassigned for integrations,
+not as an alternative web import flow. Event rows omit global/hardcoded-event shortcuts.
 
 The additive schema is shared by setup, confirmed scoped writes and the CLI-only
 `0007_event_registration.php`. Back up before deployment; optionally run
@@ -727,7 +758,7 @@ tests as well for stale HOST_ADDRESS review rejection and warning/cancel/continu
 
 ## Explicit attendee QR regeneration
 
-React event/global rosters and the classic subscription list POST to
+React event rosters and the explicit general-history mode POST to
 `templates/subscription/regenerate_qr.php`. Initial review and cancellation are
 read-only. Confirmation requires auth/CSRF and a ten-minute, single-use
 server-held token binding the subscription/person identity, raw old QR,

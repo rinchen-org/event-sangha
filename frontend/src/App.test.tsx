@@ -71,7 +71,7 @@ describe('React management views', () => {
     expect(screen.queryByRole('link', { name: /menú clásico/i })).not.toBeInTheDocument();
   });
   it('filters participants by accent-insensitive search and activation state', async () => {
-    location.hash = '#participantes';
+    location.hash = '#participantes/todos';
     render(<App />);
     const search = await screen.findByRole('textbox', { name: 'Buscar nombre, correo o teléfono…' });
     await userEvent.type(search, 'lucia');
@@ -96,6 +96,18 @@ describe('React management views', () => {
   });
 });
 describe('compatibility forms', () => {
+  it('shows legacy action errors safely after the classic list redirects to React', async () => {
+    const node = document.createElement('script');
+    node.id = 'rinchen-action-notice'; node.type = 'application/json';
+    node.textContent = JSON.stringify({ type: 'error', text: '<img src=x onerror=alert(1)> Fallo de correo' });
+    document.body.appendChild(node);
+    try {
+      render(<App />);
+      expect(screen.getByRole('alert')).toHaveTextContent('No se confirmó la acción: <img src=x onerror=alert(1)> Fallo de correo');
+      expect(document.querySelector('img[onerror]')).toBeNull();
+      await screen.findByRole('heading', { name: 'Nuestros encuentros' });
+    } finally { node.remove(); }
+  });
   it('submits CSV uploads for review with both supported formats explained', () => {
     render(<Editor editor={{ kind: 'upload' }} data={emptyData} close={() => {}} />);
     expect(screen.getByText(/CSV histórico de Google Forms.*2026/)).toBeInTheDocument();

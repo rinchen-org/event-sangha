@@ -13,7 +13,7 @@ final class AppLayout {
         $routes = [
             'event/form.php' => ['Evento', 'eventos'], 'event/list.php' => ['Eventos', 'eventos'],
             'event-session/form.php' => ['Sesión del evento', 'sesiones'], 'event-session/list.php' => ['Sesiones', 'sesiones'],
-            'event/register.php' => ['Vincular inscripción', 'eventos'], 'event/email.php' => ['Correos del evento', 'eventos'],
+            'event/register.php' => ['Vincular inscripción', 'participantes'], 'event/email.php' => ['Correos del evento', 'participantes'],
             'subscription/upload.php' => ['Importar participantes', 'participantes'],
             'subscription/form.php' => ['Inscripción', 'participantes'], 'subscription/list.php' => ['Participantes', 'participantes'],
             'subscription/log_attendance.php' => ['Participantes', 'participantes'],

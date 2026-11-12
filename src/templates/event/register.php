@@ -88,6 +88,6 @@ include dirname(__DIR__) . '/header.php';
     <button name="action" value="review" class="btn btn-primary my-3">Revisar vínculo</button>
 </form>
 <?php endif; ?>
-<a class="btn btn-secondary my-3" href="<?php echo auth_escape(auth_url('templates/index.php#eventos/' . (int) $event['id'] . '/participantes')); ?>">Volver al evento</a>
+<a class="btn btn-secondary my-3" href="<?php echo auth_escape(auth_url('templates/index.php#participantes/' . (int) $event['id'])); ?>">Volver a participantes</a>
 <?php endif; ?>
 <?php include dirname(__DIR__) . '/footer.php'; ?>

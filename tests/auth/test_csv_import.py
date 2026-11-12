@@ -258,8 +258,9 @@ $_SERVER['SCRIPT_NAME']='/templates/subscription/upload.php';
 $_SERVER['SCRIPT_FILENAME']=''' + json.dumps(str(self.web / 'templates/subscription/upload.php')) + ''';
 $_SERVER['DOCUMENT_ROOT']=''' + json.dumps(str(self.web)) + ''';
 auth_start(); $_SESSION['auth_user']='admin'; $_SESSION['auth_created']=time(); $_SESSION['auth_seen']=time();
-$_SESSION['csv_import_review']=['token'=>'server-review','expires'=>time()+600,'contents'=>$contents];
-$_POST=['csrf_token'=>auth_csrf_token(),'import_token'=>'server-review','action'=>''' + json.dumps(action) + ''',
+$_SESSION['csv_import_review']=['token'=>'server-review','expires'=>time()+600,'contents'=>$contents,
+    'event_id'=>1,'scoped_review'=>$registration->scopeCsv($review,1)];
+$_POST=['csrf_token'=>auth_csrf_token(),'event_id'=>'1','import_token'=>'server-review','action'=>''' + json.dumps(action) + ''',
     'warnings'=>'[]','phone'=>'Forged phone'];
 ob_start(); require $_SERVER['SCRIPT_FILENAME']; $html=ob_get_clean();
 check((http_response_code() ?: 200)===200,'Wrong upload controller status');
@@ -514,6 +515,8 @@ class CsvImportHTTPTest(unittest.TestCase):
                     CREATE TABLE person (id INTEGER PRIMARY KEY AUTOINCREMENT, fullname TEXT, email TEXT, phone TEXT, active INTEGER DEFAULT 1);
                     CREATE TABLE subscription (id INTEGER PRIMARY KEY AUTOINCREMENT, person_id INTEGER, datetime TEXT, qr TEXT, active INTEGER DEFAULT 1);
                     CREATE TABLE attendance (id INTEGER PRIMARY KEY, person_id INTEGER, event_session_id INTEGER, log_time TEXT);
+                    CREATE TABLE event (id INTEGER PRIMARY KEY, name TEXT, description TEXT, start_date TEXT, end_date TEXT);
+                    INSERT INTO event VALUES (1,'Test A','','2026-11-12','2026-11-15'),(2,'Test B','','2026-11-12','2026-11-15');
                     INSERT INTO person VALUES (50, 'Existing person', 'existing@example.test', '12345', 1);
                 ''')
         self.login()
@@ -524,7 +527,7 @@ class CsvImportHTTPTest(unittest.TestCase):
             db.commit()
             return result
 
-    def upload(self, contents=None, base='', csrf=True, event_id=None):
+    def upload(self, contents=None, base='', csrf=True, event_id='1'):
         contents = csv_text() if contents is None else contents
         contents = contents.encode() if isinstance(contents, str) else contents
         boundary = uuid.uuid4().hex
@@ -553,14 +556,15 @@ class CsvImportHTTPTest(unittest.TestCase):
 
     def decide(self, token, action='confirm', base='', **extra):
         return self.request(base + '/templates/subscription/upload.php', dict(
-            csrf_token=self.csrf(base), action=action, import_token=token, **extra))
+            csrf_token=self.csrf(base), action=action, import_token=token, event_id='1', **extra))
 
     def attempts(self, path):
         return len(path.read_text().splitlines()) if path.exists() else 0
 
     def test_get_preview_cancel_do_not_write_or_send(self):
         before = (self.web / 'db.sqlite').read_bytes()
-        self.assertEqual(self.request('/templates/subscription/upload.php')[0], 200)
+        self.assertEqual(self.request('/templates/subscription/upload.php')[0], 303)
+        self.assertEqual(self.request('/templates/subscription/upload.php?event_id=1')[0], 200)
         token, body = self.review()
         self.assertIn('Fila 8:', body)
         self.assertIn('Ana &lt;test&gt; O&#039;Flores', body)
@@ -647,9 +651,8 @@ class CsvImportHTTPTest(unittest.TestCase):
         for _ in range(2):
             self.query('INSERT INTO person (fullname, email, phone, active) VALUES (?, ?, ?, 1)',
                        ("Ana <test> O'Flores", 'ana@example.test', '+59112345678'))
-        token, _ = self.review(csv_text([PEOPLE[0]]))
-        status, _, body = self.decide(token)
-        self.assertEqual(status, 200, body)
+        token, body = self.review(csv_text([PEOPLE[0]]))
+        self.assertIsNone(token)  # scoped review rejects ambiguous identity before confirmation
         self.assertIn('Hay varias personas con estos mismos datos', body)
         self.assertEqual(self.query('SELECT count(*) FROM subscription'), [(0,)])
         self.assertFalse(self.qr_calls.exists())

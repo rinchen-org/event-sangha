@@ -29,6 +29,11 @@ if (!$buildReady) {
         . 'Ejecuta makim frontend.build y despliega src/static/app/ completo, incluido .vite/manifest.json.');
 }
 header('Cache-Control: private, no-store');
+$actionNotice = $_SESSION['message'] ?? null;
+unset($_SESSION['message']);
+$actionNotice = is_array($actionNotice) && is_string($actionNotice['text'] ?? null)
+    ? ['type' => in_array($actionNotice['type'] ?? '', ['success', 'info', 'warning'], true) ? $actionNotice['type'] : 'error',
+        'text' => $actionNotice['text']] : null;
 function frontend_asset(string $path): string {
     return htmlspecialchars('../static/app/' . $path, ENT_QUOTES, 'UTF-8');
 }
@@ -46,6 +51,7 @@ function frontend_asset(string $path): string {
 </head>
 <body>
   <div id="root"></div>
+  <script id="rinchen-action-notice" type="application/json"><?php echo json_encode($actionNotice, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?></script>
   <noscript>Activa JavaScript en tu navegador para usar la aplicación de Rinchen.</noscript>
   <script type="module" src="<?php echo frontend_asset($entry['file']); ?>"></script>
 </body>

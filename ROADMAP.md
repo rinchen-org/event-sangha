@@ -84,8 +84,8 @@ show clear messages; old-base warnings remain visible. Viewing/failing a preview
 does not generate QR, send mail or write data. Explicit preview mode loads no live
 QR files. URL/frontend tests cover this presentation contract; rebuild assets.
 
-Event/global participant lists now offer **Regenerar QR**, including the classic
-list. PHP reviews the existing subscription, identity, optional event membership,
+Event/general-history React lists offer **Regenerar QR**; the classic list now
+redirects to React. PHP reviews the existing subscription, identity, optional event membership,
 current HOST_ADDRESS and advisory inactive/old-base warnings. A ten-minute,
 single-use CSRF-protected confirmation claims an audited attempt before bounded
 external generation, then rechecks state before updating the QR reference.
@@ -99,6 +99,29 @@ and UTC outcomes are audited; failures never automatically retry. New PHP routes
 reuse AppLayout, not a new React mutation API. Preview disables the buttons.
 `makim dev.qr-regeneration-tests` exercises synthetic domain/HTTP cases with fake
 QR/mail; explicit CLI mode is available without sockets, not HTTP/browser coverage.
+
+## Implementation update — single event-selected participant directory
+
+**Participantes** in the shared left menus now opens React `#participantes` with
+an explicit event selector. `#participantes/<id>` is the canonical event roster;
+event cards use it and old `#eventos/<id>` / `#eventos/<id>/participantes` bookmarks
+remain aliases. The classic subscription HTML table has been removed in favor
+of an authenticated redirect. Its global read-only JSON/report contracts remain.
+
+Each selected event reuses the existing PHP-filtered roster, QR preview/regeneration,
+link-existing, CSV and separate email review flows. Event changes clear recipient
+selection. CSV web review/confirmation requires a valid event even when called
+directly; unscoped GET/HEAD redirects and unscoped POST fails without writes.
+The explicit general-history mode retains old records/global tools, with no CSV
+import/new general signup from that view. Library-level global imports remain
+compatible for integrations. No history is assigned, moved, deleted or inferred;
+multi-event membership and configured QR admission remain unchanged.
+
+No new schema migration is required. Deploy changed PHP and the rebuilt, versioned
+frontend together via the existing GitHub/pull/FTP process. Tests cover selector
+navigation/scope reset, aliases/redirects, missing-event rejection, authentication,
+CSRF and retained warning/cancel/continue/duplicate behavior. CLI controller checks
+do not replace multipart HTTP/cookie or real-browser validation.
 
 ## Implementation update — visible application version
 

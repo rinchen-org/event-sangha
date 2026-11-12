@@ -68,7 +68,7 @@ if ($subscriptionId !== null && $error !== '') {
 }
 require_once dirname(__DIR__, 2) . '/lib/layout.php';
 AppLayout::start('Regenerar QR', 'participantes');
-$back = 'templates/index.php#' . ($eventId === null ? 'participantes' : 'eventos/' . $eventId . '/participantes');
+$back = 'templates/index.php#participantes/' . ($eventId === null ? 'todos' : $eventId);
 $statusLabels = ['pending' => 'Sin resultado confirmado; verificar antes de repetir', 'completed' => 'QR actualizado', 'failed' => 'No se reemplazó el QR'];
 ?>
 <h1>Regenerar QR</h1>

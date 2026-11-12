@@ -1,6 +1,15 @@
 <?php
 require_once dirname(__DIR__, 2) . '/lib/auth.php';
 auth_require();
+$requestedEvent = $_POST['event_id'] ?? ($_GET['event_id'] ?? null);
+if ($requestedEvent === null) {
+    if (in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true)) {
+        header('Location: ' . auth_url('templates/index.php#participantes'), true, 303);
+        exit;
+    }
+    unset($_SESSION['csv_import_review']);
+    auth_fail(409, 'Selecciona un evento en Participantes antes de importar un CSV. No se guardaron registros ni se enviaron correos.');
+}
 require_once dirname(__DIR__, 2) . '/lib/subscription.php';
 
 $review = null;
@@ -14,13 +23,10 @@ if (isset($_SESSION['csv_import_review']) && $_SESSION['csv_import_review']['exp
     unset($_SESSION['csv_import_review']);
 }
 try {
-    $requestedEvent = $_POST['event_id'] ?? ($_GET['event_id'] ?? null);
-    if ($requestedEvent !== null) {
-        $eventId = EventRegistration::id($requestedEvent);
-        $db = new SQLite3(dirname(__DIR__, 2) . '/db.sqlite', SQLITE3_OPEN_READONLY);
-        try { $event = (new EventRegistration($db))->event($eventId); }
-        finally { $db->close(); }
-    }
+    $eventId = EventRegistration::id($requestedEvent);
+    $db = new SQLite3(dirname(__DIR__, 2) . '/db.sqlite', SQLITE3_OPEN_READONLY);
+    try { $event = (new EventRegistration($db))->event($eventId); }
+    finally { $db->close(); }
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $action = $_POST['action'] ?? 'review';
         if ($action === 'confirm' || $action === 'cancel') {
@@ -45,11 +51,9 @@ try {
                 $review = SubscriptionCsv::readContents($pending['contents']);
                 $db = new SQLite3(dirname(__DIR__, 2) . '/db.sqlite', SQLITE3_OPEN_READWRITE);
                 try {
-                    if ($eventId !== null) {
-                        $review = (new EventRegistration($db))->scopeCsv($review, $eventId);
-                        if ($review !== ($pending['scoped_review'] ?? null)) {
-                            throw new DomainException('Los datos del evento, las inscripciones o las advertencias cambiaron. Vuelve a revisar el CSV.');
-                        }
+                    $review = (new EventRegistration($db))->scopeCsv($review, $eventId);
+                    if ($review !== ($pending['scoped_review'] ?? null)) {
+                        throw new DomainException('Los datos del evento, las inscripciones o las advertencias cambiaron. Vuelve a revisar el CSV.');
                     }
                     $report = (new SubscriptionCsvImport($db))->run($review, true, $_SESSION['auth_user'], trim($notes), $eventId);
                 } finally {
@@ -65,11 +69,9 @@ try {
                 throw new DomainException('No se pudo recibir el CSV. Selecciona un archivo de hasta 5 MB y revisa el límite de subida del servidor.');
             }
             $review = SubscriptionCsv::read($upload['tmp_name']);
-            if ($eventId !== null) {
-                $db = new SQLite3(dirname(__DIR__, 2) . '/db.sqlite', SQLITE3_OPEN_READONLY);
-                try { $review = (new EventRegistration($db))->scopeCsv($review, $eventId); }
-                finally { $db->close(); }
-            }
+            $db = new SQLite3(dirname(__DIR__, 2) . '/db.sqlite', SQLITE3_OPEN_READONLY);
+            try { $review = (new EventRegistration($db))->scopeCsv($review, $eventId); }
+            finally { $db->close(); }
             if ($review['rows']) {
                 $contents = file_get_contents($upload['tmp_name']);
                 if ($contents === false) {
@@ -78,7 +80,7 @@ try {
                 $token = bin2hex(random_bytes(24));
                 $_SESSION['csv_import_review'] = ['token' => $token, 'expires' => time() + 600,
                     'contents' => $contents, 'event_id' => $eventId,
-                    'scoped_review' => $eventId === null ? null : $review];
+                    'scoped_review' => $review];
             }
         } else {
             throw new DomainException('Acción de importación no válida.');
@@ -102,7 +104,7 @@ include dirname(__DIR__) . '/header.php';
 <h3>Evento: <?php echo auth_escape($event['name']); ?></h3>
 <p>Las filas confirmadas se vincularán únicamente a este evento. Las personas con una inscripción general existente conservarán su QR y su estado; no recibirán otro correo. Una persona puede estar inscrita en varios eventos.</p>
 <?php else: ?>
-<p class="alert alert-info">Importación general: no se asignará ningún evento. Para inscribir participantes en un evento, abre Eventos → el evento → Importar CSV.</p>
+<p class="alert alert-info">Selecciona un evento desde Participantes antes de importar un CSV.</p>
 <?php endif; ?>
 <?php if ($error !== ''): ?><p class="alert alert-danger" role="alert"><?php echo auth_escape($error); ?></p><?php endif; ?>
 <?php if ($notice !== ''): ?><p class="alert alert-info" role="status"><?php echo auth_escape($notice); ?></p><?php endif; ?>
@@ -168,6 +170,7 @@ include dirname(__DIR__) . '/header.php';
     </section>
 <?php endif; ?>
 
+<?php if ($event !== null): ?>
 <form method="post" enctype="multipart/form-data" class="my-3" action="<?php echo auth_escape(auth_url('templates/subscription/upload.php')); ?>">
     <?php auth_csrf_field(); ?>
     <input type="hidden" name="action" value="review">
@@ -177,5 +180,6 @@ include dirname(__DIR__) . '/header.php';
     <input id="csv-file" type="file" name="csv_file" accept=".csv,text/csv" required>
     <button class="btn btn-primary" type="submit">Revisar CSV</button>
 </form>
-<a href="<?php echo auth_escape(auth_url('templates/index.php' . ($eventId === null ? '#participantes' : '#eventos/' . $eventId . '/participantes'))); ?>" class="btn btn-warning my-3"><?php echo $eventId === null ? 'Volver a participantes' : 'Volver al evento'; ?></a>
+<?php endif; ?>
+<a href="<?php echo auth_escape(auth_url('templates/index.php#participantes' . ($eventId === null ? '' : '/' . $eventId))); ?>" class="btn btn-warning my-3">Volver a participantes</a>
 <?php include dirname(__DIR__) . '/footer.php'; ?>

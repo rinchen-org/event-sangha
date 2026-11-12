@@ -79,8 +79,9 @@ the regeneration button remains available. These previews only read existing
 metadata/files and never generate a replacement or send email. Old-base warnings
 still apply: displaying the image at the current host does not repair its bitmap.
 
-Use **Regenerar QR** beside an attendee in the event roster or global participant
-list (also available in the classic list). Review the attendee and `HOST_ADDRESS`,
+Use **Regenerar QR** beside an attendee in the event roster or the explicit
+general-history view of **Participantes**. The old classic list redirects here.
+Review the attendee and `HOST_ADDRESS`,
 then confirm or cancel. Confirmation sends their identity to the existing external
 QR service and updates only that subscription's QR reference. **It never sends
 email.** Send the template separately when ready. The QR is shared across their
@@ -386,8 +387,11 @@ The old `tests/EmailTest.php` still sends real mail and is not part of this task
 
 ## Event pages and participant registrations
 
-Open **Eventos** (or an event card on the home page) and select an event. Cards
-now open `#eventos/<id>/participantes`, not an edit dialog. **Editar evento** is a
+Open **Participantes** in the left menu and choose the event. This is the single
+attendee list; `/templates/subscription/list.php` redirects here. The selected
+event is stored in `#participantes/<id>`, so refresh/bookmarks retain it. The old
+`#eventos/<id>/participantes` links still work as aliases. Event cards also open
+this roster, not an edit dialog. **Editar evento** is a
 separate action. The home page focuses on events and the agenda, not recent global
 subscriptions.
 
@@ -408,7 +412,8 @@ subscriptions.
   the current event. **Asistencia:** records for its sessions, including historical
   attendance for people not yet explicitly linked.
 
-Historical subscriptions remain in the global **Participantes** directory; no
+Historical subscriptions remain under the explicit **Inscripciones generales
+(histórico)** option; CSV import is disabled there until an event is selected. No
 event is inferred from their date, ID, attendance, or the configured QR event.
 Importing their exact name/email/phone into an event links the existing record
 without duplicating the person or sending another confirmation. Ambiguous identities
@@ -494,8 +499,11 @@ optional note; shared `admin` does not identify an individual. The additive audi
 table is created on a confirmed import, not on GET/review. Back up the database
 before deployment; no historical migrations are needed for this change.
 
-For a general import, existing exact name/email/phone subscriptions are skipped
-without another QR request or email. For an event import, they are linked to that
+Browser imports require a valid event, including the classic upload URL. Opening
+that URL without an event returns to the unified selector; a POST without a valid
+event cannot import. The library's general-import mode remains compatible for
+integrations: existing exact name/email/phone subscriptions are skipped without
+another QR request or email. In a web/event import, they are linked to that
 event, or skipped if already linked. No fuzzy matching or automatic identity merging occurs.
 Multiple existing people with identical identifying data require data review;
 the importer does not choose one arbitrarily and issue an ambiguous QR.
@@ -505,7 +513,7 @@ that no emails were sent; `SEND_EMAIL=0` does not prevent importing.
 
 ### Send the event template later
 
-Open **Eventos → the event → Participantes**. Select one or more checkboxes and
+Open **Participantes → choose the event**. Select one or more checkboxes and
 choose **Enviar a seleccionados**, or use **Enviar a todos**. Selection persists
 across pages and filters; **todos** means the entire event, not only visible rows.
 Review the exact recipients, subject, template preview and any inactive/prior-send

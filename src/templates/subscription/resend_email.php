@@ -12,7 +12,7 @@ try {
 
   $_SESSION['message'] = [
     "type" => "success",
-    "text" => "Email sent",
+    "text" => "El transporte aceptó el correo. La entrega no está confirmada.",
   ];
 } catch (Exception $e) {
   $message = $e->getMessage();
@@ -22,5 +22,5 @@ try {
   ];
 }
 
-header('Location: ./list.php');
+header('Location: ' . auth_url('templates/index.php#participantes/todos'));
 exit();

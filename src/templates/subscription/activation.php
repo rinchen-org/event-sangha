@@ -35,5 +35,5 @@ $_SESSION['message'] = [
   "text" => $message,
 ];
 
-header('Location: ./list.php');
+header('Location: ' . auth_url('templates/index.php#participantes/todos'));
 exit();

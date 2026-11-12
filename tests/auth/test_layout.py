@@ -61,13 +61,13 @@ INSERT INTO subscription VALUES(10,50,'2026-01-01','unchanged-qr',1);");'''
     def test_classic_forms_lists_reviews_and_reports_share_dashboard_shell(self):
         before = self.database.read_bytes(), self.env.read_bytes()
         routes = ['event/form.php','event/list.php','event-session/form.php','event-session/list.php',
-                  'subscription/form.php','subscription/list.php','subscription/upload.php',
+                  'subscription/form.php','subscription/upload.php',
                   'attendance/form.php','attendance/list.php','attendance/report.php',
                   'event/register.php','event/email.php']
         for base in ('', '/event-retiro'):
             for route in routes:
                 with self.subTest(route=route, base=base):
-                    response = self.page('templates/' + route, base, {'event_id':'1'} if route.startswith('event/') else {})
+                    response = self.page('templates/' + route, base, {'event_id':'1'} if route.startswith('event/') or route == 'subscription/upload.php' else {})
                     self.assertEqual(response['status'], 200, response['body'])
                     self.assert_shell(response['body'])
                     self.assertIn('href="' + base + '/templates/index.php#eventos"', response['body'])
@@ -76,6 +76,19 @@ INSERT INTO subscription VALUES(10,50,'2026-01-01','unchanged-qr',1);");'''
                         self.assertIn('buttons.html5.min.js', response['body'])
                         self.assertIn('buttons.print.min.js', response['body'])
         self.assertEqual((self.database.read_bytes(), self.env.read_bytes()), before)
+
+    def test_classic_list_and_unscoped_upload_redirect_without_data_or_configuration(self):
+        self.database.unlink()
+        self.env.unlink()
+        for base in ('', '/event-retiro'):
+            for route in ('templates/subscription/list.php', 'templates/subscription/upload.php'):
+                for method in ('GET', 'HEAD'):
+                    response = self.request(route=route, base=base, method=method, accept='text/html', seed={'created':0,'seen':0})
+                    self.assertEqual(response['status'], 303, response['body'])
+                    self.assertFalse(self.database.exists())
+                    self.assertFalse(self.env.exists())
+                self.assertEqual(self.request(route=route, base=base, method='POST', seed={'created':0,'seen':0})['status'], 403)
+        self.assertEqual(self.request(route='templates/subscription/list.php', get={'event_id':'01'}, seed={'created':0,'seen':0})['status'], 400)
 
     def test_setup_lab_and_compact_screens_work_without_frontend_build_or_database(self):
         self.database.unlink()
